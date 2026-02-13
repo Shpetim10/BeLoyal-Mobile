@@ -1,4 +1,4 @@
-package com.example.beloyal_app
+package com.shabanaj.beloyal
 
 import io.flutter.embedding.android.FlutterActivity
 

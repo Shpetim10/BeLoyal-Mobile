@@ -1,0 +1,34 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Central Dio instance configured for the BesaHub Spring Boot API.
+///
+/// ⚠ For **physical Android device** on same WiFi as PC:
+///   Replace `localhost` with your PC's local IP, e.g. `192.168.1.x`.
+/// ⚠ For **Android emulator**:
+///   Use `10.0.2.2` instead of `localhost`.
+final dioProvider = Provider<Dio>((ref) {
+  final dio = Dio(
+    BaseOptions(
+      // TODO: Change to your PC IP for physical device testing.
+      baseUrl: 'http://192.168.1.10:8080/api/beloyal',
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ),
+  );
+
+  // ── Logging interceptor (dev only) ──
+  dio.interceptors.add(
+    LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      logPrint: (obj) => print('🌐 $obj'),
+    ),
+  );
+
+  return dio;
+});

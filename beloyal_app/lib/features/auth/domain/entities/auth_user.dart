@@ -1,0 +1,57 @@
+/// Roles matching Spring Boot `Role` enum.
+enum UserRole {
+  customer,
+  restaurantAdmin,
+  staff,
+  platformAdmin;
+
+  /// Mapping from backend string (e.g. "ROLE_CUSTOMER") to enum.
+  static UserRole fromBackend(String raw) {
+    final normalized = raw.replaceFirst('ROLE_', '').toLowerCase();
+    return switch (normalized) {
+      'customer' => UserRole.customer,
+      'restaurant_admin' || 'restaurantadmin' => UserRole.restaurantAdmin,
+      'staff' => UserRole.staff,
+      'platform_admin' || 'platformadmin' => UserRole.platformAdmin,
+      _ => UserRole.customer,
+    };
+  }
+
+  String get displayName => switch (this) {
+    UserRole.customer => 'Customer',
+    UserRole.restaurantAdmin => 'Restaurant Admin',
+    UserRole.staff => 'Staff',
+    UserRole.platformAdmin => 'Platform Admin',
+  };
+
+  String get icon => switch (this) {
+    UserRole.customer => '🛒',
+    UserRole.restaurantAdmin => '🏪',
+    UserRole.staff => '👤',
+    UserRole.platformAdmin => '🛡️',
+  };
+}
+
+/// Authenticated user returned after login.
+class AuthUser {
+  const AuthUser({
+    required this.token,
+    required this.tokenType,
+    required this.roles,
+    this.emailVerified = false,
+    this.profileComplete = false,
+  });
+
+  final String token;
+  final String tokenType;
+  final Set<UserRole> roles;
+  final bool emailVerified;
+  final bool profileComplete;
+
+  bool get hasMultipleRoles => roles.length > 1;
+  bool get isCustomer => roles.contains(UserRole.customer);
+  bool get isAdmin => roles.contains(UserRole.platformAdmin);
+
+  /// Whether the user has completed all onboarding steps.
+  bool get isFullyOnboarded => emailVerified && profileComplete;
+}
