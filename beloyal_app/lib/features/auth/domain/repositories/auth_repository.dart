@@ -2,9 +2,11 @@ import '../entities/auth_user.dart';
 
 /// Domain-level failure wrapper.
 class AuthFailure {
-  const AuthFailure(this.message, {this.fieldErrors = const {}});
+  const AuthFailure(this.message, {this.fieldErrors, this.errorCode});
+
   final String message;
-  final Map<String, String> fieldErrors;
+  final Map<String, String>? fieldErrors;
+  final String? errorCode;
 }
 
 /// Sealed result type for auth operations.
@@ -54,5 +56,7 @@ abstract class AuthRepository {
   });
 
   /// Verify email with token (from deep link).
-  Future<AuthResult<String>> verifyEmail(String token);
+  Future<AuthResult<AuthUser>> verifyEmail(String token);
+  /// Resend verification email
+  Future<AuthResult<String>> resendVerification(String email); // New method
 }

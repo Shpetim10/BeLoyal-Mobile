@@ -9,6 +9,8 @@ import 'package:besahub_app/features/auth/presentation/views/register_page.dart'
 import 'package:besahub_app/features/dashboard/customer_dashboard_page.dart';
 import 'package:besahub_app/features/dashboard/placeholder_dashboard_page.dart';
 
+import '../../features/auth/presentation/views/resend_verification_page.dart';
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
@@ -47,8 +49,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/activation-processing',
         builder: (context, state) {
-          final token = state.extra as String;
+          final token = state.extra as String? ?? state.uri.queryParameters['token'];
+          if (token == null) return const LoginPage();
           return ActivationProcessingPage(token: token);
+        },
+      ),
+
+      // Deep link route (from email)
+      GoRoute(
+        path: '/api/beloyal/auth/activate',
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'];
+          if (token == null) return const LoginPage();
+          return ActivationProcessingPage(token: token);
+        },
+      ),
+
+      // NEW: Resend verification route
+      GoRoute(
+        path: '/resend-verification',
+        builder: (context, state) {
+          final email = state.extra as String?;
+          return ResendVerificationPage(email: email);
         },
       ),
       GoRoute(

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../router/app_router.dart';
 
 /// Service to handle deep links (App Links / Universal Links).
 ///
@@ -73,12 +72,16 @@ class DeepLinkService {
 
     // We use the router provider to navigate.
     // Note: This assumes the router is ready.
-    try {
-      final router = ref.read(routerProvider);
-      router.push('/activation-processing', extra: token);
-    } catch (e) {
-      debugPrint('⚠️ DeepLinkService: Navigation failed: $e');
-    }
+    // try {
+    //   final router = ref.read(routerProvider);
+    //   router.push('/activation-processing?token=$token');
+    // } catch (e) {
+    //   debugPrint('⚠️ DeepLinkService: Navigation failed: $e');
+    // }
+
+    // UPDATE: GoRouter now handles the path /api/beloyal/auth/activate directly in app_router.dart.
+    // We don't need to manually push here, or it might cause double navigation or conflicts.
+    // We keep this service running just for logging or other links.
   }
 }
 

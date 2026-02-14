@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
@@ -19,9 +20,17 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await _dio.post(
         '/auth/login',
         data: {'email': email.trim().toLowerCase(), 'password': password},
+        options: Options(responseType: ResponseType.plain),
       );
 
-      final data = response.data as Map<String, dynamic>;
+      final dynamic decoded;
+      try {
+        decoded = jsonDecode(response.data.toString());
+      } catch (e) {
+        throw FormatException('Invalid JSON response: ${response.data}');
+      }
+
+      final data = decoded as Map<String, dynamic>;
       final roles = (data['roles'] as List<dynamic>)
           .map((r) => UserRole.fromBackend(r.toString()))
           .toSet();
@@ -33,9 +42,22 @@ class AuthRepositoryImpl implements AuthRepository {
           roles: roles,
           emailVerified: (data['emailVerified'] as bool?) ?? false,
           profileComplete: (data['profileComplete'] as bool?) ?? false,
+          hasMultipleRoles: roles.length > 1
         ),
       );
     } on DioException catch (e) {
+      // If response data is plain text error, use it.
+      if (e.response != null && e.response?.data is String) {
+        // Try to parse as JSON error, else use raw string
+        try {
+          final errMap = jsonDecode(e.response!.data as String);
+          if (errMap is Map && errMap.containsKey('message')) {
+            return AuthError(AuthFailure(errMap['message'].toString()));
+          }
+        } catch (_) {}
+        // fallback to raw string
+        return AuthError(AuthFailure(e.response!.data.toString()));
+      }
       return AuthError(_mapDioError(e));
     } catch (e) {
       return AuthError(AuthFailure(e.toString()));
@@ -125,28 +147,69 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ────────────── VERIFY EMAIL ──────────────
   @override
-  Future<AuthResult<String>> verifyEmail(String token) async {
+  Future<AuthResult<AuthUser>> verifyEmail(String token) async {
     try {
-      // Prefer POST /auth/verify-email
-      final response = await _dio.post(
-        '/auth/verify-email',
+      final response = await _dio.get(
+        '/auth/activate',
         queryParameters: {'token': token},
       );
-      return AuthSuccess(_extractMessage(response.data));
+
+      final data = response.data as Map<String, dynamic>;
+
+      // Parse roles
+      final roles = (data['roles'] as List<dynamic>)
+          .map((r) => UserRole.fromBackend(r.toString()))
+          .toSet();
+
+      return AuthSuccess(
+        AuthUser(
+          token: data['token'] as String,
+          tokenType: (data['tokenType'] as String?) ?? 'Bearer',
+          roles: roles,
+          emailVerified: (data['emailVerified'] as bool?) ?? true,
+          profileComplete: (data['profileComplete'] as bool?) ?? false,
+          alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
+          hasMultipleRoles: roles.length>1
+        ),
+      );
+
     } on DioException catch (e) {
-      // Fallback: If POST fails (e.g. 404 Not Found), try GET /auth/activate
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
-        try {
-          final response = await _dio.get(
-            '/auth/activate',
-            queryParameters: {'token': token},
-          );
-          return AuthSuccess(_extractMessage(response.data));
-        } catch (e2) {
-          if (e2 is DioException) return AuthError(_mapDioError(e2));
-          return AuthError(AuthFailure(e2.toString()));
-        }
+      // Handle specific error codes
+      if (e.response?.statusCode == 410) { // GONE - token expired
+        final data = e.response?.data as Map<String, dynamic>?;
+        return AuthError(AuthFailure(
+          data?['message'] as String? ?? 'Activation link expired',
+          errorCode: 'TOKEN_EXPIRED',
+        ));
       }
+
+      if (e.response?.statusCode == 400) { // Bad request - invalid token
+        final data = e.response?.data as Map<String, dynamic>?;
+        return AuthError(AuthFailure(
+          data?['message'] as String? ?? 'Invalid activation link',
+          errorCode: 'INVALID_TOKEN',
+        ));
+      }
+
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
+    }
+  }
+
+  // ────────────── Resend Verification ──────────────
+  @override
+  Future<AuthResult<String>> resendVerification(String email) async {
+    try {
+      final response = await _dio.post(
+        '/auth/resend-verification',
+        queryParameters: {'email': email},
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      return AuthSuccess(data['message'] as String);
+
+    } on DioException catch (e) {
       return AuthError(_mapDioError(e));
     } catch (e) {
       return AuthError(AuthFailure(e.toString()));

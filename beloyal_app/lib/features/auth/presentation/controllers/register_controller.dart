@@ -7,16 +7,19 @@ class RegisterUiState {
   const RegisterUiState({
     this.successMessage,
     this.errorMessage,
+    this.errorCode,
     this.fieldErrors = const {},
     this.registeredEmail,
   });
 
   final String? successMessage;
   final String? errorMessage;
+  final String? errorCode; // NEW: for specific error handling
   final Map<String, String> fieldErrors;
   final String? registeredEmail;
 
   bool get isSuccess => successMessage != null;
+  bool get hasError => errorMessage != null;
 }
 
 class RegisterController extends AsyncNotifier<RegisterUiState> {
@@ -54,7 +57,11 @@ class RegisterController extends AsyncNotifier<RegisterUiState> {
         ),
       ),
       AuthError(failure: final f) => AsyncData(
-        RegisterUiState(errorMessage: f.message, fieldErrors: f.fieldErrors),
+        RegisterUiState(
+          errorMessage: f.message,
+          errorCode: f.errorCode,
+          fieldErrors: f.fieldErrors ?? {},
+        ),
       ),
     };
   }
@@ -65,6 +72,6 @@ class RegisterController extends AsyncNotifier<RegisterUiState> {
 }
 
 final registerControllerProvider =
-    AsyncNotifierProvider<RegisterController, RegisterUiState>(
-      RegisterController.new,
-    );
+AsyncNotifierProvider<RegisterController, RegisterUiState>(
+  RegisterController.new,
+);

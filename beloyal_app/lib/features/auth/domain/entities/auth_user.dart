@@ -38,8 +38,10 @@ class AuthUser {
     required this.token,
     required this.tokenType,
     required this.roles,
-    this.emailVerified = false,
-    this.profileComplete = false,
+    required this.emailVerified,
+    required this.profileComplete,
+    this.alreadyVerified = false,
+    required this.hasMultipleRoles
   });
 
   final String token;
@@ -47,11 +49,6 @@ class AuthUser {
   final Set<UserRole> roles;
   final bool emailVerified;
   final bool profileComplete;
-
-  bool get hasMultipleRoles => roles.length > 1;
-  bool get isCustomer => roles.contains(UserRole.customer);
-  bool get isAdmin => roles.contains(UserRole.platformAdmin);
-
-  /// Whether the user has completed all onboarding steps.
-  bool get isFullyOnboarded => emailVerified && profileComplete;
+  final bool alreadyVerified;
+  final bool hasMultipleRoles;
 }

@@ -31,7 +31,7 @@
 
                 <data
                     android:scheme="https"
-                    android:host="glow-portrait-ericsson-usd.trycloudflare.com"
+                    android:host="athletics-ports-retro-controllers.trycloudflare.com"
                     android:pathPrefix="/api/beloyal/auth/activate" />
             </intent-filter>
 

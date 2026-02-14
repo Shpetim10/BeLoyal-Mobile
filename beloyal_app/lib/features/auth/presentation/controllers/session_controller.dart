@@ -13,6 +13,18 @@ class SessionController extends Notifier<Session?> {
     state = Session(user: user, activeRole: role);
   }
 
+  /// Helper to set session from AuthUser, picking the first role as default.
+  Future<void> setSession(AuthUser user) async {
+    if (user.roles.isEmpty) {
+      // Fallback or error? Assuming at least one role exists.
+      // For now, if no roles, we can't really set a valid session with activeRole.
+      // But let's assume CUSTOMER if empty or handle it.
+      // However, AuthUser usually validates roles.
+      return;
+    }
+    state = Session(user: user, activeRole: user.roles.first);
+  }
+
   /// Switch role without re-login.
   void switchRole(UserRole role) {
     final current = state;

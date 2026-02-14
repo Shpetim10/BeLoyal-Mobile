@@ -8,14 +8,17 @@ class LoginUiState {
   const LoginUiState({
     this.user,
     this.errorMessage,
+    this.errorCode,
     this.fieldErrors = const {},
   });
 
   final AuthUser? user;
   final String? errorMessage;
+  final String? errorCode; // NEW: for specific error handling
   final Map<String, String> fieldErrors;
 
   bool get isSuccess => user != null;
+  bool get hasError => errorMessage != null;
 }
 
 class LoginController extends AsyncNotifier<LoginUiState> {
@@ -34,7 +37,11 @@ class LoginController extends AsyncNotifier<LoginUiState> {
     state = switch (result) {
       AuthSuccess(data: final user) => AsyncData(LoginUiState(user: user)),
       AuthError(failure: final f) => AsyncData(
-        LoginUiState(errorMessage: f.message, fieldErrors: f.fieldErrors),
+        LoginUiState(
+          errorMessage: f.message,
+          errorCode: f.errorCode,
+          fieldErrors: f.fieldErrors ?? {},
+        ),
       ),
     };
   }
@@ -45,4 +52,4 @@ class LoginController extends AsyncNotifier<LoginUiState> {
 }
 
 final loginControllerProvider =
-    AsyncNotifierProvider<LoginController, LoginUiState>(LoginController.new);
+AsyncNotifierProvider<LoginController, LoginUiState>(LoginController.new);
