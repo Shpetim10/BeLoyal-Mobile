@@ -36,14 +36,12 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
   bool _notificationsEnabled = true;
   bool _isLoading = false;
   String? _errorMessage;
-
-  // New: Image Picker
   File? _profileImage;
   final _picker = ImagePicker();
 
   static const _genders = [
     {'label': 'Male', 'value': 'MALE'},
-    {'label': 'Female', 'value': "FEMALE"}, // Fixed space typo
+    {'label': 'Female', 'value': "FEMALE"},
     {'label': 'Other', 'value': 'OTHER'},
     {'label': 'Prefer not to say', 'value': 'PREFER_NOT_TO_SAY'},
   ];

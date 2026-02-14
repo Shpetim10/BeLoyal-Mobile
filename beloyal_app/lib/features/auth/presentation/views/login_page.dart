@@ -57,7 +57,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
 
     // Step 2: Profile not completed → profile creation page.
-    if (!user.profileComplete) {
+    if (!user.customerProfileComplete && user.roles.contains(UserRole.customer)) {
       // Establish session so the profile page has the token.
       final role = user.roles.first;
       ref.read(sessionControllerProvider.notifier).establish(user, role);

@@ -41,7 +41,7 @@ class AuthRepositoryImpl implements AuthRepository {
           tokenType: (data['tokenType'] as String?) ?? 'Bearer',
           roles: roles,
           emailVerified: (data['emailVerified'] as bool?) ?? false,
-          profileComplete: (data['profileComplete'] as bool?) ?? false,
+          customerProfileComplete: (data['customerProfileComplete'] as bool?) ?? false,
           hasMultipleRoles: roles.length > 1,
         ),
       );
@@ -171,7 +171,7 @@ class AuthRepositoryImpl implements AuthRepository {
           tokenType: (data['tokenType'] as String?) ?? 'Bearer',
           roles: roles,
           emailVerified: (data['emailVerified'] as bool?) ?? true,
-          profileComplete: (data['profileComplete'] as bool?) ?? false,
+          customerProfileComplete: (data['customerProfileComplete'] as bool?) ?? false,
           alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
           hasMultipleRoles: roles.length > 1,
         ),

@@ -39,7 +39,7 @@ class AuthUser {
     required this.tokenType,
     required this.roles,
     required this.emailVerified,
-    required this.profileComplete,
+    required this.customerProfileComplete,
     this.alreadyVerified = false,
     required this.hasMultipleRoles
   });
@@ -48,7 +48,7 @@ class AuthUser {
   final String tokenType;
   final Set<UserRole> roles;
   final bool emailVerified;
-  final bool profileComplete;
+  final bool customerProfileComplete;
   final bool alreadyVerified;
   final bool hasMultipleRoles;
 }

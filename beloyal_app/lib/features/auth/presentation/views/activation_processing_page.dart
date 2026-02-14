@@ -61,7 +61,7 @@ class ActivationProcessingPageState
           if (!mounted) return;
 
           // Navigate based on profile status
-          if (data.profileComplete) {
+          if (data.customerProfileComplete) {
             // Profile already complete → Dashboard
             context.go('/customer/dashboard');
           } else {
