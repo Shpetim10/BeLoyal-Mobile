@@ -52,11 +52,13 @@ abstract class AuthRepository {
     String? city,
     String? country,
     String? referredBy,
+    String? profileImagePath,
     bool notificationEnabled = true,
   });
 
   /// Verify email with token (from deep link).
   Future<AuthResult<AuthUser>> verifyEmail(String token);
+
   /// Resend verification email
   Future<AuthResult<String>> resendVerification(String email); // New method
 }

@@ -10,6 +10,7 @@ import 'package:besahub_app/features/dashboard/customer_dashboard_page.dart';
 import 'package:besahub_app/features/dashboard/placeholder_dashboard_page.dart';
 
 import '../../features/auth/presentation/views/resend_verification_page.dart';
+import '../../features/auth/presentation/views/onboarding_success_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -49,7 +50,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/activation-processing',
         builder: (context, state) {
-          final token = state.extra as String? ?? state.uri.queryParameters['token'];
+          final token =
+              state.extra as String? ?? state.uri.queryParameters['token'];
           if (token == null) return const LoginPage();
           return ActivationProcessingPage(token: token);
         },
@@ -78,6 +80,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CreateProfilePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/onboarding-success',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const OnboardingSuccessPage(),
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),

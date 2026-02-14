@@ -42,7 +42,7 @@ class AuthRepositoryImpl implements AuthRepository {
           roles: roles,
           emailVerified: (data['emailVerified'] as bool?) ?? false,
           profileComplete: (data['profileComplete'] as bool?) ?? false,
-          hasMultipleRoles: roles.length > 1
+          hasMultipleRoles: roles.length > 1,
         ),
       );
     } on DioException catch (e) {
@@ -116,6 +116,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? city,
     String? country,
     String? referredBy,
+    String? profileImagePath,
     bool notificationEnabled = true,
   }) async {
     try {
@@ -129,14 +130,17 @@ class AuthRepositoryImpl implements AuthRepository {
           if (country != null) 'country': country,
           if (referredBy != null && referredBy.isNotEmpty)
             'referredBy': referredBy,
+          if (profileImagePath != null) 'profileImage': profileImagePath,
           'notificationEnabled': notificationEnabled,
         },
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          responseType: ResponseType
+              .plain, // Handle plain text "Customer profile created successfully!"
+        ),
       );
 
-      final message = response.data is String
-          ? response.data as String
-          : 'Profile created';
+      final message = response.data?.toString() ?? 'Profile created';
       return AuthSuccess(message);
     } on DioException catch (e) {
       return AuthError(_mapDioError(e));
@@ -169,26 +173,31 @@ class AuthRepositoryImpl implements AuthRepository {
           emailVerified: (data['emailVerified'] as bool?) ?? true,
           profileComplete: (data['profileComplete'] as bool?) ?? false,
           alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
-          hasMultipleRoles: roles.length>1
+          hasMultipleRoles: roles.length > 1,
         ),
       );
-
     } on DioException catch (e) {
       // Handle specific error codes
-      if (e.response?.statusCode == 410) { // GONE - token expired
+      if (e.response?.statusCode == 410) {
+        // GONE - token expired
         final data = e.response?.data as Map<String, dynamic>?;
-        return AuthError(AuthFailure(
-          data?['message'] as String? ?? 'Activation link expired',
-          errorCode: 'TOKEN_EXPIRED',
-        ));
+        return AuthError(
+          AuthFailure(
+            data?['message'] as String? ?? 'Activation link expired',
+            errorCode: 'TOKEN_EXPIRED',
+          ),
+        );
       }
 
-      if (e.response?.statusCode == 400) { // Bad request - invalid token
+      if (e.response?.statusCode == 400) {
+        // Bad request - invalid token
         final data = e.response?.data as Map<String, dynamic>?;
-        return AuthError(AuthFailure(
-          data?['message'] as String? ?? 'Invalid activation link',
-          errorCode: 'INVALID_TOKEN',
-        ));
+        return AuthError(
+          AuthFailure(
+            data?['message'] as String? ?? 'Invalid activation link',
+            errorCode: 'INVALID_TOKEN',
+          ),
+        );
       }
 
       return AuthError(_mapDioError(e));
@@ -208,7 +217,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final data = response.data as Map<String, dynamic>;
       return AuthSuccess(data['message'] as String);
-
     } on DioException catch (e) {
       return AuthError(_mapDioError(e));
     } catch (e) {

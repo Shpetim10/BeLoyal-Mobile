@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
 import '../controllers/session_controller.dart';
@@ -10,7 +14,6 @@ import '../widgets/premium_text_field.dart';
 import '../widgets/primary_gradient_button.dart';
 import '../widgets/status_banner.dart';
 import '../../data/auth_repository_impl.dart';
-import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 /// Premium Create Profile Page — shown after login if profile is not complete.
@@ -34,7 +37,16 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  static const _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  // New: Image Picker
+  File? _profileImage;
+  final _picker = ImagePicker();
+
+  static const _genders = [
+    {'label': 'Male', 'value': 'MALE'},
+    {'label': 'Female', 'value': "FEMALE"}, // Fixed space typo
+    {'label': 'Other', 'value': 'OTHER'},
+    {'label': 'Prefer not to say', 'value': 'PREFER_NOT_TO_SAY'},
+  ];
 
   @override
   void dispose() {
@@ -42,6 +54,27 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
     _countryCtrl.dispose();
     _referredByCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+      );
+      if (picked != null) {
+        final ext = picked.path.split('.').last.toLowerCase();
+        if (!['jpg', 'jpeg', 'png'].contains(ext)) {
+          setState(() => _errorMessage = 'Only JPG and PNG files are allowed.');
+          return;
+        }
+        setState(() {
+          _profileImage = File(picked.path);
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
+      setState(() => _errorMessage = 'Failed to pick image: $e');
+    }
   }
 
   Future<void> _pickBirthdate() async {
@@ -80,7 +113,29 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
       _errorMessage = null;
     });
 
+    String? localImagePath;
+
+    // 1. Copy image to local app directory if selected
+    if (_profileImage != null) {
+      try {
+        final directory = await getApplicationDocumentsDirectory();
+        final fileName = p.basename(_profileImage!.path);
+        // Copy to app documents directory
+        final savedImage = await _profileImage!.copy(
+          '${directory.path}/$fileName',
+        );
+        localImagePath = savedImage.path;
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to save image locally: $e';
+        });
+        return;
+      }
+    }
+
     final repo = ref.read(authRepositoryProvider);
+    // Updated to pass path string instead of File
     final result = await repo.createCustomerProfile(
       token: session.token,
       birthdate: _birthdate,
@@ -90,6 +145,7 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
       referredBy: _referredByCtrl.text.isEmpty
           ? null
           : _referredByCtrl.text.trim(),
+      profileImagePath: localImagePath,
       notificationEnabled: _notificationsEnabled,
     );
 
@@ -97,15 +153,8 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
 
     switch (result) {
       case AuthSuccess():
-        // Navigate to dashboard.
-        final role = session.activeRole;
-        final path = switch (role) {
-          UserRole.customer => '/customer/dashboard',
-          UserRole.restaurantAdmin => '/business/dashboard',
-          UserRole.staff => '/staff/dashboard',
-          UserRole.platformAdmin => '/admin/dashboard',
-        };
-        context.go(path);
+        // Navigate to Onboarding Success page first
+        context.go('/onboarding-success');
       case AuthError(failure: final f):
         setState(() {
           _isLoading = false;
@@ -179,6 +228,10 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
                           const SizedBox(height: 16),
                         ],
 
+                        // ── Profile Image Picker ──
+                        Center(child: _buildImagePicker()),
+                        const SizedBox(height: 24),
+
                         // ── Birthdate ──
                         _buildDatePicker(),
                         const SizedBox(height: 16),
@@ -236,6 +289,52 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Stack(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary.withValues(alpha: 0.1),
+              image: _profileImage != null
+                  ? DecorationImage(
+                      image: FileImage(_profileImage!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: _profileImage == null
+                ? const Icon(Icons.person, size: 50, color: AppColors.primary)
+                : null,
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.camera_alt_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -304,7 +403,12 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       items: _genders
-          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+          .map(
+            (g) => DropdownMenuItem(
+              value: g['value'],
+              child: Text(g['label'] ?? ''),
+            ),
+          )
           .toList(),
       onChanged: (val) => setState(() => _selectedGender = val),
     );
