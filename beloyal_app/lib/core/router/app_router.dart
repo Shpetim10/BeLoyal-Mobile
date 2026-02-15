@@ -12,9 +12,74 @@ import 'package:besahub_app/features/dashboard/placeholder_dashboard_page.dart';
 import '../../features/auth/presentation/views/resend_verification_page.dart';
 import '../../features/auth/presentation/views/onboarding_success_page.dart';
 
+import '../../features/auth/presentation/controllers/session_controller.dart';
+import '../../features/auth/domain/entities/auth_user.dart';
+
+final routerListenableProvider = Provider((ref) => RouterListenable(ref));
+
+class RouterListenable extends ChangeNotifier {
+  RouterListenable(Ref ref) {
+    ref.listen(sessionControllerProvider, (prev, next) {
+      notifyListeners();
+    });
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final listenable = ref.watch(routerListenableProvider);
+
   return GoRouter(
     initialLocation: '/login',
+    refreshListenable: listenable,
+    debugLogDiagnostics: true, // Enable GoRouter's own logging
+    redirect: (context, state) {
+      final session = ref.read(sessionControllerProvider);
+      final isLoggedIn = session != null;
+      final path = state.uri.path;
+
+      debugPrint('--- Router Redirect Check ---');
+      debugPrint('Path: $path');
+      debugPrint('IsLoggedIn: $isLoggedIn');
+      if (isLoggedIn) {
+        debugPrint('Active Role: ${session.activeRole}');
+      }
+
+      final isAuthRoute = path == '/login' || path == '/register';
+
+      if (!isLoggedIn) {
+        final allowedPaths = [
+          '/login',
+          '/register',
+          '/check-email',
+          '/activation-processing',
+          '/api/beloyal/auth/activate',
+          '/resend-verification',
+          '/forgot-password',
+        ];
+        final isAllowed = allowedPaths.any((p) => path.startsWith(p));
+
+        if (!isAllowed) {
+          debugPrint('Unauthorized access to $path -> Redirecting to /login');
+          return '/login';
+        }
+        return null;
+      }
+
+      // If logged in and on an auth route, go to respective dashboard
+      if (isAuthRoute) {
+        final target = switch (session.activeRole) {
+          UserRole.customer => '/customer/dashboard',
+          UserRole.restaurantAdmin => '/business/dashboard',
+          UserRole.staff => '/staff/dashboard',
+          UserRole.platformAdmin => '/admin/dashboard',
+        };
+        debugPrint('Logged in on auth route -> Redirecting to $target');
+        return target;
+      }
+
+      debugPrint('Proceeding to $path');
+      return null;
+    },
     routes: [
       // ── Auth ──
       GoRoute(

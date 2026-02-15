@@ -31,7 +31,7 @@
 
                 <data
                     android:scheme="https"
-                    android:host="fits-females-diana-leads.trycloudflare.com"
+                    android:host="curtis-league-totals-afford.trycloudflare.com"
                     android:pathPrefix="/api/beloyal/auth/activate" />
             </intent-filter>
 

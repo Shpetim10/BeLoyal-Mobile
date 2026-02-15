@@ -1,3 +1,4 @@
+import 'package:besahub_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,8 +66,9 @@ class CustomerDashboardPage extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      ref.read(sessionControllerProvider.notifier).logout();
+                    onPressed: () async {
+                      await ref.read(authControllerProvider).logout();
+                      if (!context.mounted) return;
                       context.go('/login');
                     },
                     icon: const Icon(Icons.logout_rounded),

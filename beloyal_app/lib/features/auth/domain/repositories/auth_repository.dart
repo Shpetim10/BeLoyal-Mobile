@@ -60,5 +60,11 @@ abstract class AuthRepository {
   Future<AuthResult<AuthUser>> verifyEmail(String token);
 
   /// Resend verification email
-  Future<AuthResult<String>> resendVerification(String email); // New method
+  Future<AuthResult<String>> resendVerification(String email);
+
+  /// POST /auth/refresh — exchange refresh token for new tokens (and optionally rotated refresh).
+  Future<AuthResult<AuthUser>> refresh(String refreshToken);
+
+  /// POST /auth/logout — best-effort revoke of refresh token on backend.
+  Future<void> logout(String refreshToken);
 }

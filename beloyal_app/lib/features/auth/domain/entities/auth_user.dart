@@ -37,15 +37,17 @@ class AuthUser {
   const AuthUser({
     required this.token,
     required this.tokenType,
+    required this.refreshToken,
     required this.roles,
-    required this.emailVerified,
-    required this.customerProfileComplete,
+    this.emailVerified = false,
+    this.customerProfileComplete = false,
     this.alreadyVerified = false,
-    required this.hasMultipleRoles
+    required this.hasMultipleRoles,
   });
 
   final String token;
   final String tokenType;
+  final String refreshToken;
   final Set<UserRole> roles;
   final bool emailVerified;
   final bool customerProfileComplete;

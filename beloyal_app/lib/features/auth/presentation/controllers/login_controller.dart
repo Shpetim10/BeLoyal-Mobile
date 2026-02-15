@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/auth_repository_impl.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import 'auth_controller.dart';
 
 /// UI state for the Login screen.
 class LoginUiState {
@@ -14,7 +14,7 @@ class LoginUiState {
 
   final AuthUser? user;
   final String? errorMessage;
-  final String? errorCode; // NEW: for specific error handling
+  final String? errorCode;
   final Map<String, String> fieldErrors;
 
   bool get isSuccess => user != null;
@@ -28,21 +28,18 @@ class LoginController extends AsyncNotifier<LoginUiState> {
   Future<void> login(String email, String password) async {
     state = const AsyncLoading();
 
-    final repo = ref.read(authRepositoryProvider);
-    final result = await repo.login(
-      email: email.trim().toLowerCase(),
-      password: password,
-    );
+    final authController = ref.read(authControllerProvider);
+    final result = await authController.login(email, password);
 
     state = switch (result) {
       AuthSuccess(data: final user) => AsyncData(LoginUiState(user: user)),
       AuthError(failure: final f) => AsyncData(
-        LoginUiState(
-          errorMessage: f.message,
-          errorCode: f.errorCode,
-          fieldErrors: f.fieldErrors ?? {},
+          LoginUiState(
+            errorMessage: f.message,
+            errorCode: f.errorCode,
+            fieldErrors: f.fieldErrors ?? {},
+          ),
         ),
-      ),
     };
   }
 
@@ -52,4 +49,4 @@ class LoginController extends AsyncNotifier<LoginUiState> {
 }
 
 final loginControllerProvider =
-AsyncNotifierProvider<LoginController, LoginUiState>(LoginController.new);
+    AsyncNotifierProvider<LoginController, LoginUiState>(LoginController.new);

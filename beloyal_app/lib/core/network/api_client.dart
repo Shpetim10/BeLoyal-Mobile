@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'auth_interceptor.dart';
 
 /// Central Dio instance configured for the BesaHub Spring Boot API.
 ///
@@ -20,6 +21,9 @@ final dioProvider = Provider<Dio>((ref) {
       },
     ),
   );
+
+  // ── Auth interceptor for tokens & refresh ──
+  dio.interceptors.add(AuthInterceptor(ref));
 
   // ── Logging interceptor (dev only) ──
   dio.interceptors.add(

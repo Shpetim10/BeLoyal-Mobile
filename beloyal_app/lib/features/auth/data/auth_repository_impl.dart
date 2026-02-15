@@ -31,20 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       final data = decoded as Map<String, dynamic>;
-      final roles = (data['roles'] as List<dynamic>)
-          .map((r) => UserRole.fromBackend(r.toString()))
-          .toSet();
-
-      return AuthSuccess(
-        AuthUser(
-          token: data['token'] as String,
-          tokenType: (data['tokenType'] as String?) ?? 'Bearer',
-          roles: roles,
-          emailVerified: (data['emailVerified'] as bool?) ?? false,
-          customerProfileComplete: (data['customerProfileComplete'] as bool?) ?? false,
-          hasMultipleRoles: roles.length > 1,
-        ),
-      );
+      return AuthSuccess(_authUserFromMap(data, data));
     } on DioException catch (e) {
       // If response data is plain text error, use it.
       if (e.response != null && e.response?.data is String) {
@@ -159,23 +146,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       final data = response.data as Map<String, dynamic>;
-
-      // Parse roles
-      final roles = (data['roles'] as List<dynamic>)
-          .map((r) => UserRole.fromBackend(r.toString()))
-          .toSet();
-
-      return AuthSuccess(
-        AuthUser(
-          token: data['token'] as String,
-          tokenType: (data['tokenType'] as String?) ?? 'Bearer',
-          roles: roles,
-          emailVerified: (data['emailVerified'] as bool?) ?? true,
-          customerProfileComplete: (data['customerProfileComplete'] as bool?) ?? false,
-          alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
-          hasMultipleRoles: roles.length > 1,
-        ),
-      );
+      return AuthSuccess(_authUserFromMap(data, data));
     } on DioException catch (e) {
       // Handle specific error codes
       if (e.response?.statusCode == 410) {
@@ -224,12 +195,65 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  String _extractMessage(dynamic data) {
-    if (data is String) return data;
-    if (data is Map<String, dynamic>) {
-      return data['message'] as String? ?? 'Email verified successfully';
+  // ────────────── REFRESH ──────────────
+  @override
+  Future<AuthResult<AuthUser>> refresh(String refreshToken) async {
+    try {
+      final response = await _dio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      final dynamic decoded;
+      try {
+        decoded = jsonDecode(response.data.toString());
+      } catch (e) {
+        throw FormatException('Invalid JSON response: ${response.data}');
+      }
+
+      final data = decoded as Map<String, dynamic>;
+      return AuthSuccess(_authUserFromMap(data, data));
+    } on DioException catch (e) {
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
     }
-    return 'Email verified successfully';
+  }
+
+  // ────────────── LOGOUT ──────────────
+  @override
+  Future<void> logout(String refreshToken) async {
+    try {
+      await _dio.post(
+        '/auth/logout',
+        data: {'refreshToken': refreshToken},
+        options: Options(responseType: ResponseType.plain),
+      );
+    } on DioException catch (_) {
+      // Best-effort: ignore so caller always clears local state
+    }
+  }
+
+  /// Build AuthUser from API map (login/refresh). Tolerates token vs accessToken, missing roles.
+  AuthUser _authUserFromMap(Map<String, dynamic> data, Map<String, dynamic> tokenSource) {
+    final access = (tokenSource['accessToken'] ?? tokenSource['token'] ?? '').toString().trim();
+    final refresh = (tokenSource['refreshToken'] ?? '').toString().trim();
+    final rolesList = (data['roles'] as List<dynamic>?) ?? const <dynamic>[];
+    final roles = rolesList
+        .map((r) => UserRole.fromBackend(r.toString()))
+        .toSet();
+    final resolvedRoles = roles.isEmpty ? {UserRole.customer} : roles;
+    return AuthUser(
+      token: access,
+      tokenType: (data['tokenType'] as String?) ?? 'Bearer',
+      refreshToken: refresh,
+      roles: resolvedRoles,
+      emailVerified: (data['emailVerified'] as bool?) ?? false,
+      customerProfileComplete: (data['customerProfileComplete'] as bool?) ?? false,
+      alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
+      hasMultipleRoles: resolvedRoles.length > 1,
+    );
   }
 
   // ────────────── Error mapping ──────────────
