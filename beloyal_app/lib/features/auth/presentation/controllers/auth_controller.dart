@@ -102,6 +102,34 @@ class AuthController {
     }
   }
 
+  /// Email activation: verify token, then save tokens + set session (same as login).
+  /// Backend returns accessToken, refreshToken, roles, emailVerified, profileComplete, alreadyVerified.
+  Future<AuthResult<AuthUser>> completeActivation(String token) async {
+    _authLog('Activation: verifying email with token');
+    final repo = ref.read(authRepositoryProvider);
+    final storage = ref.read(tokenStorageProvider);
+
+    final result = await repo.verifyEmail(token);
+
+    switch (result) {
+      case AuthSuccess(data: final user):
+        if (user.token.isEmpty || user.refreshToken.isEmpty) {
+          _authLog('Activation: response missing tokens');
+          return AuthError(AuthFailure('Invalid activation response'));
+        }
+        await storage.saveTokens(
+          accessToken: user.token,
+          refreshToken: user.refreshToken,
+        );
+        _authLog('Activation: tokens saved, setting session');
+        await ref.read(sessionControllerProvider.notifier).setSession(user);
+        return AuthSuccess(user);
+      case AuthError(failure: final f):
+        _authLog('Activation failed: ${f.message}');
+        return AuthError(f);
+    }
+  }
+
   /// Logout: best-effort revoke on backend when refresh token exists, then always clear local state.
   Future<void> logout() async {
     _authLog('Logout');

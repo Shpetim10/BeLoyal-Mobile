@@ -250,7 +250,8 @@ class AuthRepositoryImpl implements AuthRepository {
       refreshToken: refresh,
       roles: resolvedRoles,
       emailVerified: (data['emailVerified'] as bool?) ?? false,
-      customerProfileComplete: (data['customerProfileComplete'] as bool?) ?? false,
+      customerProfileComplete:
+          ((data['customerProfileComplete'] ?? data['profileComplete']) as bool?) ?? false,
       alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
       hasMultipleRoles: resolvedRoles.length > 1,
     );

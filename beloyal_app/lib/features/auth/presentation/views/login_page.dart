@@ -57,7 +57,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
 
     // Step 2: Profile not completed → profile creation page.
-    if (!user.customerProfileComplete && user.roles.contains(UserRole.customer)) {
+    if (!user.customerProfileComplete &&
+        user.roles.contains(UserRole.customer)) {
       // Establish session so the profile page has the token.
       final role = user.roles.first;
       ref.read(sessionControllerProvider.notifier).establish(user, role);
@@ -315,6 +316,22 @@ class _FooterLinks extends StatelessWidget {
             TextButton(
               onPressed: () => context.push('/register'),
               child: const Text('Sign Up'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Own a business?",
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+            ),
+            TextButton(
+              onPressed: () => context.push('/business/register'),
+              child: const Text('Register here'),
             ),
           ],
         ),

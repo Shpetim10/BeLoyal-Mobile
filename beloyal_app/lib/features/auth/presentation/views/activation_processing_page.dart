@@ -4,10 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../controllers/session_controller.dart';
 import '../../../../core/theme/glass.dart';
-import '../../data/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../controllers/auth_controller.dart';
 import '../widgets/auth_shell.dart';
 
 class ActivationProcessingPage extends ConsumerStatefulWidget {
@@ -40,32 +39,25 @@ class ActivationProcessingPageState
     });
 
     try {
-      final repo = ref.read(authRepositoryProvider);
-      final result = await repo.verifyEmail(widget.token);
+      final authController = ref.read(authControllerProvider);
+      final result = await authController.completeActivation(widget.token);
 
       if (!mounted) return;
 
       switch (result) {
         case AuthSuccess(:final data):
-          // Save the session with JWT token
-          await ref.read(sessionControllerProvider.notifier).setSession(data);
-
           setState(() {
             _isLoading = false;
             _isSuccess = true;
           });
 
-          // Show success message briefly
           await Future.delayed(const Duration(seconds: 2));
 
           if (!mounted) return;
 
-          // Navigate based on profile status
           if (data.customerProfileComplete) {
-            // Profile already complete → Dashboard
             context.go('/customer/dashboard');
           } else {
-            // Need to complete profile
             context.go('/create-profile');
           }
 
@@ -76,13 +68,9 @@ class ActivationProcessingPageState
             _errorCode = failure.errorCode;
           });
 
-          // Auto-redirect to appropriate page after showing error
           if (failure.errorCode == 'TOKEN_EXPIRED') {
-            // Give user time to read the error
             await Future.delayed(const Duration(seconds: 3));
             if (!mounted) return;
-
-            // Extract email from token to pre-fill
             final email = _getEmailFromToken(widget.token);
             context.go('/resend-verification', extra: email);
           }

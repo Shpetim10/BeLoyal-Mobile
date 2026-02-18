@@ -15,6 +15,15 @@ import '../../features/auth/presentation/views/onboarding_success_page.dart';
 import '../../features/auth/presentation/controllers/session_controller.dart';
 import '../../features/auth/domain/entities/auth_user.dart';
 
+// Business Onboarding imports
+import '../../features/business_onboarding/pages/business_registration_entry_page.dart';
+import '../../features/business_onboarding/pages/business_account_choice_page.dart';
+import '../../features/business_onboarding/pages/existing_account_verify_page.dart';
+import '../../features/business_onboarding/pages/new_account_for_business_page.dart';
+import '../../features/business_onboarding/pages/business_details_form_page.dart';
+import '../../features/business_onboarding/pages/under_review_confirmation_page.dart';
+import '../../features/business_onboarding/pages/under_review_gate_page.dart';
+
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
 class RouterListenable extends ChangeNotifier {
@@ -55,6 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/api/beloyal/auth/activate',
           '/resend-verification',
           '/forgot-password',
+          '/business/register', // Allow business registration flow
         ];
         final isAllowed = allowedPaths.any((p) => path.startsWith(p));
 
@@ -164,6 +174,77 @@ final routerProvider = Provider<GoRouter>((ref) {
           title: 'Forgot Password',
           icon: Icons.lock_reset_rounded,
           message: 'Password reset flow will be implemented here.',
+        ),
+      ),
+
+      // ── Business Onboarding ──
+      GoRoute(
+        path: '/business/register',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const BusinessRegistrationEntryPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/register/account-choice',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const BusinessAccountChoicePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/register/existing-account',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ExistingAccountVerifyPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/register/new-account',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const NewAccountForBusinessPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/register/details',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const BusinessDetailsFormPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/register/under-review-confirmation',
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: UnderReviewConfirmationPage(
+              businessName: extra?['businessName'] as String?,
+              status: extra?['status'] as String?,
+            ),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/business/under-review',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const UnderReviewGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
         ),
       ),
 

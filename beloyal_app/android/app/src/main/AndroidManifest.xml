@@ -31,8 +31,8 @@
 
                 <data
                     android:scheme="https"
-                    android:host="curtis-league-totals-afford.trycloudflare.com"
-                    android:pathPrefix="/api/beloyal/auth/activate" />
+                    android:host="merge-topics-competitors-closes.trycloudflare.com"
+                    android:pathPrefix="/api/besahub/auth/activate" />
             </intent-filter>
 
 
