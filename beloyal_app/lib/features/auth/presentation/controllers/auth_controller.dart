@@ -48,6 +48,7 @@ class AuthController {
           refreshToken: user.refreshToken,
         );
         _authLog('Login success; tokens saved, setting session');
+
         await ref.read(sessionControllerProvider.notifier).setSession(user);
         return AuthSuccess(user);
       case AuthError(failure: final f):

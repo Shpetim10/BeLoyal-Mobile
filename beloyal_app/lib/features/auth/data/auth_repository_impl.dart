@@ -31,6 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       final data = decoded as Map<String, dynamic>;
+
       return AuthSuccess(_authUserFromMap(data, data));
     } on DioException catch (e) {
       // If response data is plain text error, use it.
@@ -236,14 +237,67 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   /// Build AuthUser from API map (login/refresh). Tolerates token vs accessToken, missing roles.
-  AuthUser _authUserFromMap(Map<String, dynamic> data, Map<String, dynamic> tokenSource) {
-    final access = (tokenSource['accessToken'] ?? tokenSource['token'] ?? '').toString().trim();
+  AuthUser _authUserFromMap(
+    Map<String, dynamic> data,
+    Map<String, dynamic> tokenSource,
+  ) {
+    final access = (tokenSource['accessToken'] ?? tokenSource['token'] ?? '')
+        .toString()
+        .trim();
     final refresh = (tokenSource['refreshToken'] ?? '').toString().trim();
-    final rolesList = (data['roles'] as List<dynamic>?) ?? const <dynamic>[];
-    final roles = rolesList
-        .map((r) => UserRole.fromBackend(r.toString()))
-        .toSet();
-    final resolvedRoles = roles.isEmpty ? {UserRole.customer} : roles;
+
+    // Roles can be List<String> or a comma-separated String
+    final dynamic rawRoles = data['roles'];
+    final List<String> rolesList = [];
+    if (rawRoles is List) {
+      rolesList.addAll(rawRoles.map((e) => e.toString()));
+    } else if (rawRoles is String && rawRoles.isNotEmpty) {
+      rolesList.addAll(rawRoles.split(',').map((e) => e.trim()));
+    }
+
+    final roles = rolesList.map((r) => UserRole.fromBackend(r)).toSet();
+
+    // Parse businessProfiles list from backend: List<Map<String, dynamic>>
+    final dynamic rawBusinessProfiles = data['businessProfiles'];
+    final businessProfiles = <BusinessProfileInfo>[];
+    if (rawBusinessProfiles is List) {
+      for (final item in rawBusinessProfiles) {
+        if (item is Map) {
+          final id = item['businessId'] as num?;
+          final businessName = item['businessName'];
+          final roleStr = item['role'] as String?;
+
+          // Robust boolean parsing
+          final rawActive = item['active'];
+          final active =
+              rawActive == true ||
+              rawActive?.toString().toLowerCase() == 'true' ||
+              rawActive == 1 ||
+              rawActive?.toString() == '1';
+
+          if (id != null && roleStr != null) {
+            businessProfiles.add(
+              BusinessProfileInfo(
+                businessId: id.toInt(),
+                businessName: businessName,
+                role: UserRole.fromBackend(roleStr),
+                active: active,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    final activeBusinessCount = businessProfiles.where((p) => p.active).length;
+
+    // Ensure Customer role is available if no other global roles exist.
+    // This allows users with business profiles to still access their personal account.
+    final Set<UserRole> resolvedRoles = {...roles};
+    if (resolvedRoles.isEmpty) {
+      resolvedRoles.add(UserRole.customer);
+    }
+
     return AuthUser(
       token: access,
       tokenType: (data['tokenType'] as String?) ?? 'Bearer',
@@ -251,9 +305,12 @@ class AuthRepositoryImpl implements AuthRepository {
       roles: resolvedRoles,
       emailVerified: (data['emailVerified'] as bool?) ?? false,
       customerProfileComplete:
-          ((data['customerProfileComplete'] ?? data['profileComplete']) as bool?) ?? false,
+          ((data['customerProfileComplete'] ?? data['profileComplete'])
+              as bool?) ??
+          false,
       alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
-      hasMultipleRoles: resolvedRoles.length > 1,
+      hasMultipleRoles: (resolvedRoles.length + activeBusinessCount) > 1,
+      businessProfiles: businessProfiles,
     );
   }
 

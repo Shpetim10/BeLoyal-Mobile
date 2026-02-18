@@ -49,9 +49,9 @@ class _OnboardingSuccessPageState extends ConsumerState<OnboardingSuccessPage> {
     final role = session.activeRole;
     final path = switch (role) {
       UserRole.customer => '/customer/dashboard',
-      UserRole.restaurantAdmin => '/business/dashboard',
+      UserRole.businessAdmin => '/business/dashboard',
       UserRole.staff => '/staff/dashboard',
-      UserRole.platformAdmin => '/admin/dashboard',
+      UserRole.superAdmin => '/admin/dashboard',
     };
     context.go(path);
   }

@@ -15,7 +15,7 @@ import '../widgets/primary_gradient_button.dart';
 import '../widgets/status_banner.dart';
 import 'role_select_sheet.dart';
 
-/// Premium Login Page — REQ-01
+/// Login Page — REQ-01
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -50,44 +50,84 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!uiState.isSuccess) return;
     final user = uiState.user!;
 
-    // Step 1: Email not verified → verification page.
+    // Step 1: Email not verified -> verification page.
     if (!user.emailVerified) {
       context.go('/check-email', extra: _emailCtrl.text.trim().toLowerCase());
       return;
     }
 
-    // Step 2: Profile not completed → profile creation page.
-    if (!user.customerProfileComplete &&
-        user.roles.contains(UserRole.customer)) {
-      // Establish session so the profile page has the token.
-      final role = user.roles.first;
-      ref.read(sessionControllerProvider.notifier).establish(user, role);
-      context.go('/create-profile');
-      return;
-    }
-
-    // Step 3: Fully onboarded → dashboard (with role selection if multi-role).
+    // Step 2: Dashboard/Role Selection logic
     if (user.hasMultipleRoles) {
       _showRoleSheet(user);
     } else {
-      final role = user.roles.first;
-      ref.read(sessionControllerProvider.notifier).establish(user, role);
-      _navigateToDashboard(role);
+      // If only one role, pick it. If it's a business role, pick the active business.
+      final activeBusiness = user.businessProfiles
+          .where((p) => p.active)
+          .firstOrNull;
+      if (activeBusiness != null) {
+        ref
+            .read(sessionControllerProvider.notifier)
+            .establish(
+              user,
+              activeBusiness.role,
+              businessId: activeBusiness.businessId,
+              businessName: activeBusiness.businessName,
+            );
+        _navigateToDashboard(activeBusiness.role);
+      } else {
+        final role = user.roles.first;
+
+        // Handle Customer Profile Completion check here for single role
+        if (role == UserRole.customer && !user.customerProfileComplete) {
+          ref.read(sessionControllerProvider.notifier).establish(user, role);
+          context.go('/create-profile');
+          return;
+        }
+
+        ref.read(sessionControllerProvider.notifier).establish(user, role);
+        _navigateToDashboard(role);
+      }
     }
   }
 
   void _showRoleSheet(AuthUser user) {
-    showModalBottomSheet<UserRole>(
+    showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => RoleSelectSheet(roles: user.roles.toList()),
-    ).then((selectedRole) {
-      if (selectedRole != null && mounted) {
+      builder: (_) => RoleSelectSheet(
+        roles: user.roles.toList(),
+        businessProfiles: user.businessProfiles,
+      ),
+    ).then((result) {
+      if (result != null && mounted) {
+        final role = result['role'] as UserRole;
+        final businessId = result['businessId'] as int?;
+        final businessName = result['businessName'] as String?;
+
+        // If customer selected and profile incomplete -> /create-profile
+        if (role == UserRole.customer && !user.customerProfileComplete) {
+          ref
+              .read(sessionControllerProvider.notifier)
+              .establish(
+                user,
+                role,
+                businessId: businessId,
+                businessName: businessName,
+              );
+          context.go('/create-profile');
+          return;
+        }
+
         ref
             .read(sessionControllerProvider.notifier)
-            .establish(user, selectedRole);
-        _navigateToDashboard(selectedRole);
+            .establish(
+              user,
+              role,
+              businessId: businessId,
+              businessName: businessName,
+            );
+        _navigateToDashboard(role);
       }
     });
   }
@@ -95,9 +135,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   void _navigateToDashboard(UserRole role) {
     final path = switch (role) {
       UserRole.customer => '/customer/dashboard',
-      UserRole.restaurantAdmin => '/business/dashboard',
+      UserRole.businessAdmin => '/business/dashboard',
       UserRole.staff => '/staff/dashboard',
-      UserRole.platformAdmin => '/admin/dashboard',
+      UserRole.superAdmin => '/admin/dashboard',
     };
     if (mounted) context.go(path);
   }

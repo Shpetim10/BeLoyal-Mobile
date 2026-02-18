@@ -7,8 +7,9 @@ import 'package:besahub_app/features/auth/presentation/views/create_profile_page
 import 'package:besahub_app/features/auth/presentation/views/login_page.dart';
 import 'package:besahub_app/features/auth/presentation/views/register_page.dart';
 import 'package:besahub_app/features/dashboard/customer_dashboard_page.dart';
-import 'package:besahub_app/features/dashboard/placeholder_dashboard_page.dart';
-
+import 'package:besahub_app/features/dashboard/business_dashboard_page.dart';
+import 'package:besahub_app/features/dashboard/staff_dashboard_page.dart';
+import 'package:besahub_app/features/dashboard/admin_dashboard_page.dart';
 import '../../features/auth/presentation/views/resend_verification_page.dart';
 import '../../features/auth/presentation/views/onboarding_success_page.dart';
 
@@ -79,9 +80,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (isAuthRoute) {
         final target = switch (session.activeRole) {
           UserRole.customer => '/customer/dashboard',
-          UserRole.restaurantAdmin => '/business/dashboard',
+          UserRole.businessAdmin => '/business/dashboard',
           UserRole.staff => '/staff/dashboard',
-          UserRole.platformAdmin => '/admin/dashboard',
+          UserRole.superAdmin => '/admin/dashboard',
         };
         debugPrint('Logged in on auth route -> Redirecting to $target');
         return target;
@@ -260,23 +261,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/business/dashboard',
-        builder: (context, state) => const PlaceholderDashboardPage(
-          title: 'Business Dashboard',
-          icon: Icons.storefront_outlined,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const BusinessDashboardPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
         ),
       ),
       GoRoute(
         path: '/staff/dashboard',
-        builder: (context, state) => const PlaceholderDashboardPage(
-          title: 'Staff Dashboard',
-          icon: Icons.badge_outlined,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const StaffDashboardPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
         ),
       ),
       GoRoute(
         path: '/admin/dashboard',
-        builder: (context, state) => const PlaceholderDashboardPage(
-          title: 'Admin Dashboard',
-          icon: Icons.admin_panel_settings_outlined,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AdminDashboardPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
         ),
       ),
     ],

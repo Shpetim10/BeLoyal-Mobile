@@ -31,7 +31,7 @@
 
                 <data
                     android:scheme="https"
-                    android:host="merge-topics-competitors-closes.trycloudflare.com"
+                    android:host="village-thee-plot-flux.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/activate" />
             </intent-filter>
 

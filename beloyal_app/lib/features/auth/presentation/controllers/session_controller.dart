@@ -9,27 +9,66 @@ class SessionController extends Notifier<Session?> {
   Session? build() => null;
 
   /// Called after successful login + role selection.
-  void establish(AuthUser user, UserRole role) {
-    state = Session(user: user, activeRole: role);
+  void establish(
+    AuthUser user,
+    UserRole role, {
+    int? businessId,
+    String? businessName,
+  }) {
+    state = Session(
+      user: user,
+      activeRole: role,
+      activeBusinessId: businessId,
+      activeBusinessName: businessName,
+    );
   }
 
   /// Helper to set session from AuthUser, picking the first role as default.
+  /// Defaults to CUSTOMER if present, otherwise picks the first available business.
   Future<void> setSession(AuthUser user) async {
-    if (user.roles.isEmpty) {
-      // Fallback or error? Assuming at least one role exists.
-      // For now, if no roles, we can't really set a valid session with activeRole.
-      // But let's assume CUSTOMER if empty or handle it.
-      // However, AuthUser usually validates roles.
+    if (user.roles.isEmpty && user.businessProfiles.isEmpty) {
       return;
     }
-    state = Session(user: user, activeRole: user.roles.first);
+
+    // Default 1: Customer (if they have the role)
+    if (user.roles.contains(UserRole.customer)) {
+      state = Session(user: user, activeRole: UserRole.customer);
+      return;
+    }
+
+    // Default 2: First active business profile
+    if (user.hasActiveBusinessProfiles) {
+      final firstProfile = user.businessProfiles
+          .where((p) => p.active)
+          .firstOrNull;
+      if (firstProfile != null) {
+        state = Session(
+          user: user,
+          activeRole: firstProfile.role,
+          activeBusinessId: firstProfile.businessId,
+          activeBusinessName: firstProfile.businessName,
+        );
+        return;
+      }
+    }
+
+    // Default 3: Platform Admin or whatever is first
+    state = Session(
+      user: user,
+      activeRole: user.roles.firstOrNull ?? UserRole.customer,
+    );
   }
 
   /// Switch role without re-login.
-  void switchRole(UserRole role) {
+  void switchRole(UserRole role, {int? businessId, String? businessName}) {
     final current = state;
     if (current != null) {
-      state = current.copyWith(activeRole: role);
+      state = current.copyWith(
+        activeRole: role,
+        activeBusinessId: businessId,
+        activeBusinessName: businessName,
+        clearBusinessId: businessId == null,
+      );
     }
   }
 

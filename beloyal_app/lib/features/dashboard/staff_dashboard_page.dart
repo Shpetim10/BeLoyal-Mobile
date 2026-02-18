@@ -8,9 +8,8 @@ import 'package:besahub_app/features/auth/presentation/views/role_select_sheet.d
 import 'package:besahub_app/features/auth/domain/entities/session.dart';
 import 'package:besahub_app/features/auth/domain/entities/auth_user.dart';
 
-/// Stub customer dashboard to prove routing works.
-class CustomerDashboardPage extends ConsumerWidget {
-  const CustomerDashboardPage({super.key});
+class StaffDashboardPage extends ConsumerWidget {
+  const StaffDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,7 +21,7 @@ class CustomerDashboardPage extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.bgDark, const Color(0xFF0F1A2E)],
+            colors: [AppColors.bgDark, const Color(0xFF1E1029)],
           ),
         ),
         child: SafeArea(
@@ -35,14 +34,14 @@ class CustomerDashboardPage extends ConsumerWidget {
                 Row(
                   children: [
                     const Icon(
-                      Icons.shopping_bag_outlined,
+                      Icons.badge_outlined,
                       color: AppColors.accent,
                       size: 28,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Customer Dashboard',
+                        'Staff Dashboard',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
@@ -56,12 +55,35 @@ class CustomerDashboardPage extends ConsumerWidget {
                       ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                if (session?.activeBusinessId != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'Assigned Business: ${session!.activeBusinessName ?? session.activeBusinessId}',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 32),
                 _InfoCard(
-                  icon: Icons.verified_user_rounded,
-                  title: 'Welcome!',
+                  icon: Icons.assignment_ind_rounded,
+                  title: 'Staff Portal',
                   subtitle:
-                      'You are logged in as ${session?.activeRole.displayName ?? "Customer"}.',
+                      'Logged in as ${session?.activeRole.displayName ?? "Staff Member"}.',
                 ),
                 const Spacer(),
                 // Logout

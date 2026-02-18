@@ -4,18 +4,24 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/auth_user.dart';
 import '../widgets/role_chip.dart';
 
-/// Premium modal bottom sheet for role selection when user has multiple roles.
+/// Premium modal bottom sheet for role selection when user has multiple roles or business profiles.
 class RoleSelectSheet extends StatefulWidget {
-  const RoleSelectSheet({super.key, required this.roles});
+  const RoleSelectSheet({
+    super.key,
+    required this.roles,
+    required this.businessProfiles,
+  });
 
   final List<UserRole> roles;
+  final List<BusinessProfileInfo> businessProfiles;
 
   @override
   State<RoleSelectSheet> createState() => _RoleSelectSheetState();
 }
 
 class _RoleSelectSheetState extends State<RoleSelectSheet> {
-  UserRole? _selected;
+  UserRole? _selectedRole;
+  int? _selectedBusinessId;
 
   @override
   Widget build(BuildContext context) {
@@ -60,29 +66,65 @@ class _RoleSelectSheetState extends State<RoleSelectSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'You have multiple roles. Select which one to use for this session.',
+            'You have multiple options. Select which one to use for this session.',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
           ),
           const SizedBox(height: 24),
 
-          // Role chips
+          // Standard Roles
           ...widget.roles.asMap().entries.map((entry) {
             final idx = entry.key;
             final role = entry.value;
+            // If it's businessAdmin or STAFF, we handle it via the business list instead if applicable
+            // But usually, roles list might contain CUSTOMER or PLATFORM_ADMIN which are distinct.
             return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: RoleChip(
                     role: role,
-                    selected: _selected == role,
-                    onTap: () => setState(() => _selected = role),
+                    selected:
+                        _selectedRole == role && _selectedBusinessId == null,
+                    onTap: () => setState(() {
+                      _selectedRole = role;
+                      _selectedBusinessId = null;
+                    }),
                   ),
                 )
                 .animate()
                 .fadeIn(delay: (100 * idx).ms, duration: 300.ms)
                 .slideX(begin: 0.1, end: 0, duration: 300.ms);
           }),
+
+          // Business Profiles
+          ...widget.businessProfiles
+              .where((p) => p.active)
+              .toList()
+              .asMap()
+              .entries
+              .map((entry) {
+                final idx = entry.key;
+                final profile = entry.value;
+                return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _BusinessChip(
+                        businessId: profile.businessId,
+                        businessName: profile.businessName,
+                        role: profile.role,
+                        selected: _selectedBusinessId == profile.businessId,
+                        onTap: () => setState(() {
+                          _selectedRole = profile.role;
+                          _selectedBusinessId = profile.businessId;
+                        }),
+                      ),
+                    )
+                    .animate()
+                    .fadeIn(
+                      delay: (100 * (widget.roles.length + idx)).ms,
+                      duration: 300.ms,
+                    )
+                    .slideX(begin: 0.1, end: 0, duration: 300.ms);
+              }),
 
           const SizedBox(height: 12),
 
@@ -91,13 +133,105 @@ class _RoleSelectSheetState extends State<RoleSelectSheet> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _selected == null
+              onPressed: _selectedRole == null
                   ? null
-                  : () => Navigator.of(context).pop(_selected),
+                  : () {
+                      Navigator.of(context).pop({
+                        'role': _selectedRole,
+                        'businessId': _selectedBusinessId,
+                        'businessName': widget.businessProfiles
+                            .where((p) => p.businessId == _selectedBusinessId)
+                            .firstOrNull
+                            ?.businessName,
+                      });
+                    },
               child: const Text('Continue'),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BusinessChip extends StatelessWidget {
+  const _BusinessChip({
+    required this.businessId,
+    required this.businessName,
+    required this.role,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int businessId;
+  final String businessName;
+  final UserRole role;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: 200.ms,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected
+                ? AppColors.primary
+                : AppColors.textMuted.withValues(alpha: 0.2),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                role == UserRole.staff
+                    ? Icons.badge_outlined
+                    : Icons.storefront_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    businessName,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: selected ? AppColors.primary : null,
+                    ),
+                  ),
+                  Text(
+                    role.displayName,
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
+          ],
+        ),
       ),
     );
   }

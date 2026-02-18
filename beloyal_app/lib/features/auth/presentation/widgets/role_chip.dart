@@ -17,9 +17,9 @@ class RoleChip extends StatelessWidget {
 
   IconData get _icon => switch (role) {
     UserRole.customer => Icons.shopping_bag_outlined,
-    UserRole.restaurantAdmin => Icons.storefront_outlined,
+    UserRole.businessAdmin => Icons.storefront_outlined,
     UserRole.staff => Icons.badge_outlined,
-    UserRole.platformAdmin => Icons.admin_panel_settings_outlined,
+    UserRole.superAdmin => Icons.admin_panel_settings_outlined,
   };
 
   @override
