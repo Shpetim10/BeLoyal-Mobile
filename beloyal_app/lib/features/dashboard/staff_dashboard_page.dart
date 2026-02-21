@@ -7,109 +7,134 @@ import 'package:besahub_app/features/auth/presentation/controllers/session_contr
 import 'package:besahub_app/features/auth/presentation/views/role_select_sheet.dart';
 import 'package:besahub_app/features/auth/domain/entities/session.dart';
 import 'package:besahub_app/features/auth/domain/entities/auth_user.dart';
+import 'package:besahub_app/features/dashboard/widgets/dashboard_navbar.dart';
+import 'package:besahub_app/features/dashboard/widgets/dashboard_header.dart';
+import 'package:besahub_app/features/dashboard/widgets/stat_card.dart';
 
-class StaffDashboardPage extends ConsumerWidget {
+class StaffDashboardPage extends ConsumerStatefulWidget {
   const StaffDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StaffDashboardPage> createState() => _StaffDashboardPageState();
+}
+
+class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(sessionControllerProvider);
 
+    final businessSubtitle = session?.activeBusinessId != null
+        ? 'Business: ${session!.activeBusinessName ?? session.activeBusinessId}'
+        : null;
+
     return Scaffold(
+      extendBody: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.bgDark, const Color(0xFF1E1029)],
+            colors: [AppColors.bgDark, const Color(0xFF0F1629)],
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top bar
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.badge_outlined,
-                      color: AppColors.accent,
-                      size: 28,
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: DashboardHeader(
+                  canSwitchRoles: session?.user.canSwitchRoles ?? false,
+                  activeRoleName: session?.activeRole.displayName ?? '',
+                  subtitle: businessSubtitle,
+                  onRoleSwitchTap: () => _switchRole(context, ref, session!),
+                  onLogoutTap: () => _logout(context, ref),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Section title ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  _pageTitle(_selectedIndex),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // ── Body ──
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedIndex,
+                  children: const [
+                    _StaffHomeTab(),
+                    _PlaceholderTab(
+                      icon: Icons.receipt_long_rounded,
+                      label: 'Transactions',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Staff Dashboard',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
+                    _PlaceholderTab(
+                      icon: Icons.qr_code_scanner_rounded,
+                      label: 'Scan QR',
                     ),
-                    // Role switcher chip
-                    if (session != null && session.user.hasMultipleRoles)
-                      ActionChip(
-                        avatar: const Icon(Icons.swap_horiz_rounded, size: 18),
-                        label: Text(session.activeRole.displayName),
-                        onPressed: () => _switchRole(context, ref, session),
-                      ),
+                    _PlaceholderTab(
+                      icon: Icons.search_rounded,
+                      label: 'Search',
+                    ),
+                    _PlaceholderTab(
+                      icon: Icons.redeem_rounded,
+                      label: 'Redeem Rewards',
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                if (session?.activeBusinessId != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.accent.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Text(
-                      'Assigned Business: ${session!.activeBusinessName ?? session.activeBusinessId}',
-                      style: TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 32),
-                _InfoCard(
-                  icon: Icons.assignment_ind_rounded,
-                  title: 'Staff Portal',
-                  subtitle:
-                      'Logged in as ${session?.activeRole.displayName ?? "Staff Member"}.',
-                ),
-                const Spacer(),
-                // Logout
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      await ref.read(authControllerProvider).logout();
-                      if (!context.mounted) return;
-                      context.go('/login');
-                    },
-                    icon: const Icon(Icons.logout_rounded),
-                    label: const Text('Log Out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+      bottomNavigationBar: DashboardNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: (i) => setState(() => _selectedIndex = i),
+        leftItems: const [
+          DashboardNavItem(icon: Icons.home_rounded, label: 'Home'),
+          DashboardNavItem(
+            icon: Icons.receipt_long_rounded,
+            label: 'Transactions',
+          ),
+        ],
+        rightItems: const [
+          DashboardNavItem(icon: Icons.search_rounded, label: 'Search'),
+          DashboardNavItem(icon: Icons.redeem_rounded, label: 'Redeem'),
+        ],
+        centerIcon: Icons.qr_code_scanner_rounded,
+        centerLabel: 'Scan QR',
+        // Primary blue gradient for QR scan (matches the reference photo)
+        centerGradient: AppColors.primaryGradient,
+      ),
     );
+  }
+
+  String _pageTitle(int index) {
+    return switch (index) {
+      0 => 'Staff Portal 🛡️',
+      1 => 'Transactions',
+      2 => 'Scan QR Code',
+      3 => 'Search',
+      4 => 'Redeem Rewards',
+      _ => '',
+    };
+  }
+
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(authControllerProvider).logout();
+    if (!context.mounted) return;
+    context.go('/login');
   }
 
   void _switchRole(BuildContext context, WidgetRef ref, Session session) {
@@ -122,79 +147,111 @@ class StaffDashboardPage extends ConsumerWidget {
         businessProfiles: session.user.businessProfiles,
       ),
     ).then((result) {
-      if (result != null) {
-        final role = result['role'] as UserRole;
-        final businessId = result['businessId'] as int?;
+      if (result == null || !context.mounted) return;
+      final role = result['role'] as UserRole;
+      final businessId = result['businessId'] as int?;
 
-        // Logic Check: If switching to CUSTOMER and profile is incomplete
-        if (role == UserRole.customer &&
-            !session.user.customerProfileComplete) {
-          ref.read(sessionControllerProvider.notifier).switchRole(role);
-          context.go('/create-profile');
-          return;
-        }
-
-        ref
-            .read(sessionControllerProvider.notifier)
-            .switchRole(
-              role,
-              businessId: businessId,
-              businessName: result['businessName'] as String?,
-            );
-
-        final path = switch (role) {
-          UserRole.customer => '/customer/dashboard',
-          UserRole.businessAdmin => '/business/dashboard',
-          UserRole.staff => '/staff/dashboard',
-          UserRole.superAdmin => '/admin/dashboard',
-        };
-        context.go(path);
+      // Preserve: if switching to CUSTOMER and profile is incomplete
+      if (role == UserRole.customer && !session.user.customerProfileComplete) {
+        ref.read(sessionControllerProvider.notifier).switchRole(role);
+        context.go('/create-profile');
+        return;
       }
+
+      ref
+          .read(sessionControllerProvider.notifier)
+          .switchRole(
+            role,
+            businessId: businessId,
+            businessName: result['businessName'] as String?,
+          );
+
+      final path = switch (role) {
+        UserRole.customer => '/customer/dashboard',
+        UserRole.businessAdmin => '/business/dashboard',
+        UserRole.staff => '/staff/dashboard',
+        UserRole.superAdmin => '/admin/dashboard',
+      };
+      context.go(path);
     });
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
+// ─────────────────────────── Home tab content ────────────────────────────────
+
+class _StaffHomeTab extends StatelessWidget {
+  const _StaffHomeTab();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.05,
+        children: const [
+          StatCard(
+            icon: Icons.qr_code_scanner_rounded,
+            label: "Today's Scans",
+            value: '—',
+            iconColor: AppColors.primary,
+            subtitle: 'Tap to scan',
+          ),
+          StatCard(
+            icon: Icons.pending_actions_rounded,
+            label: 'Pending Redemptions',
+            value: '—',
+            iconColor: AppColors.accent,
+            subtitle: 'Awaiting approval',
+          ),
+          StatCard(
+            icon: Icons.receipt_long_rounded,
+            label: 'Total Transactions',
+            value: '—',
+            iconColor: AppColors.secondary,
+          ),
+          StatCard(
+            icon: Icons.people_rounded,
+            label: 'Active Customers',
+            value: '—',
+            iconColor: AppColors.error,
+          ),
+        ],
       ),
-      child: Row(
+    );
+  }
+}
+
+// ─────────────────────────── Placeholder tab ─────────────────────────────────
+
+class _PlaceholderTab extends StatelessWidget {
+  const _PlaceholderTab({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.accent, size: 32),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-                ),
-              ],
+          Icon(
+            icon,
+            size: 64,
+            color: AppColors.textMuted.withValues(alpha: 0.35),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '$label\nComing Soon',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 16,
+              height: 1.5,
             ),
           ),
         ],

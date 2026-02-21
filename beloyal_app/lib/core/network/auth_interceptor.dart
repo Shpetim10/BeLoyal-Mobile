@@ -6,7 +6,6 @@ import '../services/token_storage.dart';
 import '../../features/auth/data/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/session_controller.dart';
-import 'api_client.dart';
 
 bool get _authInterceptorDebug => kDebugMode;
 
@@ -24,7 +23,7 @@ bool _isPublicAuthPath(String path) {
     '/auth/activate',
     '/auth/resend-verification',
   ];
-  return public.any((p) => path.startsWith(p) || path.contains(p));
+  return public.any((p) => path.endsWith(p) || path.contains(p));
 }
 
 class AuthInterceptor extends Interceptor {
@@ -79,61 +78,122 @@ class AuthInterceptor extends Interceptor {
     final status = err.response?.statusCode;
     final path = err.requestOptions.path;
 
-    final isAuthRefreshCall = path.contains('/auth/refresh');
-    final isAuthLogoutCall = path.contains('/auth/logout');
-    final isUnauthorized = status == 401;
+    bool isRefreshCall(String p) =>
+        p.endsWith('/auth/refresh') || p.endsWith('/refresh');
+    bool isLogoutCall(String p) =>
+        p.endsWith('/auth/logout') || p.endsWith('/logout');
 
-    if (!isUnauthorized || isAuthRefreshCall || isAuthLogoutCall) {
+    _log('Error at $path: status=$status type=${err.type}');
+
+    // ✅ Don't intercept refresh/logout failures here
+    if (isRefreshCall(path) || isLogoutCall(path)) {
+      return handler.next(err);
+    }
+
+    // ✅ Only refresh on 401 (recommended)
+    final shouldRefresh = status == 401;
+    if (!shouldRefresh) {
       return handler.next(err);
     }
 
     final refreshToken = await storage.getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
-      _log('401 but no refresh token');
+      _log('401 but no refresh token -> pass through');
       return handler.next(err);
     }
 
+    // If already refreshing, wait and retry
     if (_isRefreshing) {
+      _log('Already refreshing, waiting...');
       try {
         await _waitForRefresh();
         final newAccess = await storage.getAccessToken();
-        if (newAccess == null) return handler.next(err);
+        if (newAccess == null || newAccess.isEmpty) return handler.next(err);
         final retryResponse = await _retry(err.requestOptions, newAccess);
         return handler.resolve(retryResponse);
-      } catch (_) {
+      } catch (e) {
+        _log('Wait refresh failed: $e');
         return handler.next(err);
       }
     }
 
     _isRefreshing = true;
     try {
-      final repo = ref.read(authRepositoryProvider);
+      // ✅ Use a fresh repo with a fresh Dio to avoid Riverpod circular dependency
+      // or interceptor loops on the main Dio instance.
+      final refreshDio = Dio(
+        BaseOptions(
+          baseUrl: err.requestOptions.baseUrl,
+          connectTimeout: err.requestOptions.connectTimeout,
+          receiveTimeout: err.requestOptions.receiveTimeout,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (_authInterceptorDebug) {
+        refreshDio.interceptors.add(
+          LogInterceptor(
+            requestBody: true,
+            responseBody: true,
+            logPrint: (obj) => debugPrint('🔄 Refresh: $obj'),
+          ),
+        );
+      }
+
+      final repo = AuthRepositoryImpl(refreshDio);
       final result = await repo.refresh(refreshToken);
 
       switch (result) {
         case AuthSuccess(data: final user):
-          if (user.token.isEmpty) throw Exception('Refresh missing access token');
+          if (user.token.isEmpty)
+            throw Exception('Refresh missing access token');
+
           await storage.saveTokens(
             accessToken: user.token,
             refreshToken: user.refreshToken.isNotEmpty
                 ? user.refreshToken
                 : refreshToken,
           );
+
+          ref.read(sessionControllerProvider.notifier).updateUser(user);
+
           _completeWaiters();
           _isRefreshing = false;
-          _log('Refresh success, retrying request');
+
           final retryResponse = await _retry(err.requestOptions, user.token);
           return handler.resolve(retryResponse);
-        case AuthError():
-          throw Exception('Refresh failed');
+
+        case AuthError(failure: final f):
+          throw DioException(
+            requestOptions: err.requestOptions,
+            response: err.response,
+            error: f.message,
+            type: DioExceptionType.badResponse,
+          );
       }
     } catch (e) {
       _failWaiters(e);
       _isRefreshing = false;
-      _log('Refresh failed: $e');
-      await storage.clear();
-      ref.read(sessionControllerProvider.notifier).logout();
-      return handler.next(err);
+
+      // ✅ IMPORTANT: do NOT logout on random errors
+      if (e is DioException) {
+        final sc = e.response?.statusCode;
+        if (sc == 401 || sc == 403) {
+          _log('Refresh token invalid -> logout');
+          await storage.clear();
+          ref.read(sessionControllerProvider.notifier).logout();
+        } else {
+          _log('Refresh failed: [${e.runtimeType}] $e');
+        }
+        // ✅ Return the NEW error (e.g. the 400 from the retry) instead of the old 401
+        return handler.next(e);
+      } else {
+        _log('Refresh failed: [${e.runtimeType}] $e');
+        return handler.next(err);
+      }
     }
   }
 
@@ -141,7 +201,16 @@ class AuthInterceptor extends Interceptor {
     RequestOptions requestOptions,
     String accessToken,
   ) async {
-    final dio = ref.read(dioProvider);
+    // ✅ Use a fresh Dio for retry to avoid circular dependency on dioProvider.
+    // This also prevents infinite refresh loops if the new token is somehow invalid.
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: requestOptions.baseUrl,
+        connectTimeout: requestOptions.connectTimeout,
+        receiveTimeout: requestOptions.receiveTimeout,
+      ),
+    );
+
     final opts = Options(
       method: requestOptions.method,
       headers: Map<String, dynamic>.from(requestOptions.headers)

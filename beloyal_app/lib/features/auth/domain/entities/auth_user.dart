@@ -39,12 +39,16 @@ class BusinessProfileInfo {
     required this.businessName,
     required this.role,
     required this.active,
+    this.status,
+    this.rejectionReason,
   });
 
   final int businessId;
   final String businessName;
   final UserRole role;
   final bool active;
+  final String? status;
+  final String? rejectionReason;
 }
 
 /// Authenticated user returned after login.
@@ -72,6 +76,12 @@ class AuthUser {
 
   /// List of business profiles and roles.
   final List<BusinessProfileInfo> businessProfiles;
+
+  /// Returns true if the user can switch between different roles or businesses.
+  bool get canSwitchRoles {
+    // A user can switch if they have more than one "entry point"
+    return (roles.length + businessProfiles.length) > 1;
+  }
 
   /// Returns true if the user has at least one active business profile.
   bool get hasActiveBusinessProfiles =>

@@ -138,12 +138,12 @@ class RefreshBusinessStatusNotifier extends AsyncNotifier<BusinessStatus?> {
   @override
   Future<BusinessStatus?> build() async => null;
 
-  Future<void> refresh() async {
+  Future<void> refresh(int businessId) async {
     state = const AsyncLoading();
 
     try {
       final api = ref.read(businessOnboardingApiProvider);
-      final data = await api.getMyBusiness();
+      final data = await api.getBusinessStatus(businessId);
 
       final statusStr =
           data['businessStatus'] as String? ?? data['status'] as String?;

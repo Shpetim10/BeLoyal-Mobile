@@ -60,20 +60,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (user.hasMultipleRoles) {
       _showRoleSheet(user);
     } else {
-      // If only one role, pick it. If it's a business role, pick the active business.
-      final activeBusiness = user.businessProfiles
-          .where((p) => p.active)
-          .firstOrNull;
-      if (activeBusiness != null) {
+      // If only one role, pick it. If it's a business role, pick it (even if pending).
+      final firstBusiness = user.businessProfiles.firstOrNull;
+      if (firstBusiness != null && user.businessProfiles.length == 1) {
         ref
             .read(sessionControllerProvider.notifier)
             .establish(
               user,
-              activeBusiness.role,
-              businessId: activeBusiness.businessId,
-              businessName: activeBusiness.businessName,
+              firstBusiness.role,
+              businessId: firstBusiness.businessId,
+              businessName: firstBusiness.businessName,
             );
-        _navigateToDashboard(activeBusiness.role);
+        _navigateToDashboard(firstBusiness.role);
       } else {
         final role = user.roles.first;
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/entities/auth_user.dart';
@@ -184,7 +185,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await _dio.post(
         '/auth/resend-verification',
-        queryParameters: {'email': email},
+        data: {'email': email},
       );
 
       final data = response.data as Map<String, dynamic>;
@@ -198,26 +199,45 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ────────────── REFRESH ──────────────
   @override
-  Future<AuthResult<AuthUser>> refresh(String refreshToken) async {
+  Future<AuthResult<AuthUser>> refresh(
+    String refreshToken, {
+    String? accessToken,
+  }) async {
     try {
+      debugPrint(
+        '🔐 AuthRepo: Refreshing with accessToken present: ${accessToken != null}',
+      );
       final response = await _dio.post(
         '/auth/refresh',
-        data: {'refreshToken': refreshToken},
+        data: {
+          'refreshToken': refreshToken,
+          if (accessToken != null) 'accessToken': accessToken,
+        },
         options: Options(responseType: ResponseType.plain),
       );
+
+      debugPrint(
+        '🔐 AuthRepo: Refresh Response Status: ${response.statusCode}',
+      );
+      debugPrint('🔐 AuthRepo: Refresh Response Data: ${response.data}');
 
       final dynamic decoded;
       try {
         decoded = jsonDecode(response.data.toString());
       } catch (e) {
+        debugPrint('🔐 AuthRepo: JSON Decode Error: $e');
         throw FormatException('Invalid JSON response: ${response.data}');
       }
 
       final data = decoded as Map<String, dynamic>;
       return AuthSuccess(_authUserFromMap(data, data));
     } on DioException catch (e) {
+      debugPrint(
+        '🔐 AuthRepo: Refresh DioException: ${e.response?.statusCode} ${e.response?.data}',
+      );
       return AuthError(_mapDioError(e));
     } catch (e) {
+      debugPrint('🔐 AuthRepo: Refresh Generic Error: $e');
       return AuthError(AuthFailure(e.toString()));
     }
   }
@@ -264,11 +284,11 @@ class AuthRepositoryImpl implements AuthRepository {
       for (final item in rawBusinessProfiles) {
         if (item is Map) {
           final id = item['businessId'] as num?;
-          final businessName = item['businessName'];
+          final businessName = (item['businessName'] as String?) ?? 'Unknown';
           final roleStr = item['role'] as String?;
 
           // Robust boolean parsing
-          final rawActive = item['active'];
+          final dynamic rawActive = item['active'];
           final active =
               rawActive == true ||
               rawActive?.toString().toLowerCase() == 'true' ||
@@ -282,6 +302,8 @@ class AuthRepositoryImpl implements AuthRepository {
                 businessName: businessName,
                 role: UserRole.fromBackend(roleStr),
                 active: active,
+                status: item['status'] as String?,
+                rejectionReason: item['rejectionReason'] as String?,
               ),
             );
           }
@@ -298,17 +320,23 @@ class AuthRepositoryImpl implements AuthRepository {
       resolvedRoles.add(UserRole.customer);
     }
 
+    // Robust boolean parsing for top-level fields
+    bool parseBool(dynamic val) =>
+        val == true ||
+        val?.toString().toLowerCase() == 'true' ||
+        val == 1 ||
+        val?.toString() == '1';
+
     return AuthUser(
       token: access,
       tokenType: (data['tokenType'] as String?) ?? 'Bearer',
       refreshToken: refresh,
       roles: resolvedRoles,
-      emailVerified: (data['emailVerified'] as bool?) ?? false,
-      customerProfileComplete:
-          ((data['customerProfileComplete'] ?? data['profileComplete'])
-              as bool?) ??
-          false,
-      alreadyVerified: (data['alreadyVerified'] as bool?) ?? false,
+      emailVerified: parseBool(data['emailVerified']),
+      customerProfileComplete: parseBool(
+        data['customerProfileComplete'] ?? data['profileComplete'],
+      ),
+      alreadyVerified: parseBool(data['alreadyVerified']),
       hasMultipleRoles: (resolvedRoles.length + activeBusinessCount) > 1,
       businessProfiles: businessProfiles,
     );

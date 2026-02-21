@@ -6,7 +6,7 @@ class Session {
     required this.user,
     required this.activeRole,
     this.activeBusinessId,
-    this.activeBusinessName
+    this.activeBusinessName,
   });
 
   final AuthUser user;
@@ -17,18 +17,21 @@ class Session {
   String get token => user.token;
 
   Session copyWith({
+    AuthUser? user,
     UserRole? activeRole,
     int? activeBusinessId,
     String? activeBusinessName,
     bool clearBusinessId = false,
   }) {
     return Session(
-      user: user,
+      user: user ?? this.user,
       activeRole: activeRole ?? this.activeRole,
       activeBusinessId: clearBusinessId
           ? null
           : (activeBusinessId ?? this.activeBusinessId),
-      activeBusinessName: clearBusinessId ? null : (activeBusinessName ?? this.activeBusinessName)
+      activeBusinessName: clearBusinessId
+          ? null
+          : (activeBusinessName ?? this.activeBusinessName),
     );
   }
 }

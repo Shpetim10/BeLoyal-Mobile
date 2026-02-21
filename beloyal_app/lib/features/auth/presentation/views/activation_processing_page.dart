@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:besahub_app/features/auth/domain/entities/auth_user.dart';
+import 'package:besahub_app/features/auth/presentation/views/role_select_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/session_controller.dart';
 import '../widgets/auth_shell.dart';
 
 class ActivationProcessingPage extends ConsumerStatefulWidget {
@@ -55,11 +58,39 @@ class ActivationProcessingPageState
 
           if (!mounted) return;
 
-          if (data.customerProfileComplete) {
-            context.go('/customer/dashboard');
+          AuthUser user= result.data;
+
+          if (user.hasMultipleRoles) {
+            _showRoleSheet(user);
           } else {
-            context.go('/create-profile');
+            // If only one role, pick it. If it's a business role, pick it (even if pending).
+            final firstBusiness = user.businessProfiles.firstOrNull;
+            if (firstBusiness != null && user.businessProfiles.length == 1) {
+              ref
+                  .read(sessionControllerProvider.notifier)
+                  .establish(
+                user,
+                firstBusiness.role,
+                businessId: firstBusiness.businessId,
+                businessName: firstBusiness.businessName,
+              );
+              _navigateToDashboard(firstBusiness.role);
+            } else {
+              final role = user.roles.first;
+
+              // Handle Customer Profile Completion check here for single role
+              if (role == UserRole.customer && !user.customerProfileComplete) {
+                ref.read(sessionControllerProvider.notifier).establish(user, role);
+                context.go('/create-profile');
+                return;
+              }
+
+              ref.read(sessionControllerProvider.notifier).establish(user, role);
+              _navigateToDashboard(role);
+            }
           }
+
+
 
         case AuthError(:final failure):
           setState(() {
@@ -83,6 +114,58 @@ class ActivationProcessingPageState
         });
       }
     }
+  }
+
+  void _showRoleSheet(AuthUser user) {
+    showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => RoleSelectSheet(
+        roles: user.roles.toList(),
+        businessProfiles: user.businessProfiles,
+      ),
+    ).then((result) {
+      if (result != null && mounted) {
+        final role = result['role'] as UserRole;
+        final businessId = result['businessId'] as int?;
+        final businessName = result['businessName'] as String?;
+
+        // If customer selected and profile incomplete -> /create-profile
+        if (role == UserRole.customer && !user.customerProfileComplete) {
+          ref
+              .read(sessionControllerProvider.notifier)
+              .establish(
+            user,
+            role,
+            businessId: businessId,
+            businessName: businessName,
+          );
+          context.go('/create-profile');
+          return;
+        }
+
+        ref
+            .read(sessionControllerProvider.notifier)
+            .establish(
+          user,
+          role,
+          businessId: businessId,
+          businessName: businessName,
+        );
+        _navigateToDashboard(role);
+      }
+    });
+  }
+
+  void _navigateToDashboard(UserRole role) {
+    final path = switch (role) {
+      UserRole.customer => '/customer/dashboard',
+      UserRole.businessAdmin => '/business/dashboard',
+      UserRole.staff => '/staff/dashboard',
+      UserRole.superAdmin => '/admin/dashboard',
+    };
+    if (mounted) context.go(path);
   }
 
   String? _getEmailFromToken(String token) {

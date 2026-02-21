@@ -24,6 +24,10 @@ import '../../features/business_onboarding/pages/new_account_for_business_page.d
 import '../../features/business_onboarding/pages/business_details_form_page.dart';
 import '../../features/business_onboarding/pages/under_review_confirmation_page.dart';
 import '../../features/business_onboarding/pages/under_review_gate_page.dart';
+import '../../features/business_onboarding/pages/rejected_gate_page.dart';
+
+// Admin imports
+import '../../features/admin/presentation/application_details_page.dart';
 
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
@@ -88,6 +92,37 @@ final routerProvider = Provider<GoRouter>((ref) {
         return target;
       }
 
+      // If logged in, check if the active business profile is still pending (active: false)
+      if (isLoggedIn &&
+          (session.activeRole == UserRole.businessAdmin ||
+              session.activeRole == UserRole.staff)) {
+        final activeBusiness = session.user.businessProfiles.firstWhere(
+          (p) => p.businessId == session.activeBusinessId,
+          orElse: () => const BusinessProfileInfo(
+            businessId: -1,
+            businessName: '',
+            role: UserRole.customer,
+            active: false,
+          ),
+        );
+
+        if (activeBusiness.businessId != -1 && !activeBusiness.active) {
+          if (activeBusiness.status == 'REJECTED') {
+            if (path != '/business/rejected') {
+              debugPrint(
+                'Business is rejected -> Redirecting to rejected gate',
+              );
+              return '/business/rejected';
+            }
+          } else if (path != '/business/under-review') {
+            debugPrint(
+              'Business is pending review -> Redirecting to under review gate',
+            );
+            return '/business/under-review';
+          }
+        }
+      }
+
       debugPrint('Proceeding to $path');
       return null;
     },
@@ -135,7 +170,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Deep link route (from email)
       GoRoute(
-        path: '/api/beloyal/auth/activate',
+        path: '/api/besahub/auth/activate',
         builder: (context, state) {
           final token = state.uri.queryParameters['token'];
           if (token == null) return const LoginPage();
@@ -248,6 +283,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               FadeTransition(opacity: anim, child: child),
         ),
       ),
+      GoRoute(
+        path: '/business/rejected',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const RejectedGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
 
       // ── Dashboards ──
       GoRoute(
@@ -285,6 +329,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),
+      ),
+      GoRoute(
+        path: '/admin/business-applications/:id',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['id'];
+          final id = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ApplicationDetailsPage(applicationId: id),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
       ),
     ],
   );

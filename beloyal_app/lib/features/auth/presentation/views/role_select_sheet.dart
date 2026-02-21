@@ -97,34 +97,30 @@ class _RoleSelectSheetState extends State<RoleSelectSheet> {
           }),
 
           // Business Profiles
-          ...widget.businessProfiles
-              .where((p) => p.active)
-              .toList()
-              .asMap()
-              .entries
-              .map((entry) {
-                final idx = entry.key;
-                final profile = entry.value;
-                return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _BusinessChip(
-                        businessId: profile.businessId,
-                        businessName: profile.businessName,
-                        role: profile.role,
-                        selected: _selectedBusinessId == profile.businessId,
-                        onTap: () => setState(() {
-                          _selectedRole = profile.role;
-                          _selectedBusinessId = profile.businessId;
-                        }),
-                      ),
-                    )
-                    .animate()
-                    .fadeIn(
-                      delay: (100 * (widget.roles.length + idx)).ms,
-                      duration: 300.ms,
-                    )
-                    .slideX(begin: 0.1, end: 0, duration: 300.ms);
-              }),
+          ...widget.businessProfiles.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final profile = entry.value;
+            return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _BusinessChip(
+                    businessId: profile.businessId,
+                    businessName: profile.businessName,
+                    role: profile.role,
+                    active: profile.active,
+                    selected: _selectedBusinessId == profile.businessId,
+                    onTap: () => setState(() {
+                      _selectedRole = profile.role;
+                      _selectedBusinessId = profile.businessId;
+                    }),
+                  ),
+                )
+                .animate()
+                .fadeIn(
+                  delay: (100 * (widget.roles.length + idx)).ms,
+                  duration: 300.ms,
+                )
+                .slideX(begin: 0.1, end: 0, duration: 300.ms);
+          }),
 
           const SizedBox(height: 12),
 
@@ -159,6 +155,7 @@ class _BusinessChip extends StatelessWidget {
     required this.businessId,
     required this.businessName,
     required this.role,
+    required this.active,
     required this.selected,
     required this.onTap,
   });
@@ -166,6 +163,7 @@ class _BusinessChip extends StatelessWidget {
   final int businessId;
   final String businessName;
   final UserRole role;
+  final bool active;
   final bool selected;
   final VoidCallback onTap;
 
@@ -217,18 +215,53 @@ class _BusinessChip extends StatelessWidget {
                       color: selected ? AppColors.primary : null,
                     ),
                   ),
-                  Text(
-                    role.displayName,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        role.displayName,
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (!active) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Under Review',
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
-            if (selected)
+            if (active && selected)
               const Icon(
                 Icons.check_circle_rounded,
                 color: AppColors.primary,
                 size: 24,
+              ),
+            if (!active)
+              const Icon(
+                Icons.hourglass_empty_rounded,
+                color: AppColors.warning,
+                size: 20,
               ),
           ],
         ),

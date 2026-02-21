@@ -59,6 +59,15 @@ class SessionController extends Notifier<Session?> {
     );
   }
 
+  /// Silently update the user state (e.g. after a token refresh)
+  /// without losing the active role/business selection.
+  void updateUser(AuthUser newUser) {
+    final current = state;
+    if (current != null) {
+      state = current.copyWith(user: newUser);
+    }
+  }
+
   /// Switch role without re-login.
   void switchRole(UserRole role, {int? businessId, String? businessName}) {
     final current = state;

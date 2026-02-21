@@ -13,6 +13,7 @@ class BusinessOnboardingEndpoints {
   static const verifyOwnership = '/auth/verify-ownership';
   static const submitApplication = '/auth/register-business';
   static const getMyBusiness = '/business/me';
+  static String getBusinessStatus(int id) => '/staff/$id/status';
 }
 
 /// API client for business onboarding operations.
@@ -72,6 +73,20 @@ class BusinessOnboardingApi {
     }
   }
 
+  /// GET /staff/{businessId}/status
+  /// Fetches specific business status.
+  Future<Map<String, dynamic>> getBusinessStatus(int businessId) async {
+    try {
+      final response = await _dio.get(
+        BusinessOnboardingEndpoints.getBusinessStatus(businessId),
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final errorMsg = _extractErrorMessage(e);
+      throw Exception(errorMsg);
+    }
+  }
+
   /// GET /business/me
   /// Fetches current user's business information including status.
   Future<Map<String, dynamic>> getMyBusiness() async {
@@ -103,9 +118,16 @@ class BusinessOnboardingApi {
       }
     }
     if (data is Map<String, dynamic>) {
-      return data['message'] as String? ??
-          data['error'] as String? ??
-          'Something went wrong';
+      // First try standard keys
+      final standardMsg = data['message'] ?? data['error'];
+      if (standardMsg != null) return standardMsg.toString();
+
+      // Robust fallback: Find ANY string value in the map
+      for (final value in data.values) {
+        if (value is String && value.isNotEmpty) return value;
+      }
+
+      return 'Something went wrong';
     }
     return switch (e.type) {
       DioExceptionType.connectionTimeout || DioExceptionType.receiveTimeout =>

@@ -31,8 +31,13 @@
 
                 <data
                     android:scheme="https"
-                    android:host="village-thee-plot-flux.trycloudflare.com"
+                    android:host="puerto-amplifier-usr-dom.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/activate" />
+
+                <data
+                    android:scheme="https"
+                    android:host="puerto-amplifier-usr-dom.trycloudflare.com"
+                    android:pathPrefix="api/besahub/auth/accept-invitation" />
             </intent-filter>
 
 
