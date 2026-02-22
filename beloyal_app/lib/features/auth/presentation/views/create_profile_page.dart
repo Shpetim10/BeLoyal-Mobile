@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,6 +13,7 @@ import '../widgets/primary_gradient_button.dart';
 import '../widgets/status_banner.dart';
 import '../../data/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../../media/data/media_repository.dart';
 
 /// Premium Create Profile Page — shown after login if profile is not complete.
 class CreateProfilePage extends ConsumerStatefulWidget {
@@ -37,6 +36,7 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
   bool _isLoading = false;
   String? _errorMessage;
   File? _profileImage;
+  XFile? _pickedXFile;
   final _picker = ImagePicker();
 
   static const _genders = [
@@ -67,6 +67,7 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
         }
         setState(() {
           _profileImage = File(picked.path);
+          _pickedXFile = picked;
           _errorMessage = null;
         });
       }
@@ -111,53 +112,57 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
       _errorMessage = null;
     });
 
-    String? localImagePath;
+    String? uploadedUrl;
+    String? uploadedKey;
 
-    // 1. Copy image to local app directory if selected
-    if (_profileImage != null) {
-      try {
-        final directory = await getApplicationDocumentsDirectory();
-        final fileName = p.basename(_profileImage!.path);
-        // Copy to app documents directory
-        final savedImage = await _profileImage!.copy(
-          '${directory.path}/$fileName',
+    try {
+      // 1. Upload image to backend if selected
+      if (_pickedXFile != null) {
+        final mediaRepo = ref.read(mediaRepositoryProvider);
+        final uploadResult = await mediaRepo.uploadImage(
+          file: _pickedXFile!,
+          category: 'USER_PROFILE',
+          ownerId: session.user.userId,
         );
-        localImagePath = savedImage.path;
-      } catch (e) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Failed to save image locally: $e';
-        });
-        return;
+        uploadedUrl = uploadResult['url'];
+        uploadedKey = uploadResult['key'];
       }
-    }
 
-    final repo = ref.read(authRepositoryProvider);
-    // Updated to pass path string instead of File
-    final result = await repo.createCustomerProfile(
-      token: session.token,
-      birthdate: _birthdate,
-      gender: _selectedGender,
-      city: _cityCtrl.text.isEmpty ? null : _cityCtrl.text.trim(),
-      country: _countryCtrl.text.isEmpty ? null : _countryCtrl.text.trim(),
-      referredBy: _referredByCtrl.text.isEmpty
-          ? null
-          : _referredByCtrl.text.trim(),
-      profileImagePath: localImagePath,
-      notificationEnabled: _notificationsEnabled,
-    );
+      // 2. Submit profile data to backend
+      final authRepo = ref.read(authRepositoryProvider);
+      final result = await authRepo.createCustomerProfile(
+        token: session.token,
+        birthdate: _birthdate,
+        gender: _selectedGender,
+        city: _cityCtrl.text.isEmpty ? null : _cityCtrl.text.trim(),
+        country: _countryCtrl.text.isEmpty ? null : _countryCtrl.text.trim(),
+        referredBy: _referredByCtrl.text.isEmpty
+            ? null
+            : _referredByCtrl.text.trim(),
+        profileImageUrl: uploadedUrl,
+        profileImageKey: uploadedKey,
+        notificationEnabled: _notificationsEnabled,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    switch (result) {
-      case AuthSuccess():
-        // Navigate to Onboarding Success page first
-        context.go('/onboarding-success');
-      case AuthError(failure: final f):
-        setState(() {
-          _isLoading = false;
-          _errorMessage = f.message;
-        });
+      switch (result) {
+        case AuthSuccess():
+          ref.read(sessionControllerProvider.notifier).completeProfile();
+          if (!mounted) return;
+          context.go('/onboarding-success');
+        case AuthError(failure: final f):
+          setState(() {
+            _isLoading = false;
+            _errorMessage = f.message;
+          });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      });
     }
   }
 

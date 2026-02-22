@@ -11,6 +11,7 @@ class BusinessRegistrationDto {
     this.vatId,
     this.websiteUrl,
     this.logoUrl,
+    this.logoKey,
     this.businessDescription,
   });
 
@@ -24,23 +25,25 @@ class BusinessRegistrationDto {
   final String? vatId;
   final String? websiteUrl;
   final String? logoUrl;
+  final String? logoKey;
   final String? businessDescription;
 
   Map<String, dynamic> toJson() => {
-        'businessName': businessName.trim(),
-        'businessType': businessType,
-        if (address != null && address!.isNotEmpty) 'address': address!.trim(),
-        'city': city.trim(),
-        if (country != null && country!.isNotEmpty) 'country': country!.trim(),
-        'businessEmail': businessEmail.trim().toLowerCase(),
-        'businessPhoneNumber': businessPhoneNumber.trim(),
-        if (vatId != null && vatId!.isNotEmpty) 'vatId': vatId!.trim(),
-        if (websiteUrl != null && websiteUrl!.isNotEmpty)
-          'websiteUrl': websiteUrl!.trim(),
-        if (logoUrl != null && logoUrl!.isNotEmpty) 'logoUrl': logoUrl!.trim(),
-        if (businessDescription != null && businessDescription!.isNotEmpty)
-          'businessDescription': businessDescription!.trim(),
-      };
+    'businessName': businessName.trim(),
+    'businessType': businessType,
+    if (address != null && address!.isNotEmpty) 'address': address!.trim(),
+    'city': city.trim(),
+    if (country != null && country!.isNotEmpty) 'country': country!.trim(),
+    'businessEmail': businessEmail.trim().toLowerCase(),
+    'businessPhoneNumber': businessPhoneNumber.trim(),
+    if (vatId != null && vatId!.isNotEmpty) 'vatId': vatId!.trim(),
+    if (websiteUrl != null && websiteUrl!.isNotEmpty)
+      'websiteUrl': websiteUrl!.trim(),
+    if (logoUrl != null && logoUrl!.isNotEmpty) 'logoUrl': logoUrl!.trim(),
+    if (logoKey != null && logoKey!.isNotEmpty) 'logoKey': logoKey!.trim(),
+    if (businessDescription != null && businessDescription!.isNotEmpty)
+      'businessDescription': businessDescription!.trim(),
+  };
 }
 
 /// Business type enum for dropdown selection.

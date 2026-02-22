@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/glass.dart';
 import '../../../core/utils/validators.dart';
@@ -11,6 +13,8 @@ import '../../auth/presentation/widgets/status_banner.dart';
 import '../models/business_registration_dto.dart';
 import '../state/business_registration_notifier.dart';
 import '../models/submit_application_models.dart';
+import '../../media/data/media_repository.dart';
+import '../../auth/presentation/controllers/session_controller.dart';
 
 /// Page for entering business registration details.
 class BusinessDetailsFormPage extends ConsumerStatefulWidget {
@@ -49,6 +53,11 @@ class _BusinessDetailsFormPageState
   final _descriptionFocus = FocusNode();
 
   BusinessType? _selectedBusinessType;
+  File? _logoImage;
+  XFile? _pickedLogoXFile;
+  final _picker = ImagePicker();
+  String? _uploadError;
+  bool _isUploadingLogo = false;
 
   @override
   void dispose() {
@@ -97,33 +106,101 @@ class _BusinessDetailsFormPageState
     return null;
   }
 
-  void _handleSubmit() {
+  Future<void> _pickLogo() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+      );
+      if (picked != null) {
+        final ext = picked.path.split('.').last.toLowerCase();
+        if (!['jpg', 'jpeg', 'png'].contains(ext)) {
+          setState(() => _uploadError = 'Only JPG and PNG files are allowed.');
+          return;
+        }
+        setState(() {
+          _logoImage = File(picked.path);
+          _pickedLogoXFile = picked;
+          _uploadError = null;
+        });
+      }
+    } catch (e) {
+      setState(() => _uploadError = 'Failed to pick logo: $e');
+    }
+  }
+
+  Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Build business registration DTO
-    final businessDto = BusinessRegistrationDto(
-      businessName: _businessNameCtrl.text,
-      businessType: _selectedBusinessType!.value,
-      address: _addressCtrl.text.isEmpty ? null : _addressCtrl.text,
-      city: _cityCtrl.text,
-      country: _countryCtrl.text.isEmpty ? null : _countryCtrl.text,
-      businessEmail: _businessEmailCtrl.text,
-      businessPhoneNumber: _businessPhoneCtrl.text,
-      vatId: _vatIdCtrl.text.isEmpty ? null : _vatIdCtrl.text,
-      websiteUrl: _websiteUrlCtrl.text.isEmpty ? null : _websiteUrlCtrl.text,
-      logoUrl: _logoUrlCtrl.text.isEmpty ? null : _logoUrlCtrl.text,
-      businessDescription: _descriptionCtrl.text.isEmpty
-          ? null
-          : _descriptionCtrl.text,
-    );
+    final session = ref.read(sessionControllerProvider);
+    final userId =
+        session?.user.userId ??
+        0; // Fallback if not logged in (new account flow)
 
-    // Store in draft
-    ref
-        .read(businessRegistrationDraftProvider.notifier)
-        .setBusinessRegistrationDto(businessDto);
+    setState(() {
+      _isUploadingLogo = true;
+      _uploadError = null;
+    });
 
-    // Submit application
-    ref.read(submitBusinessApplicationNotifierProvider.notifier).submit();
+    String? uploadedUrl;
+    String? uploadedKey;
+
+    try {
+      // 1. Upload logo if selected
+      if (_pickedLogoXFile != null) {
+        final mediaRepo = ref.read(mediaRepositoryProvider);
+        final uploadResult = await mediaRepo.uploadImage(
+          file: _pickedLogoXFile!,
+          category: 'BUSINESS_LOGO',
+          ownerId: userId,
+        );
+        uploadedUrl = uploadResult['url'];
+        uploadedKey = uploadResult['key'];
+      }
+
+      // Build business registration DTO
+      final businessDto = BusinessRegistrationDto(
+        businessName: _businessNameCtrl.text.trim(),
+        businessType: _selectedBusinessType!.value,
+        address: _addressCtrl.text.isEmpty ? null : _addressCtrl.text.trim(),
+        city: _cityCtrl.text.trim(),
+        country: _countryCtrl.text.isEmpty ? null : _countryCtrl.text.trim(),
+        businessEmail: _businessEmailCtrl.text.trim().toLowerCase(),
+        businessPhoneNumber: _businessPhoneCtrl.text.trim(),
+        vatId: _vatIdCtrl.text.isEmpty ? null : _vatIdCtrl.text.trim(),
+        websiteUrl: _websiteUrlCtrl.text.isEmpty
+            ? null
+            : _websiteUrlCtrl.text.trim(),
+        logoUrl:
+            uploadedUrl ??
+            (_logoUrlCtrl.text.isEmpty ? null : _logoUrlCtrl.text.trim()),
+        logoKey: uploadedKey,
+        businessDescription: _descriptionCtrl.text.isEmpty
+            ? null
+            : _descriptionCtrl.text.trim(),
+      );
+
+      // Store in draft
+      ref
+          .read(businessRegistrationDraftProvider.notifier)
+          .setBusinessRegistrationDto(businessDto);
+
+      // Submit application
+      await ref
+          .read(submitBusinessApplicationNotifierProvider.notifier)
+          .submit();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _uploadError = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingLogo = false;
+        });
+      }
+    }
   }
 
   @override
@@ -358,24 +435,28 @@ class _BusinessDetailsFormPageState
                             focusNode: _websiteUrlFocus,
                             onFieldSubmitted: (_) => FocusScope.of(
                               context,
-                            ).requestFocus(_logoUrlFocus),
+                            ).requestFocus(_descriptionFocus),
                           ),
                           const SizedBox(height: 16),
 
-                          // Logo URL (optional)
-                          PremiumTextField(
-                            controller: _logoUrlCtrl,
-                            label: 'Logo URL',
-                            hint: 'https://example.com/logo.png',
-                            prefixIcon: Icons.image_outlined,
-                            keyboardType: TextInputType.url,
-                            validator: _validateUrl,
-                            textInputAction: TextInputAction.next,
-                            focusNode: _logoUrlFocus,
-                            onFieldSubmitted: (_) => FocusScope.of(
-                              context,
-                            ).requestFocus(_descriptionFocus),
-                          ),
+                          // Logo Picker (replaces URL field)
+                          Center(child: _buildLogoPicker()),
+                          if (_uploadError != null) ...[
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                _uploadError!,
+                                style: const TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 16),
 
                           // Business Description (optional, max 1000)
@@ -441,6 +522,75 @@ class _BusinessDetailsFormPageState
 
                   const SizedBox(height: 24),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoPicker() {
+    return GestureDetector(
+      onTap: _isUploadingLogo ? null : _pickLogo,
+      child: Stack(
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: AppColors.primary.withValues(alpha: 0.1),
+              image: _logoImage != null
+                  ? DecorationImage(
+                      image: FileImage(_logoImage!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: _logoImage == null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Business Logo',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  )
+                : (_isUploadingLogo
+                      ? const Center(child: CircularProgressIndicator())
+                      : null),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: const Icon(
+                Icons.camera_alt_rounded,
+                size: 16,
+                color: Colors.white,
               ),
             ),
           ),

@@ -83,13 +83,37 @@ final routerProvider = Provider<GoRouter>((ref) {
       // If logged in and on an auth route, go to respective dashboard
       if (isAuthRoute) {
         final target = switch (session.activeRole) {
-          UserRole.customer => '/customer/dashboard',
+          UserRole.customer =>
+            session.user.customerProfileComplete
+                ? '/customer/dashboard'
+                : '/create-profile',
           UserRole.businessAdmin => '/business/dashboard',
           UserRole.staff => '/staff/dashboard',
           UserRole.superAdmin => '/admin/dashboard',
         };
         debugPrint('Logged in on auth route -> Redirecting to $target');
         return target;
+      }
+
+      // If Customer and profile not complete, force redirect to /create-profile
+      if (isLoggedIn &&
+          session.activeRole == UserRole.customer &&
+          !session.user.customerProfileComplete) {
+        final allowedDuringOnboarding = [
+          '/create-profile',
+          '/onboarding-success',
+          '/login',
+          '/register',
+          '/check-email',
+          '/resend-verification',
+        ];
+
+        if (!allowedDuringOnboarding.any((p) => path.startsWith(p))) {
+          debugPrint(
+            'Customer profile incomplete -> Redirecting to /create-profile',
+          );
+          return '/create-profile';
+        }
       }
 
       // If logged in, check if the active business profile is still pending (active: false)

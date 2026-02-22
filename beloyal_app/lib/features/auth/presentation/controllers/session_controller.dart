@@ -52,11 +52,26 @@ class SessionController extends Notifier<Session?> {
       }
     }
 
-    // Default 3: Platform Admin or whatever is first
-    state = Session(
-      user: user,
-      activeRole: user.roles.firstOrNull ?? UserRole.customer,
-    );
+    // Default 3: Any business profile (even if inactive)
+    if (user.businessProfiles.isNotEmpty) {
+      final firstProfile = user.businessProfiles.first;
+      state = Session(
+        user: user,
+        activeRole: firstProfile.role,
+        activeBusinessId: firstProfile.businessId,
+        activeBusinessName: firstProfile.businessName,
+      );
+      return;
+    }
+
+    // Default 4: First global role
+    if (user.roles.isNotEmpty) {
+      state = Session(user: user, activeRole: user.roles.first);
+      return;
+    }
+
+    // Failure fallback: should not happen if login succeeded
+    state = null;
   }
 
   /// Silently update the user state (e.g. after a token refresh)
@@ -78,6 +93,18 @@ class SessionController extends Notifier<Session?> {
         activeBusinessName: businessName,
         clearBusinessId: businessId == null,
       );
+    }
+  }
+
+  /// Mark profile as complete and ensure CUSTOMER role is present locally.
+  void completeProfile() {
+    final current = state;
+    if (current != null) {
+      final newUser = current.user.copyWith(
+        customerProfileComplete: true,
+        roles: {...current.user.roles, UserRole.customer},
+      );
+      state = current.copyWith(user: newUser, activeRole: UserRole.customer);
     }
   }
 

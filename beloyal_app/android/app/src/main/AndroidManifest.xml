@@ -31,12 +31,12 @@
 
                 <data
                     android:scheme="https"
-                    android:host="puerto-amplifier-usr-dom.trycloudflare.com"
+                    android:host="risks-sas-interracial-pets.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/activate" />
 
                 <data
                     android:scheme="https"
-                    android:host="puerto-amplifier-usr-dom.trycloudflare.com"
+                    android:host="risks-sas-interracial-pets.trycloudflare.com"
                     android:pathPrefix="api/besahub/auth/accept-invitation" />
             </intent-filter>
 

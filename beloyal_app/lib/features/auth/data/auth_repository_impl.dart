@@ -105,7 +105,8 @@ class AuthRepositoryImpl implements AuthRepository {
     String? city,
     String? country,
     String? referredBy,
-    String? profileImagePath,
+    String? profileImageUrl,
+    String? profileImageKey,
     bool notificationEnabled = true,
   }) async {
     try {
@@ -119,7 +120,8 @@ class AuthRepositoryImpl implements AuthRepository {
           if (country != null) 'country': country,
           if (referredBy != null && referredBy.isNotEmpty)
             'referredBy': referredBy,
-          if (profileImagePath != null) 'profileImage': profileImagePath,
+          if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+          if (profileImageKey != null) 'profileImageKey': profileImageKey,
           'notificationEnabled': notificationEnabled,
         },
         options: Options(
@@ -313,12 +315,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final activeBusinessCount = businessProfiles.where((p) => p.active).length;
 
-    // Ensure Customer role is available if no other global roles exist.
-    // This allows users with business profiles to still access their personal account.
     final Set<UserRole> resolvedRoles = {...roles};
-    if (resolvedRoles.isEmpty) {
-      resolvedRoles.add(UserRole.customer);
-    }
 
     // Robust boolean parsing for top-level fields
     bool parseBool(dynamic val) =>
@@ -328,6 +325,7 @@ class AuthRepositoryImpl implements AuthRepository {
         val?.toString() == '1';
 
     return AuthUser(
+      userId: (data['userId'] as num?)?.toInt() ?? 0,
       token: access,
       tokenType: (data['tokenType'] as String?) ?? 'Bearer',
       refreshToken: refresh,

@@ -52,7 +52,8 @@ abstract class AuthRepository {
     String? city,
     String? country,
     String? referredBy,
-    String? profileImagePath,
+    String? profileImageUrl,
+    String? profileImageKey,
     bool notificationEnabled = true,
   });
 

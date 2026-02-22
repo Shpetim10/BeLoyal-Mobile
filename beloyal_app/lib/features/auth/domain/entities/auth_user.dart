@@ -13,7 +13,7 @@ enum UserRole {
       'BUSINESS_ADMIN' => UserRole.businessAdmin,
       'STAFF' => UserRole.staff,
       'PLATFORM_ADMIN' || 'SUPER_ADMIN' || 'ADMIN' => UserRole.superAdmin,
-      _ => UserRole.customer,
+      _ => UserRole.customer, // Fallback for truly unknown roles
     };
   }
 
@@ -54,6 +54,7 @@ class BusinessProfileInfo {
 /// Authenticated user returned after login.
 class AuthUser {
   const AuthUser({
+    required this.userId,
     required this.token,
     required this.tokenType,
     required this.refreshToken,
@@ -65,6 +66,7 @@ class AuthUser {
     required this.businessProfiles,
   });
 
+  final int userId;
   final String token;
   final String tokenType;
   final String refreshToken;
@@ -77,10 +79,34 @@ class AuthUser {
   /// List of business profiles and roles.
   final List<BusinessProfileInfo> businessProfiles;
 
-  /// Returns true if the user can switch between different roles or businesses.
-  bool get canSwitchRoles {
-    // A user can switch if they have more than one "entry point"
-    return (roles.length + businessProfiles.length) > 1;
+  /// Multi-role/business check.
+  bool get canSwitchRoles => (roles.length + businessProfiles.length) > 1;
+
+  AuthUser copyWith({
+    int? userId,
+    String? token,
+    String? tokenType,
+    String? refreshToken,
+    Set<UserRole>? roles,
+    bool? emailVerified,
+    bool? customerProfileComplete,
+    bool? alreadyVerified,
+    bool? hasMultipleRoles,
+    List<BusinessProfileInfo>? businessProfiles,
+  }) {
+    return AuthUser(
+      userId: userId ?? this.userId,
+      token: token ?? this.token,
+      tokenType: tokenType ?? this.tokenType,
+      refreshToken: refreshToken ?? this.refreshToken,
+      roles: roles ?? this.roles,
+      emailVerified: emailVerified ?? this.emailVerified,
+      customerProfileComplete:
+          customerProfileComplete ?? this.customerProfileComplete,
+      alreadyVerified: alreadyVerified ?? this.alreadyVerified,
+      hasMultipleRoles: hasMultipleRoles ?? this.hasMultipleRoles,
+      businessProfiles: businessProfiles ?? this.businessProfiles,
+    );
   }
 
   /// Returns true if the user has at least one active business profile.

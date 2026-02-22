@@ -223,12 +223,48 @@ class AuthInterceptor extends Interceptor {
     );
     return dio.request<dynamic>(
       requestOptions.path,
-      data: requestOptions.data,
+      data: await _cloneData(requestOptions),
       queryParameters: requestOptions.queryParameters,
       options: opts,
       cancelToken: requestOptions.cancelToken,
       onReceiveProgress: requestOptions.onReceiveProgress,
       onSendProgress: requestOptions.onSendProgress,
     );
+  }
+
+  /// Helper to clone request data, specifically handled for FormData.
+  /// FormData can only be read once, so it must be recreated for retries.
+  Future<dynamic> _cloneData(RequestOptions requestOptions) async {
+    final data = requestOptions.data;
+    final extra = requestOptions.extra;
+
+    // Use extra info if available (recommended for FormData retries)
+    if (extra['isFormData'] == true) {
+      final clone = FormData();
+      final fields = extra['formDataFields'] as List<MapEntry<String, String>>?;
+      if (fields != null) clone.fields.addAll(fields);
+
+      final files = extra['formDataFiles'] as List<dynamic>?;
+      if (files != null) {
+        for (final fileInfo in files) {
+          if (fileInfo is Map) {
+            clone.files.add(
+              MapEntry(
+                fileInfo['key']?.toString() ?? 'file',
+                await MultipartFile.fromFile(
+                  fileInfo['path'].toString(),
+                  filename: fileInfo['filename']?.toString(),
+                ),
+              ),
+            );
+          }
+        }
+      }
+      return clone;
+    }
+
+    // Default: if it's already a FormData but no extra info, it's probably finalized.
+    // In that case, we return as-is and Dio will throw "Bad state: The FormData has already been finalized".
+    return data;
   }
 }
