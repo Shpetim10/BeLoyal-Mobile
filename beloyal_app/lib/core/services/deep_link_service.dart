@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Specifically handles email verification links:
 /// https://<HOST>/api/beloyal/auth/activate?token=XYZ
 class DeepLinkService {
+  // TODO: TAKE A LOOK
   DeepLinkService(this.ref);
   final Ref ref;
 
@@ -49,8 +50,8 @@ class DeepLinkService {
     debugPrint('🔗 DeepLink received: $uri');
 
     // Filter for activation links
-    // Expected path: /api/beloyal/auth/activate
-    if (uri.path != '/api/beloyal/auth/activate') return;
+    // Expected path: /api/besahub/auth/activate
+    if (uri.path != '/api/besahub/auth/activate') return;
 
     final token = uri.queryParameters['token'];
     if (token == null || token.isEmpty) return;

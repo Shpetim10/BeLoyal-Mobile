@@ -43,7 +43,7 @@ class StaffRepository {
   }
 
   // ── Invite a new staff member ──
-  Future<StaffMember?> inviteStaff(
+  Future<void> inviteStaff(
     int businessId, {
     required String email,
     DateTime? hireDate,
@@ -55,16 +55,7 @@ class StaffRepository {
         body['hireDate'] = hireDate.toIso8601String().split('T').first;
       }
 
-      final response = await _dio.post(
-        '/business/$businessId/staff/invite',
-        data: body,
-      );
-
-      // If the server returns the created member, parse it.
-      if (response.data is Map<String, dynamic>) {
-        return StaffMember.fromJson(response.data as Map<String, dynamic>);
-      }
-      return null;
+      await _dio.post('/business/$businessId/staff/invite', data: body);
     } on DioException catch (e) {
       throw _mapError(e);
     }

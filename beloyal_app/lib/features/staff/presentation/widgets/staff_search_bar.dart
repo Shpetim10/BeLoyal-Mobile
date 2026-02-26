@@ -229,10 +229,10 @@ class StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 110.0; // Approx height of the container
+  double get maxExtent => 125.0; // Precise height of search bar + chips + padding
 
   @override
-  double get minExtent => 110.0;
+  double get minExtent => 125.0;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>

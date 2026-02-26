@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../business_onboarding/models/business_registration_dto.dart';
+import '../../business_onboarding/models/submit_application_models.dart';
+import '../../profile/presentation/controllers/admin_override_controller.dart';
 import '../domain/models/business_application.dart';
 import 'controllers/applications_controller.dart';
 
@@ -317,6 +320,8 @@ class _ApplicationDetailsPageState
                         _BusinessDetailsCard(app: app),
                         const SizedBox(height: 24),
                         _OwnerDetailsCard(owner: app.owner),
+                        const SizedBox(height: 24),
+                        _AdminBusinessEditPanel(app: app),
                       ],
                     ),
                   );
@@ -677,6 +682,478 @@ class _DataRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────── Admin Override Panel ────────────────────────────
+
+/// Collapsible panel on ApplicationDetailsPage allowing Super Admin to edit
+/// all business fields including VAT ID and status.
+class _AdminBusinessEditPanel extends ConsumerStatefulWidget {
+  const _AdminBusinessEditPanel({required this.app});
+  final BusinessApplication app;
+
+  @override
+  ConsumerState<_AdminBusinessEditPanel> createState() =>
+      _AdminBusinessEditPanelState();
+}
+
+class _AdminBusinessEditPanelState
+    extends ConsumerState<_AdminBusinessEditPanel> {
+  bool _expanded = false;
+  bool _initialized = false;
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _descCtrl;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _cityCtrl;
+  late final TextEditingController _countryCtrl;
+  late final TextEditingController _websiteCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _vatCtrl;
+  BusinessType? _selectedType;
+  BusinessStatus? _selectedStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.app.businessName);
+    _descCtrl = TextEditingController(
+      text: widget.app.businessDescription ?? '',
+    );
+    _addressCtrl = TextEditingController(text: widget.app.address ?? '');
+    _cityCtrl = TextEditingController(text: widget.app.city);
+    _countryCtrl = TextEditingController(text: widget.app.country ?? '');
+    _websiteCtrl = TextEditingController(text: widget.app.websiteUrl ?? '');
+    _emailCtrl = TextEditingController(text: widget.app.businessEmail);
+    _phoneCtrl = TextEditingController(
+      text: widget.app.businessPhoneNumber ?? '',
+    );
+    _vatCtrl = TextEditingController(text: widget.app.vatId);
+    _selectedType = widget.app.businessType;
+    _selectedStatus = widget.app.businessStatus;
+  }
+
+  @override
+  void dispose() {
+    for (final c in [
+      _nameCtrl,
+      _descCtrl,
+      _addressCtrl,
+      _cityCtrl,
+      _countryCtrl,
+      _websiteCtrl,
+      _emailCtrl,
+      _phoneCtrl,
+      _vatCtrl,
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+
+    final success = await ref
+        .read(adminOverrideControllerProvider.notifier)
+        .updateAllFields(
+          businessId: widget.app.id,
+          businessName: _nameCtrl.text.trim(),
+          businessType: _selectedType?.value,
+          publicDescription: _descCtrl.text.trim().isEmpty
+              ? null
+              : _descCtrl.text.trim(),
+          address: _addressCtrl.text.trim().isEmpty
+              ? null
+              : _addressCtrl.text.trim(),
+          city: _cityCtrl.text.trim().isEmpty ? null : _cityCtrl.text.trim(),
+          country: _countryCtrl.text.trim().isEmpty
+              ? null
+              : _countryCtrl.text.trim(),
+          websiteUrl: _websiteCtrl.text.trim().isEmpty
+              ? null
+              : _websiteCtrl.text.trim(),
+          contactEmail: _emailCtrl.text.trim().isEmpty
+              ? null
+              : _emailCtrl.text.trim(),
+          contactPhone: _phoneCtrl.text.trim().isEmpty
+              ? null
+              : _phoneCtrl.text.trim(),
+          vatId: _vatCtrl.text.trim().isEmpty ? null : _vatCtrl.text.trim(),
+          status: _selectedStatus?.value,
+        );
+
+    if (mounted && success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text('Business details updated'),
+            ],
+          ),
+          backgroundColor: AppColors.secondary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+      setState(() => _expanded = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final overrideState = ref.watch(adminOverrideControllerProvider);
+    final isSaving = overrideState.value?.isSaving ?? false;
+    final errorMessage = overrideState.value?.errorMessage;
+
+    // Trigger load on first expand
+    if (_expanded && !_initialized) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(adminOverrideControllerProvider.notifier)
+            .loadBusiness(widget.app.id);
+      });
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _expanded
+              ? AppColors.warning.withValues(alpha: 0.4)
+              : AppColors.glassBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Header / collapse toggle ──
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.admin_panel_settings_rounded,
+                      color: AppColors.warning,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Edit Business Details',
+                          style: TextStyle(
+                            color: AppColors.textOnDark,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Super Admin override — edit all fields',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textMuted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Expanded edit form ──
+          if (_expanded) ...[
+            const Divider(color: AppColors.glassBorder, height: 1),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Warning banner
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.warning.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: AppColors.warning,
+                            size: 18,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'You are editing restricted business fields. Changes may affect compliance and visibility.',
+                              style: TextStyle(
+                                color: AppColors.warning,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Error banner
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(
+                            color: AppColors.error,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+                    _buildField(
+                      _nameCtrl,
+                      'Business name',
+                      Icons.business_rounded,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTypeDropdown(),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _descCtrl,
+                      maxLines: 3,
+                      style: const TextStyle(color: AppColors.textOnDark),
+                      decoration: _decoration(
+                        'Description (optional)',
+                        Icons.description_rounded,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _buildField(
+                      _addressCtrl,
+                      'Address (optional)',
+                      Icons.place_rounded,
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildField(
+                            _cityCtrl,
+                            'City',
+                            Icons.location_city_rounded,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildField(_countryCtrl, 'Country', null),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _buildField(
+                      _websiteCtrl,
+                      'Website URL',
+                      Icons.language_rounded,
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildField(
+                      _emailCtrl,
+                      'Contact email',
+                      Icons.email_rounded,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildField(
+                      _phoneCtrl,
+                      'Contact phone',
+                      Icons.phone_rounded,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── Admin-restricted fields ──
+                    const Divider(color: AppColors.glassBorder),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Restricted fields',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    _buildField(_vatCtrl, 'VAT ID', Icons.receipt_long_rounded),
+                    const SizedBox(height: 14),
+                    _buildStatusDropdown(),
+                    const SizedBox(height: 24),
+
+                    // Save button
+                    ElevatedButton(
+                      onPressed: isSaving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.textOnDark,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.2,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.save_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Save Changes',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _decoration(String label, IconData? icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AppColors.textMuted),
+      prefixIcon: icon != null
+          ? Icon(icon, size: 20, color: AppColors.textMuted)
+          : null,
+      filled: true,
+      fillColor: AppColors.bgDark,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.glassBorder),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.glassBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
+  Widget _buildField(
+    TextEditingController ctrl,
+    String label,
+    IconData? icon, {
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: ctrl,
+      style: const TextStyle(color: AppColors.textOnDark),
+      keyboardType: keyboardType,
+      decoration: _decoration(label, icon),
+    );
+  }
+
+  Widget _buildTypeDropdown() {
+    return DropdownButtonFormField<BusinessType>(
+      value: _selectedType,
+      dropdownColor: AppColors.surfaceDark,
+      style: const TextStyle(color: AppColors.textOnDark, fontSize: 14),
+      decoration: _decoration('Business type', Icons.category_rounded),
+      items: BusinessType.values
+          .map((t) => DropdownMenuItem(value: t, child: Text(t.displayName)))
+          .toList(),
+      onChanged: (val) => setState(() => _selectedType = val),
+    );
+  }
+
+  Widget _buildStatusDropdown() {
+    return DropdownButtonFormField<BusinessStatus>(
+      value: _selectedStatus,
+      dropdownColor: AppColors.surfaceDark,
+      style: const TextStyle(color: AppColors.textOnDark, fontSize: 14),
+      decoration: _decoration('Business status', Icons.verified_rounded),
+      items: BusinessStatus.values
+          .map(
+            (s) => DropdownMenuItem(
+              value: s,
+              child: Text(
+                s.value,
+                style: const TextStyle(color: AppColors.textOnDark),
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (val) => setState(() => _selectedStatus = val),
     );
   }
 }

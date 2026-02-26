@@ -19,6 +19,7 @@ class PremiumTextField extends StatelessWidget {
     this.autofillHints,
     this.focusNode,
     this.enabled = true,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
@@ -35,6 +36,7 @@ class PremiumTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final FocusNode? focusNode;
   final bool enabled;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class PremiumTextField extends StatelessWidget {
         maxLength: maxLength,
         autofillHints: autofillHints,
         enabled: enabled,
+        readOnly: readOnly,
         autovalidateMode: AutovalidateMode.onUserInteraction,
       ),
     );

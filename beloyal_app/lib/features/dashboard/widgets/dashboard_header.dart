@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/features/auth/domain/entities/auth_user.dart';
+import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
+import 'package:besahub_app/features/profile/presentation/controllers/profile_controller.dart';
 
 /// Consistent top header used by every role dashboard.
 ///
@@ -38,49 +43,34 @@ class DashboardHeader extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ── Profile avatar ──
-            _Avatar(initials: initials),
-            const SizedBox(width: 12),
-
             // ── BesaHub logo ──
-            Expanded(
-              child: ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppColors.accentGradient.createShader(bounds),
-                blendMode: BlendMode.srcIn,
-                child: const Text(
-                  'BesaHub',
-                  style: TextStyle(
-                    color: Colors.white, // masked by shader
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
+            ShaderMask(
+              shaderCallback: (bounds) =>
+                  AppColors.accentGradient.createShader(bounds),
+              blendMode: BlendMode.srcIn,
+              child: const Text(
+                'BesaHub',
+                style: TextStyle(
+                  color: Colors.white, // masked by shader
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
                 ),
               ),
             ),
 
+            const Spacer(),
+
             // ── Role-switch chip ──
             if (canSwitchRoles) ...[
               _RoleSwitchChip(roleName: activeRoleName, onTap: onRoleSwitchTap),
-              const SizedBox(width: 6),
+              const SizedBox(width: 12),
             ],
 
-            // ── Logout button ──
-            Tooltip(
-              message: 'Log Out',
-              child: InkWell(
-                onTap: onLogoutTap,
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.textMuted,
-                    size: 22,
-                  ),
-                ),
-              ),
+            // ── Profile Avatar Dropdown ──
+            _ProfileDropdown(
+              onLogoutTap: onLogoutTap,
+              fallbackInitials: initials,
             ),
           ],
         ),
@@ -114,32 +104,118 @@ class DashboardHeader extends StatelessWidget {
 
 // ─────────────────────────── Internal widgets ────────────────────────────────
 
-class _Avatar extends StatelessWidget {
-  const _Avatar({this.initials});
-  final String? initials;
+class _ProfileDropdown extends ConsumerWidget {
+  const _ProfileDropdown({required this.onLogoutTap, this.fallbackInitials});
+  final VoidCallback onLogoutTap;
+  final String? fallbackInitials;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: AppColors.primaryGradient,
-        border: Border.all(color: AppColors.glassBorder, width: 2),
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch profile to dynamically show avatar or initials
+    final profileState = ref.watch(profileControllerProvider);
+    final userProfile = profileState.value?.user;
+
+    String? imageUrl = userProfile?.profileImageUrl;
+    String initials = fallbackInitials ?? '';
+
+    if (userProfile != null) {
+      if (userProfile.firstName.isNotEmpty) {
+        initials = userProfile.firstName[0].toUpperCase();
+        if (userProfile.lastName.isNotEmpty) {
+          initials += userProfile.lastName[0].toUpperCase();
+        }
+      } else if (userProfile.username.isNotEmpty) {
+        initials = userProfile.username[0].toUpperCase();
+      }
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: 'Profile Options',
+      onSelected: (value) {
+        if (value == 'profile') {
+          // Business Admins go to the hub (has My Profile + Restaurant tabs)
+          final session = ref.read(sessionControllerProvider);
+          final role = session?.activeRole;
+          if (role == UserRole.businessAdmin) {
+            context.push('/admin/profile');
+          } else {
+            context.push('/profile');
+          }
+        } else if (value == 'logout') {
+          onLogoutTap();
+        }
+      },
+      offset: const Offset(0, 50),
+      color: AppColors.surfaceDark,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: AppColors.primaryGradient,
+          border: Border.all(color: AppColors.glassBorder, width: 2),
+          image: imageUrl != null && imageUrl.isNotEmpty
+              ? DecorationImage(
+                  image: NetworkImage(imageUrl),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: (imageUrl == null || imageUrl.isEmpty)
+            ? (initials.isNotEmpty
+                  ? Center(
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ))
+            : null,
       ),
-      child: initials != null && initials!.isNotEmpty
-          ? Center(
-              child: Text(
-                initials!.toUpperCase(),
-                style: const TextStyle(
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'profile',
+          child: Row(
+            children: [
+              Icon(Icons.person_outline_rounded, size: 20, color: Colors.white),
+              SizedBox(width: 12),
+              Text(
+                'My Profile',
+                style: TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            )
-          : const Icon(Icons.person_rounded, color: Colors.white, size: 22),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
+              SizedBox(width: 12),
+              Text(
+                'Log Out',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

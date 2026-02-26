@@ -12,6 +12,7 @@ import 'package:besahub_app/features/dashboard/staff_dashboard_page.dart';
 import 'package:besahub_app/features/dashboard/admin_dashboard_page.dart';
 import '../../features/auth/presentation/views/resend_verification_page.dart';
 import '../../features/auth/presentation/views/onboarding_success_page.dart';
+import '../../features/staff/presentation/views/accept_staff_invitation_page.dart';
 
 import '../../features/auth/presentation/controllers/session_controller.dart';
 import '../../features/auth/domain/entities/auth_user.dart';
@@ -28,6 +29,11 @@ import '../../features/business_onboarding/pages/rejected_gate_page.dart';
 
 // Admin imports
 import '../../features/admin/presentation/application_details_page.dart';
+
+// Profile imports
+import '../../features/profile/presentation/views/profile_page.dart';
+import '../../features/profile/presentation/views/change_password_page.dart';
+import '../../features/profile/presentation/views/admin_profile_hub_page.dart';
 
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
@@ -67,6 +73,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/check-email',
           '/activation-processing',
           '/api/beloyal/auth/activate',
+          '/api/besahub/auth/accept-invitation', // Staff invite deep link
           '/resend-verification',
           '/forgot-password',
           '/business/register', // Allow business registration flow
@@ -117,7 +124,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If logged in, check if the active business profile is still pending (active: false)
-      if (isLoggedIn &&
+      // Skip this check for the staff invitation acceptance route — invited staff must
+      // always be able to accept even if their business isn't active yet.
+      final isInvitationRoute = path.startsWith(
+        '/api/besahub/auth/accept-invitation',
+      );
+      if (!isInvitationRoute &&
+          isLoggedIn &&
           (session.activeRole == UserRole.businessAdmin ||
               session.activeRole == UserRole.staff)) {
         final activeBusiness = session.user.businessProfiles.firstWhere(
@@ -317,6 +330,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // ── Staff Invitation ──
+      GoRoute(
+        path: '/api/besahub/auth/accept-invitation',
+        pageBuilder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          final existing = state.uri.queryParameters['existing'] == 'true';
+          final email = state.uri.queryParameters['email'];
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: AcceptStaffInvitationPage(
+              token: token,
+              isExistingUser: existing,
+              email: email,
+            ),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+
       // ── Dashboards ──
       GoRoute(
         path: '/customer/dashboard',
@@ -366,6 +399,38 @@ final routerProvider = Provider<GoRouter>((ref) {
                 FadeTransition(opacity: anim, child: child),
           );
         },
+      ),
+
+      // ── Profile ──
+      GoRoute(
+        path: '/profile',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ProfilePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/admin/profile',
+        pageBuilder: (context, state) {
+          final tab = state.uri.queryParameters['tab'] == '1' ? 1 : 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: AdminProfileHubPage(initialTab: tab),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/profile/change-password',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ChangePasswordPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
       ),
     ],
   );

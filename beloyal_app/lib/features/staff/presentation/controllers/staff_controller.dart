@@ -77,6 +77,7 @@ class StaffController extends AsyncNotifier<List<StaffMember>> {
   Future<String?> inviteStaff({
     required String email,
     DateTime? hireDate,
+    String role = 'STAFF',
   }) async {
     final bId = _businessId;
     if (bId == null) return 'No active business selected.';
@@ -92,16 +93,13 @@ class StaffController extends AsyncNotifier<List<StaffMember>> {
     state = AsyncData([placeholder, ...previous]);
 
     try {
-      final created = await _repo.inviteStaff(
+      await _repo.inviteStaff(
         bId,
         email: email,
         hireDate: hireDate,
+        role: role,
       );
-      // Replace placeholder with real data (or keep placeholder if server
-      // didn't return the object — next refresh will fix it).
-      if (created != null) {
-        state = AsyncData([created, ...previous]);
-      }
+      // Keep optimistic placeholder until next refresh
       return null; // success
     } catch (e) {
       // Rollback
