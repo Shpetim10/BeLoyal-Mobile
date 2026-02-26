@@ -52,6 +52,8 @@ class BusinessProfileController
     extends AsyncNotifier<BusinessProfilePageState> {
   @override
   Future<BusinessProfilePageState> build() async {
+    final session = ref.watch(sessionControllerProvider);
+    if (session == null) return const BusinessProfilePageState();
     return _fetch();
   }
 

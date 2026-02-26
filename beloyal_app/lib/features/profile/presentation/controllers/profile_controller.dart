@@ -62,6 +62,8 @@ class ProfilePageState {
 class ProfileController extends AsyncNotifier<ProfilePageState> {
   @override
   Future<ProfilePageState> build() async {
+    final session = ref.watch(sessionControllerProvider);
+    if (session == null) return const ProfilePageState();
     return _fetchProfiles();
   }
 

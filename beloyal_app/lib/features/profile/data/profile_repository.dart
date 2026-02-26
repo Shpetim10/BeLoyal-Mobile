@@ -4,6 +4,7 @@ import '../../../../core/network/api_client.dart';
 import '../../auth/domain/repositories/auth_repository.dart';
 import '../domain/user_profile.dart';
 import '../domain/customer_profile.dart';
+import '../domain/staff_membership.dart';
 
 class ProfileRepository {
   ProfileRepository(this._dio);
@@ -157,6 +158,25 @@ class ProfileRepository {
           'Password updated successfully';
       return AuthSuccess(msg);
     } on DioException catch (e) {
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
+    }
+  }
+
+  // ── Staff Membership ──
+
+  Future<AuthResult<StaffMembership>> fetchStaffMembership(
+    int businessId,
+  ) async {
+    try {
+      final response = await _dio.get('/business-member/me/$businessId');
+      final data = response.data as Map<String, dynamic>;
+      return AuthSuccess(StaffMembership.fromJson(data));
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return const AuthError(AuthFailure('Membership not found.'));
+      }
       return AuthError(_mapDioError(e));
     } catch (e) {
       return AuthError(AuthFailure(e.toString()));

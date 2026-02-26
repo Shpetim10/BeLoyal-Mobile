@@ -138,6 +138,10 @@ class _ProfileDropdown extends ConsumerWidget {
           final role = session?.activeRole;
           if (role == UserRole.businessAdmin) {
             context.push('/admin/profile');
+          } else if (role == UserRole.superAdmin) {
+            context.push('/superadmin/profile');
+          } else if (role == UserRole.staff) {
+            context.push('/staff/profile');
           } else {
             context.push('/profile');
           }

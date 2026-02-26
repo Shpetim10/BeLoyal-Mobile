@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/business_profile.dart';
 import '../../data/business_profile_repository.dart';
+import '../../../auth/presentation/controllers/session_controller.dart';
 
 // ─────────────────────────── State ───────────────────────────────────────────
 
@@ -49,6 +50,8 @@ class AdminOverrideState {
 class AdminOverrideController extends AsyncNotifier<AdminOverrideState> {
   @override
   Future<AdminOverrideState> build() async {
+    final session = ref.watch(sessionControllerProvider);
+    if (session == null) return const AdminOverrideState();
     return const AdminOverrideState();
   }
 

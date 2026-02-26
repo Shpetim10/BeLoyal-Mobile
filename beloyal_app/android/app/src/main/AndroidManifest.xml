@@ -31,12 +31,12 @@
 
                 <data
                     android:scheme="https"
-                    android:host="diff-programmer-varies-zero.trycloudflare.com"
+                    android:host="parliamentary-vincent-origins-guitars.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/activate" />
 
                 <data
                     android:scheme="https"
-                    android:host="diff-programmer-varies-zero.trycloudflare.com"
+                    android:host="parliamentary-vincent-origins-guitars.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/accept-invitation" />
             </intent-filter>
 

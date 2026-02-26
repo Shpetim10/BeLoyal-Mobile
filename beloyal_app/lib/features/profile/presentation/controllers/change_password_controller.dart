@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../data/profile_repository.dart';
+import '../../../auth/presentation/controllers/session_controller.dart';
 
 class ChangePasswordState {
   const ChangePasswordState({
@@ -35,7 +36,11 @@ class ChangePasswordState {
 
 class ChangePasswordController extends Notifier<ChangePasswordState> {
   @override
-  ChangePasswordState build() => const ChangePasswordState();
+  ChangePasswordState build() {
+    final session = ref.watch(sessionControllerProvider);
+    if (session == null) return const ChangePasswordState();
+    return const ChangePasswordState();
+  }
 
   Future<void> changePassword({
     required String currentPassword,

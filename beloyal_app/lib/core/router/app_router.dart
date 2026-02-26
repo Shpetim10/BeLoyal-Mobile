@@ -34,6 +34,8 @@ import '../../features/admin/presentation/application_details_page.dart';
 import '../../features/profile/presentation/views/profile_page.dart';
 import '../../features/profile/presentation/views/change_password_page.dart';
 import '../../features/profile/presentation/views/admin_profile_hub_page.dart';
+import '../../features/profile/presentation/views/super_admin_profile_page.dart';
+import '../../features/profile/presentation/views/staff_profile_page.dart';
 
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
@@ -422,6 +424,40 @@ final routerProvider = Provider<GoRouter>((ref) {
                 FadeTransition(opacity: anim, child: child),
           );
         },
+      ),
+      GoRoute(
+        path: '/staff/profile',
+        redirect: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final role = session?.activeRole;
+          if (role != UserRole.staff && role != UserRole.superAdmin) {
+            return '/customer/dashboard';
+          }
+          return null;
+        },
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const StaffProfilePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/superadmin/profile',
+        redirect: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final role = session?.activeRole;
+          if (role != UserRole.superAdmin) {
+            return '/customer/dashboard';
+          }
+          return null;
+        },
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SuperAdminProfilePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
       ),
       GoRoute(
         path: '/profile/change-password',
