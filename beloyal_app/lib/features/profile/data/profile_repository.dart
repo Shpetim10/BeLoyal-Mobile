@@ -149,7 +149,7 @@ class ProfileRepository {
   }) async {
     try {
       final response = await _dio.post(
-        '/auth/change-password',
+        '/user-profile/change-password',
         data: {'currentPassword': currentPassword, 'newPassword': newPassword},
       );
 

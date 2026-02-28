@@ -13,6 +13,7 @@ import '../../../auth/presentation/widgets/premium_text_field.dart';
 import '../../../auth/presentation/widgets/primary_gradient_button.dart';
 import '../../../auth/presentation/widgets/status_banner.dart';
 import '../controllers/profile_controller.dart';
+import '../../domain/user_profile.dart';
 import '../widgets/section_card_widget.dart';
 
 /// "My Profile" tab — shown inside AdminProfileHubPage.
@@ -441,11 +442,21 @@ class _MyProfileTabState extends ConsumerState<MyProfileTab> {
     );
   }
 
+  Widget _buildFallback(UserProfile user) {
+    return Center(
+      child: Text(
+        '${user.firstName.isNotEmpty ? user.firstName[0] : ''}${user.lastName.isNotEmpty ? user.lastName[0] : ''}',
+        style: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(ProfilePageState state) {
     final user = state.user!;
-    final hasImage =
-        state.pendingAvatar != null ||
-        (user.profileImageUrl != null && user.profileImageUrl!.isNotEmpty);
 
     return Column(
       children: [
@@ -465,31 +476,25 @@ class _MyProfileTabState extends ConsumerState<MyProfileTab> {
                         : AppColors.primary.withValues(alpha: 0.25),
                     width: 2.5,
                   ),
-                  image: state.pendingAvatar != null
-                      ? DecorationImage(
-                          image: FileImage(File(state.pendingAvatar!.path)),
+                ),
+                child: ClipOval(
+                  child: state.pendingAvatar != null
+                      ? Image.file(
+                          File(state.pendingAvatar!.path),
                           fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) =>
+                              _buildFallback(user),
                         )
                       : (user.profileImageUrl != null &&
                                 user.profileImageUrl!.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(user.profileImageUrl!),
+                            ? Image.network(
+                                user.profileImageUrl!,
                                 fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) =>
+                                    _buildFallback(user),
                               )
-                            : null),
+                            : _buildFallback(user)),
                 ),
-                child: !hasImage
-                    ? Center(
-                        child: Text(
-                          '${user.firstName.isNotEmpty ? user.firstName[0] : ''}${user.lastName.isNotEmpty ? user.lastName[0] : ''}',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      )
-                    : null,
               ),
               if (state.isSaving)
                 Positioned.fill(

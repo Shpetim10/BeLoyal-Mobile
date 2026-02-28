@@ -12,6 +12,8 @@ import 'package:besahub_app/features/dashboard/staff_dashboard_page.dart';
 import 'package:besahub_app/features/dashboard/admin_dashboard_page.dart';
 import '../../features/auth/presentation/views/resend_verification_page.dart';
 import '../../features/auth/presentation/views/onboarding_success_page.dart';
+import '../../features/auth/presentation/views/forgot_password_page.dart';
+import '../../features/auth/presentation/views/reset_password_page.dart';
 import '../../features/staff/presentation/views/accept_staff_invitation_page.dart';
 
 import '../../features/auth/presentation/controllers/session_controller.dart';
@@ -78,6 +80,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/api/besahub/auth/accept-invitation', // Staff invite deep link
           '/resend-verification',
           '/forgot-password',
+          '/forget-password', // Deep link from email
+          '/api/besahub/auth/reset-password',
           '/business/register', // Allow business registration flow
         ];
         final isAllowed = allowedPaths.any((p) => path.startsWith(p));
@@ -245,11 +249,36 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/forgot-password',
-        builder: (context, state) => const _PlaceholderPage(
-          title: 'Forgot Password',
-          icon: Icons.lock_reset_rounded,
-          message: 'Password reset flow will be implemented here.',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ForgotPasswordPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
         ),
+      ),
+      GoRoute(
+        path: '/api/besahub/auth/reset-password',
+        pageBuilder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ResetPasswordPage(token: token),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/forget-password',
+        pageBuilder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ResetPasswordPage(token: token),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
       ),
 
       // ── Business Onboarding ──
@@ -471,37 +500,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-/// Minimal placeholder page for unimplemented routes.
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({
-    required this.title,
-    required this.icon,
-    required this.message,
-  });
-  final String title;
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(message, style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () => context.go('/login'),
-              child: const Text('Back to Login'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

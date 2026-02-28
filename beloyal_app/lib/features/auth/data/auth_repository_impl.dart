@@ -199,6 +199,48 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  // ────────────── FORGET PASSWORD ──────────────
+  @override
+  Future<AuthResult<String>> forgetPassword({required String email}) async {
+    try {
+      final response = await _dio.post(
+        '/auth/forget-password',
+        data: {'email': email},
+        // Wait for plain response as it returns ResponseEntity<Map<String, String>>
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      return AuthSuccess(data['message'] as String? ?? 'Email was sent');
+    } on DioException catch (e) {
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
+    }
+  }
+
+  // ────────────── RESET PASSWORD ──────────────
+  @override
+  Future<AuthResult<String>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/change-password',
+        data: {'token': token, 'newPassword': newPassword},
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      return AuthSuccess(
+        data['message'] as String? ?? 'Password has been changed',
+      );
+    } on DioException catch (e) {
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
+    }
+  }
+
   // ────────────── REFRESH ──────────────
   @override
   Future<AuthResult<AuthUser>> refresh(

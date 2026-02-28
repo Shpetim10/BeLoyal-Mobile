@@ -109,6 +109,22 @@ class _ProfileDropdown extends ConsumerWidget {
   final VoidCallback onLogoutTap;
   final String? fallbackInitials;
 
+  Widget _buildFallback(String initials) {
+    if (initials.isNotEmpty) {
+      return Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+      );
+    }
+    return const Icon(Icons.person_rounded, color: Colors.white, size: 22);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch profile to dynamically show avatar or initials
@@ -159,31 +175,17 @@ class _ProfileDropdown extends ConsumerWidget {
           shape: BoxShape.circle,
           gradient: AppColors.primaryGradient,
           border: Border.all(color: AppColors.glassBorder, width: 2),
-          image: imageUrl != null && imageUrl.isNotEmpty
-              ? DecorationImage(
-                  image: NetworkImage(imageUrl),
-                  fit: BoxFit.cover,
-                )
-              : null,
         ),
-        child: (imageUrl == null || imageUrl.isEmpty)
-            ? (initials.isNotEmpty
-                  ? Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                    )
-                  : const Icon(
-                      Icons.person_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ))
-            : null,
+        child: ClipOval(
+          child: imageUrl != null && imageUrl.isNotEmpty
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildFallback(initials),
+                )
+              : _buildFallback(initials),
+        ),
       ),
       itemBuilder: (context) => [
         const PopupMenuItem(

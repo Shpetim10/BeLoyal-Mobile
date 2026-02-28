@@ -55,14 +55,19 @@ class StaffMember {
 
   /// Displayable full name. Falls back to "—" when both are null.
   String get fullName {
-    final parts = [firstName, lastName].where((s) => s != null && s.isNotEmpty);
+    final parts = [
+      firstName,
+      lastName,
+    ].map((s) => s?.trim()).where((s) => s != null && s.isNotEmpty);
     return parts.isEmpty ? '—' : parts.join(' ');
   }
 
   /// 1-2 character initials for the avatar.
   String get initials {
-    final f = (firstName?.isNotEmpty == true) ? firstName![0] : '';
-    final l = (lastName?.isNotEmpty == true) ? lastName![0] : '';
+    final f = (firstName?.trim().isNotEmpty == true)
+        ? firstName!.trim()[0]
+        : '';
+    final l = (lastName?.trim().isNotEmpty == true) ? lastName!.trim()[0] : '';
     final result = '$f$l'.trim().toUpperCase();
     return result.isEmpty ? '?' : result;
   }
@@ -70,18 +75,33 @@ class StaffMember {
   // ── JSON helpers ──
 
   factory StaffMember.fromJson(Map<String, dynamic> json) {
+    // Helper to parse dates that might come as a list [year, month, day, ...]
+    // or as a standard ISO string.
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is String) return DateTime.tryParse(d);
+      if (d is List && d.isNotEmpty) {
+        final parts = d.cast<int>();
+        return DateTime(
+          parts.elementAtOrNull(0) ?? 1970,
+          parts.elementAtOrNull(1) ?? 1,
+          parts.elementAtOrNull(2) ?? 1,
+          parts.elementAtOrNull(3) ?? 0,
+          parts.elementAtOrNull(4) ?? 0,
+          parts.elementAtOrNull(5) ?? 0,
+        );
+      }
+      return null;
+    }
+
     return StaffMember(
       id: (json['id'] as num?)?.toInt() ?? 0,
       firstName: json['firstName'] as String?,
       lastName: json['lastName'] as String?,
       email: json['email'] as String?,
-      lastLogin: json['lastLogin'] != null
-          ? DateTime.tryParse(json['lastLogin'] as String)
-          : null,
+      lastLogin: parseDate(json['lastLogin']),
       role: (json['role'] as String?) ?? 'STAFF',
-      hireDate: json['hireDate'] != null
-          ? DateTime.tryParse(json['hireDate'] as String)
-          : null,
+      hireDate: parseDate(json['hireDate']),
       memberStatus: MemberStatus.fromBackend(
         (json['memberStatus'] as String?) ?? 'INACTIVE',
       ),

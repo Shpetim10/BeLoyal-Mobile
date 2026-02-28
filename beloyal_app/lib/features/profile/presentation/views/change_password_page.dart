@@ -164,7 +164,12 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                         PasswordField(
                           controller: _newPwdCtrl,
                           label: 'New Password',
-                          validator: Validators.password,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a valid password';
+                            }
+                            return null; // The exact validation string handled by the regex/api
+                          },
                           textInputAction: TextInputAction.next,
                         ),
                         const SizedBox(height: 16),

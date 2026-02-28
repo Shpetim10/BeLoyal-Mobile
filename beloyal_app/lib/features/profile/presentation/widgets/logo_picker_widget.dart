@@ -44,9 +44,11 @@ class LogoPickerWidget extends StatelessWidget {
                     : AppColors.glassBorder,
                 width: 2,
               ),
-              image: _buildImageDecoration(),
             ),
-            child: _buildContent(),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: _buildImageOrContent(),
+            ),
           ),
 
           // Upload progress overlay
@@ -97,21 +99,28 @@ class LogoPickerWidget extends StatelessWidget {
     );
   }
 
-  DecorationImage? _buildImageDecoration() {
+  Widget _buildImageOrContent() {
     if (pendingLogo != null) {
-      return DecorationImage(
-        image: FileImage(File(pendingLogo!.path)),
+      return Image.file(
+        File(pendingLogo!.path),
         fit: BoxFit.cover,
+        errorBuilder: (ctx, err, stack) => _buildFallbackContent(),
       );
     }
+
     if (logoUrl != null && logoUrl!.isNotEmpty) {
-      return DecorationImage(image: NetworkImage(logoUrl!), fit: BoxFit.cover);
+      return Image.network(
+        logoUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, stack) => _buildFallbackContent(),
+      );
     }
-    return null;
+
+    return _buildFallbackContent();
   }
 
-  Widget? _buildContent() {
-    if (_hasLogo && !isUploading) return null;
+  Widget _buildFallbackContent() {
+    if (isUploading) return const SizedBox.shrink();
 
     final letter = businessName?.isNotEmpty == true
         ? businessName![0].toUpperCase()

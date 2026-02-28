@@ -15,6 +15,7 @@ import '../../../auth/presentation/widgets/primary_gradient_button.dart';
 import '../../../auth/presentation/widgets/status_banner.dart';
 
 import '../controllers/profile_controller.dart';
+import '../../domain/user_profile.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -404,6 +405,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  Widget _buildFallback(UserProfile user) {
+    return Center(
+      child: Text(
+        '${user.firstName.isNotEmpty ? user.firstName[0] : ''}${user.lastName.isNotEmpty ? user.lastName[0] : ''}',
+        style: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileHeader(ProfilePageState state) {
     final user = state.user!;
     return Column(
@@ -422,37 +436,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     color: AppColors.primary.withValues(alpha: 0.3),
                     width: 2,
                   ),
-                  image: state.pendingAvatar != null
-                      ? DecorationImage(
-                          image: FileImage(File(state.pendingAvatar!.path)),
+                ),
+                child: ClipOval(
+                  child: state.pendingAvatar != null
+                      ? Image.file(
+                          File(state.pendingAvatar!.path),
                           fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) =>
+                              _buildFallback(user),
                         )
                       : (user.profileImageUrl != null &&
                                 user.profileImageUrl!.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(user.profileImageUrl!),
+                            ? Image.network(
+                                user.profileImageUrl!,
                                 fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) =>
+                                    _buildFallback(user),
                               )
-                            : null),
+                            : _buildFallback(user)),
                 ),
-                child:
-                    (state.pendingAvatar == null &&
-                        (user.profileImageUrl == null ||
-                            user.profileImageUrl!.isEmpty))
-                    ? Center(
-                        child: Text(
-                          (user.firstName.isNotEmpty ? user.firstName[0] : '') +
-                              (user.lastName.isNotEmpty
-                                  ? user.lastName[0]
-                                  : ''),
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      )
-                    : null,
               ),
               Positioned(
                 bottom: 0,

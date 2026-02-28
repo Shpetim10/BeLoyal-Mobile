@@ -254,10 +254,10 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                 ),
 
               // 3. Staff List or States
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-                sliver: filteredAsync.when(
-                  loading: () => const SliverToBoxAdapter(
+              filteredAsync.when(
+                loading: () => const SliverPadding(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 180),
+                  sliver: SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
                         padding: EdgeInsets.all(40),
@@ -267,23 +267,32 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                       ),
                     ),
                   ),
-                  error: (err, stack) => SliverToBoxAdapter(
+                ),
+                error: (err, stack) => SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 180),
+                  sliver: SliverToBoxAdapter(
                     child: StaffEmptyState.error(
                       onInvite: () =>
                           ref.read(staffControllerProvider.notifier).refresh(),
                     ),
                   ),
-                  data: (staffList) {
-                    if (hasNoStaffEver) {
-                      return SliverToBoxAdapter(
+                ),
+                data: (staffList) {
+                  if (hasNoStaffEver) {
+                    return SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 180),
+                      sliver: SliverToBoxAdapter(
                         child: StaffEmptyState.empty(
                           onInvite: _showInviteSheet,
                         ),
-                      );
-                    }
-                    if (staffList.isEmpty) {
-                      final query = ref.watch(staffSearchQueryProvider);
-                      return SliverToBoxAdapter(
+                      ),
+                    );
+                  }
+                  if (staffList.isEmpty) {
+                    final query = ref.watch(staffSearchQueryProvider);
+                    return SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 180),
+                      sliver: SliverToBoxAdapter(
                         child: StaffEmptyState.noResults(
                           query: query,
                           onInvite: () {
@@ -295,10 +304,13 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                                 .updateFilter(StaffFilter.all);
                           },
                         ),
-                      );
-                    }
+                      ),
+                    );
+                  }
 
-                    return SliverList(
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 180),
+                    sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final member = staffList[index];
                         return StaffCard(
@@ -317,9 +329,9 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                               curve: Curves.easeOut,
                             );
                       }, childCount: staffList.length),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -327,7 +339,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
 
         // Floating 'Invite Staff' button at bottom right (matches premium layout)
         Positioned(
-          bottom: 100, // Above NavBar
+          bottom: 140, // Shifted up to firmly clear the Dashboard NavBar
           right: 20,
           child:
               FloatingActionButton.extended(

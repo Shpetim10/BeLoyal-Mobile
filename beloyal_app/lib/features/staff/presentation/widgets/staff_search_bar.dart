@@ -225,7 +225,10 @@ class StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return const StaffSearchBar();
+    return const SizedBox(
+      height: 125,
+      child: Align(alignment: Alignment.topCenter, child: StaffSearchBar()),
+    );
   }
 
   @override

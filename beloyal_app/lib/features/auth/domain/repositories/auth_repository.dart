@@ -60,6 +60,15 @@ abstract class AuthRepository {
   /// Verify email with token (from deep link).
   Future<AuthResult<AuthUser>> verifyEmail(String token);
 
+  /// POST /auth/forget-password
+  Future<AuthResult<String>> forgetPassword({required String email});
+
+  /// POST /auth/change-password
+  Future<AuthResult<String>> resetPassword({
+    required String token,
+    required String newPassword,
+  });
+
   /// Resend verification email
   Future<AuthResult<String>> resendVerification(String email);
 
