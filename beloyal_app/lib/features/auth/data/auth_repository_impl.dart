@@ -346,9 +346,13 @@ class AuthRepositoryImpl implements AuthRepository {
                 businessName: businessName,
                 role: UserRole.fromBackend(roleStr),
                 active: active,
-                status: item['status'] as String?,
+                businessStatus: item['businessStatus'] as String?,
                 rejectionReason: item['rejectionReason'] as String?,
+                memberStatus: item['memberStatus'] as String?,
               ),
+            );
+            debugPrint(
+              'Parsed Profile -> id: $id, role: $roleStr, active: $active, businessStatus: ${item['businessStatus']}, memberStatus: ${item['memberStatus']}',
             );
           }
         }

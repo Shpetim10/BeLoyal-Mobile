@@ -33,10 +33,16 @@ class StaffRepository {
     MemberStatus newStatus,
   ) async {
     try {
-      await _dio.patch(
-        '/business/$businessId/staff/$memberId/status',
-        data: {'memberStatus': newStatus.backendValue},
-      );
+      if (newStatus == MemberStatus.active) {
+        await _dio.post('/business/$businessId/staff/$memberId/activate');
+      } else if (newStatus == MemberStatus.inactive) {
+        await _dio.post('/business/$businessId/staff/$memberId/deactivate');
+      } else {
+        await _dio.patch(
+          '/business/$businessId/staff/$memberId/status',
+          data: {'memberStatus': newStatus.backendValue},
+        );
+      }
     } on DioException catch (e) {
       throw _mapError(e);
     }

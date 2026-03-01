@@ -9,6 +9,7 @@ import '../../../../core/utils/validators.dart';
 import '../widgets/password_field.dart';
 import '../widgets/primary_gradient_button.dart';
 import '../widgets/status_banner.dart';
+import '../widgets/password_strength_meter.dart';
 import '../controllers/password_reset_controller.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
@@ -24,41 +25,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final _newPwdCtrl = TextEditingController();
   final _confirmPwdCtrl = TextEditingController();
 
-  double _strength = 0.0;
-  bool _hasLength = false;
-  bool _hasUpperLower = false;
-  bool _hasNumberSpecial = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _newPwdCtrl.addListener(_evaluateStrength);
-  }
-
   @override
   void dispose() {
     _newPwdCtrl.dispose();
     _confirmPwdCtrl.dispose();
     super.dispose();
-  }
-
-  void _evaluateStrength() {
-    final pwd = _newPwdCtrl.text;
-    bool len = pwd.length >= 8;
-    bool ul = RegExp(r'(?=.*[a-z])(?=.*[A-Z])').hasMatch(pwd);
-    bool ns = RegExp(r'(?=.*\d)(?=.*[@$!%*?&])').hasMatch(pwd);
-
-    double str = 0;
-    if (len) str += 0.33;
-    if (ul) str += 0.33;
-    if (ns) str += 0.34;
-
-    setState(() {
-      _hasLength = len;
-      _hasUpperLower = ul;
-      _hasNumberSpecial = ns;
-      _strength = str;
-    });
   }
 
   Future<void> _handleSubmit() async {
@@ -68,59 +39,6 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     await ref
         .read(passwordResetControllerProvider.notifier)
         .resetPassword(token: widget.token, newPassword: _newPwdCtrl.text);
-  }
-
-  Widget _buildStrengthMeter() {
-    Color getStrColor() {
-      if (_strength < 0.4) return AppColors.error;
-      if (_strength < 0.7) return AppColors.warning;
-      return AppColors.secondary;
-    }
-
-    Widget rule(String text, bool met) {
-      return Row(
-        children: [
-          Icon(
-            met
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            size: 14,
-            color: met
-                ? AppColors.secondary
-                : AppColors.textMuted.withValues(alpha: 0.5),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              color: met ? AppColors.textOnDark : AppColors.textMuted,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: _strength,
-            backgroundColor: AppColors.textMuted.withValues(alpha: 0.2),
-            color: getStrColor(),
-            minHeight: 6,
-          ),
-        ),
-        const SizedBox(height: 12),
-        rule('At least 8 characters', _hasLength),
-        const SizedBox(height: 4),
-        rule('Uppercase & lowercase letters', _hasUpperLower),
-        const SizedBox(height: 4),
-        rule('Number & special character', _hasNumberSpecial),
-      ],
-    );
   }
 
   @override
@@ -223,7 +141,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                           textInputAction: TextInputAction.next,
                         ),
                         const SizedBox(height: 16),
-                        _buildStrengthMeter(),
+                        PasswordStrengthMeter(controller: _newPwdCtrl),
                         const SizedBox(height: 24),
 
                         PasswordField(

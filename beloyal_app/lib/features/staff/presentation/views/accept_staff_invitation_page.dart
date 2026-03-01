@@ -11,6 +11,7 @@ import '../../../auth/presentation/widgets/premium_text_field.dart';
 import '../../../auth/presentation/widgets/primary_gradient_button.dart';
 import '../../../auth/presentation/widgets/status_banner.dart';
 import '../../../auth/presentation/widgets/terms_checkbox.dart';
+import '../../../auth/presentation/widgets/password_strength_meter.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 import '../controllers/accept_invitation_controller.dart';
 
@@ -406,6 +407,8 @@ class _AcceptStaffInvitationPageState
             onFieldSubmitted: (_) =>
                 FocusScope.of(context).requestFocus(_confirmPassFocus),
           ),
+          const SizedBox(height: 16),
+          PasswordStrengthMeter(controller: _passCtrl),
           const SizedBox(height: 16),
           PasswordField(
             controller: _confirmPassCtrl,

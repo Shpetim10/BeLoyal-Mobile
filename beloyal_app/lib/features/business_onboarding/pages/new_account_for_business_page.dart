@@ -9,6 +9,7 @@ import '../../auth/presentation/widgets/password_field.dart';
 import '../../auth/presentation/widgets/premium_text_field.dart';
 import '../../auth/presentation/widgets/primary_gradient_button.dart';
 import '../../auth/presentation/widgets/terms_checkbox.dart';
+import '../../auth/presentation/widgets/password_strength_meter.dart';
 import '../models/register_user_dto.dart';
 import '../state/business_registration_notifier.dart';
 
@@ -214,6 +215,8 @@ class _NewAccountForBusinessPageState
                               context,
                             ).requestFocus(_confirmPassFocus),
                           ),
+                          const SizedBox(height: 16),
+                          PasswordStrengthMeter(controller: _passCtrl),
                           const SizedBox(height: 16),
 
                           // Confirm Password

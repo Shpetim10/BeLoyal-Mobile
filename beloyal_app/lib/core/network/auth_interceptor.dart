@@ -90,8 +90,8 @@ class AuthInterceptor extends Interceptor {
       return handler.next(err);
     }
 
-    // ✅ Only refresh on 401 (recommended)
-    final shouldRefresh = status == 401;
+    // ✅ Request refresh on 401 (Unauthorized) or 403 (Forbidden, specifically for JWT versioning mismatch)
+    final shouldRefresh = status == 401 || status == 403;
     if (!shouldRefresh) {
       return handler.next(err);
     }

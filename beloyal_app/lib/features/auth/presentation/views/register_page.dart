@@ -12,6 +12,7 @@ import '../widgets/premium_text_field.dart';
 import '../widgets/primary_gradient_button.dart';
 import '../widgets/status_banner.dart';
 import '../widgets/terms_checkbox.dart';
+import '../widgets/password_strength_meter.dart';
 
 /// Premium Registration Page — REQ-02
 class RegisterPage extends ConsumerStatefulWidget {
@@ -242,6 +243,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                   context,
                                 ).requestFocus(_confirmPassFocus),
                               ),
+                              const SizedBox(height: 16),
+                              PasswordStrengthMeter(controller: _passCtrl),
                               const SizedBox(height: 16),
 
                               // Confirm Password

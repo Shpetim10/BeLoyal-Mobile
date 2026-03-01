@@ -15,6 +15,7 @@ import '../../features/auth/presentation/views/onboarding_success_page.dart';
 import '../../features/auth/presentation/views/forgot_password_page.dart';
 import '../../features/auth/presentation/views/reset_password_page.dart';
 import '../../features/staff/presentation/views/accept_staff_invitation_page.dart';
+import '../../features/staff/presentation/views/staff_inactive_gate_page.dart';
 
 import '../../features/auth/presentation/controllers/session_controller.dart';
 import '../../features/auth/domain/entities/auth_user.dart';
@@ -93,20 +94,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // If logged in and on an auth route, go to respective dashboard
-      if (isAuthRoute) {
-        final target = switch (session.activeRole) {
-          UserRole.customer =>
-            session.user.customerProfileComplete
-                ? '/customer/dashboard'
-                : '/create-profile',
-          UserRole.businessAdmin => '/business/dashboard',
-          UserRole.staff => '/staff/dashboard',
-          UserRole.superAdmin => '/admin/dashboard',
-        };
-        debugPrint('Logged in on auth route -> Redirecting to $target');
-        return target;
-      }
+      // Note: We intentionally DO NOT redirect logged-in users on auth routes
+      // to their dashboard here yet. We must first check if they are stuck
+      // behind the under-review or inactive-staff gates.
 
       // If Customer and profile not complete, force redirect to /create-profile
       if (isLoggedIn &&
@@ -149,8 +139,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         );
 
+        // 1. If staff member's account is deactivated, lock them to the inactive gate
+        // This takes precedence over business status.
+        debugPrint(
+          'ROUTER CHECK: role=${session.activeRole}, bizId=${activeBusiness.businessId}, memberStatus=${activeBusiness.memberStatus}, isStaffInactive=${activeBusiness.isStaffInactive}',
+        );
+        if (session.activeRole == UserRole.staff &&
+            activeBusiness.isStaffInactive) {
+          if (path != '/staff/inactive') {
+            debugPrint(
+              'Staff member is INACTIVE -> Redirecting to /staff/inactive',
+            );
+            return '/staff/inactive';
+          }
+          // If already on the gate, just stay there.
+          return null;
+        }
+
+        // 2. Otherwise, if business is inactive (pending/rejected), lock to those gates
         if (activeBusiness.businessId != -1 && !activeBusiness.active) {
-          if (activeBusiness.status == 'REJECTED') {
+          if (activeBusiness.businessStatus == 'REJECTED') {
             if (path != '/business/rejected') {
               debugPrint(
                 'Business is rejected -> Redirecting to rejected gate',
@@ -164,6 +172,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             return '/business/under-review';
           }
         }
+      }
+
+      // If logged in and on an auth route (e.g., /login or /register), and they
+      // have passed all gate checks above, redirect them to their dashboard.
+      if (isAuthRoute && isLoggedIn) {
+        final target = switch (session.activeRole) {
+          UserRole.customer =>
+            session.user.customerProfileComplete
+                ? '/customer/dashboard'
+                : '/create-profile',
+          UserRole.businessAdmin => '/business/dashboard',
+          UserRole.staff => '/staff/dashboard',
+          UserRole.superAdmin => '/admin/dashboard',
+        };
+        debugPrint('Logged in on auth route -> Redirecting to $target');
+        return target;
       }
 
       debugPrint('Proceeding to $path');
@@ -379,6 +403,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                 FadeTransition(opacity: anim, child: child),
           );
         },
+      ),
+
+      // ── Staff Inactive Gate ──
+      GoRoute(
+        path: '/staff/inactive',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const StaffInactiveGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
       ),
 
       // ── Dashboards ──

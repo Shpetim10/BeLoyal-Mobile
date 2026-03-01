@@ -39,16 +39,22 @@ class BusinessProfileInfo {
     required this.businessName,
     required this.role,
     required this.active,
-    this.status,
+    this.businessStatus,
     this.rejectionReason,
+    this.memberStatus,
   });
 
   final int businessId;
   final String businessName;
   final UserRole role;
   final bool active;
-  final String? status;
+  final String? businessStatus;
   final String? rejectionReason;
+
+  /// The staff member's activation status: "ACTIVE", "INACTIVE", "INVITE", etc.
+  final String? memberStatus;
+
+  bool get isStaffInactive => memberStatus?.toUpperCase() == 'INACTIVE';
 }
 
 /// Authenticated user returned after login.

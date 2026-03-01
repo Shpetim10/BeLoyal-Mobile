@@ -107,6 +107,7 @@ class _RoleSelectSheetState extends State<RoleSelectSheet> {
                     businessName: profile.businessName,
                     role: profile.role,
                     active: profile.active,
+                    isStaffInactive: profile.isStaffInactive,
                     selected: _selectedBusinessId == profile.businessId,
                     onTap: () => setState(() {
                       _selectedRole = profile.role;
@@ -156,6 +157,7 @@ class _BusinessChip extends StatelessWidget {
     required this.businessName,
     required this.role,
     required this.active,
+    required this.isStaffInactive,
     required this.selected,
     required this.onTap,
   });
@@ -164,6 +166,7 @@ class _BusinessChip extends StatelessWidget {
   final String businessName;
   final UserRole role;
   final bool active;
+  final bool isStaffInactive;
   final bool selected;
   final VoidCallback onTap;
 
@@ -225,7 +228,27 @@ class _BusinessChip extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      if (!active) ...[
+                      if (isStaffInactive) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Deactivated',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ] else if (!active) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -251,13 +274,15 @@ class _BusinessChip extends StatelessWidget {
                 ],
               ),
             ),
-            if (active && selected)
+            if (active && selected && !isStaffInactive)
               const Icon(
                 Icons.check_circle_rounded,
                 color: AppColors.primary,
                 size: 24,
               ),
-            if (!active)
+            if (isStaffInactive)
+              const Icon(Icons.block_rounded, color: AppColors.error, size: 20)
+            else if (!active)
               const Icon(
                 Icons.hourglass_empty_rounded,
                 color: AppColors.warning,
