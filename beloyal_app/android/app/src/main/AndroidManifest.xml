@@ -31,17 +31,17 @@
 
                 <data
                     android:scheme="https"
-                    android:host="defense-reunion-priced-movements.trycloudflare.com"
+                    android:host="jeffrey-alone-required-beautiful.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/activate" />
 
                 <data
                     android:scheme="https"
-                    android:host="defense-reunion-priced-movements.trycloudflare.com"
+                    android:host="jeffrey-alone-required-beautiful.trycloudflare.com"
                     android:pathPrefix="/api/besahub/auth/accept-invitation" />
 
                 <data
                     android:scheme="https"
-                    android:host="defense-reunion-priced-movements.trycloudflare.com"
+                    android:host="jeffrey-alone-required-beautiful.trycloudflare.com"
                     android:pathPrefix="/forget-password" />
             </intent-filter>
 

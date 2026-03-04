@@ -42,6 +42,8 @@ class BusinessProfileInfo {
     this.businessStatus,
     this.rejectionReason,
     this.memberStatus,
+    this.earningSettingsEnabled = false,
+    this.earningSettingsConfigured = false,
   });
 
   final int businessId;
@@ -53,6 +55,12 @@ class BusinessProfileInfo {
 
   /// The staff member's activation status: "ACTIVE", "INACTIVE", "INVITE", etc.
   final String? memberStatus;
+
+  /// Whether earning settings feature is enabled on this profile.
+  final bool earningSettingsEnabled;
+
+  /// Whether earning settings have been configured at least once.
+  final bool earningSettingsConfigured;
 
   bool get isStaffInactive => memberStatus?.toUpperCase() == 'INACTIVE';
 }

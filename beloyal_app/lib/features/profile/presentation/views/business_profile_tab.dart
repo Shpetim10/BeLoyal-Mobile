@@ -14,6 +14,8 @@ import '../widgets/logo_picker_widget.dart';
 import '../widgets/readonly_field_row.dart';
 import '../widgets/section_card_widget.dart';
 import '../widgets/status_badge_widget.dart';
+import '../../../business_loyalty/presentation/widgets/loyalty_settings_card.dart';
+import '../../../auth/presentation/controllers/session_controller.dart';
 
 /// "Restaurant Profile" tab inside AdminProfileHubPage.
 /// Restaurant Admin can edit branding, location, contact.
@@ -178,6 +180,36 @@ class _BusinessProfileTabState extends ConsumerState<BusinessProfileTab> {
                       ),
                       const SizedBox(height: 16),
                     ],
+
+                    // ── Loyalty Settings ──
+                    Builder(
+                      builder: (context) {
+                        final session = ref.watch(sessionControllerProvider);
+                        final profile = session?.user.businessProfiles
+                            .firstWhere(
+                              (p) => p.businessId == biz.id,
+                              orElse: () => session.user.businessProfiles.first,
+                            );
+
+                        final configured =
+                            profile?.earningSettingsConfigured ?? false;
+                        final enabled =
+                            profile?.earningSettingsEnabled ?? false;
+
+                        return LoyaltySettingsCard(
+                              businessId: biz.id,
+                              configured: configured,
+                              enabled: enabled,
+                              summaryText: configured
+                                  ? 'Active earning rule'
+                                  : 'Not setup yet',
+                            )
+                            .animate()
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.07, end: 0, duration: 400.ms);
+                      },
+                    ),
+                    const SizedBox(height: 24),
 
                     // ── Branding ──
                     SectionCardWidget(

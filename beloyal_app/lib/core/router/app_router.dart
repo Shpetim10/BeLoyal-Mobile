@@ -40,6 +40,10 @@ import '../../features/profile/presentation/views/admin_profile_hub_page.dart';
 import '../../features/profile/presentation/views/super_admin_profile_page.dart';
 import '../../features/profile/presentation/views/staff_profile_page.dart';
 
+// Loyalty imports
+import '../../features/business_loyalty/presentation/pages/earning_rule_management_page.dart';
+import '../../features/business_loyalty/presentation/pages/earning_rule_setup_page.dart';
+
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
 class RouterListenable extends ChangeNotifier {
@@ -93,10 +97,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
         return null;
       }
-
-      // Note: We intentionally DO NOT redirect logged-in users on auth routes
-      // to their dashboard here yet. We must first check if they are stuck
-      // behind the under-review or inactive-staff gates.
 
       // If Customer and profile not complete, force redirect to /create-profile
       if (isLoggedIn &&
@@ -170,6 +170,21 @@ final routerProvider = Provider<GoRouter>((ref) {
               'Business is pending review -> Redirecting to under review gate',
             );
             return '/business/under-review';
+          }
+        }
+
+        // 3. For Business Admin, if Earning Rule is not configured, redirect to Wizard
+        if (activeBusiness.businessId != -1 &&
+            session.activeRole == UserRole.businessAdmin) {
+          if (!activeBusiness.earningSettingsConfigured) {
+            final wizardPath =
+                '/business/${activeBusiness.businessId}/onboarding/earning-rule';
+            if (path != wizardPath) {
+              debugPrint(
+                'Earning settings not configured -> Redirecting to wizard',
+              );
+              return wizardPath;
+            }
           }
         }
       }
@@ -461,6 +476,34 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ApplicationDetailsPage(applicationId: id),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+
+      // ── Business Loyalty ──
+      GoRoute(
+        path: '/business/:businessId/onboarding/earning-rule',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['businessId'];
+          final id = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EarningRuleSetupPage(businessId: id),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/business/:businessId/loyalty/earning-rule',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['businessId'];
+          final id = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EarningRuleManagementPage(businessId: id),
             transitionsBuilder: (ctx, anim, secondAnim, child) =>
                 FadeTransition(opacity: anim, child: child),
           );

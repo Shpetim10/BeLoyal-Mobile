@@ -112,6 +112,36 @@ class SessionController extends Notifier<Session?> {
   void logout() {
     state = null;
   }
+
+  /// Updates local tracking of earning settings flags for a specific business profile.
+  void updateEarningSettingsFlags({
+    required int businessId,
+    required bool configured,
+    required bool enabled,
+  }) {
+    final current = state;
+    if (current == null) return;
+
+    final updatedProfiles = current.user.businessProfiles.map((p) {
+      if (p.businessId == businessId) {
+        return BusinessProfileInfo(
+          businessId: p.businessId,
+          businessName: p.businessName,
+          role: p.role,
+          active: p.active,
+          businessStatus: p.businessStatus,
+          rejectionReason: p.rejectionReason,
+          memberStatus: p.memberStatus,
+          earningSettingsEnabled: enabled,
+          earningSettingsConfigured: configured,
+        );
+      }
+      return p;
+    }).toList();
+
+    final newUser = current.user.copyWith(businessProfiles: updatedProfiles);
+    state = current.copyWith(user: newUser);
+  }
 }
 
 final sessionControllerProvider = NotifierProvider<SessionController, Session?>(
