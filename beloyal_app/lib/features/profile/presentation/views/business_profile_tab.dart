@@ -191,18 +191,24 @@ class _BusinessProfileTabState extends ConsumerState<BusinessProfileTab> {
                               orElse: () => session.user.businessProfiles.first,
                             );
 
-                        final configured =
+                        final earningConfigured =
                             profile?.earningSettingsConfigured ?? false;
-                        final enabled =
+                        final earningEnabled =
                             profile?.earningSettingsEnabled ?? false;
+                        final loyaltyConfigured =
+                            profile?.loyaltySettingsConfigured ?? false;
+                        final loyaltyEnabled =
+                            profile?.loyaltySettingsEnabled ?? false;
 
                         return LoyaltySettingsCard(
                               businessId: biz.id,
-                              configured: configured,
-                              enabled: enabled,
-                              summaryText: configured
+                              configured: earningConfigured,
+                              enabled: earningEnabled,
+                              summaryText: earningConfigured
                                   ? 'Active earning rule'
-                                  : 'Not setup yet',
+                                  : 'Not set up yet',
+                              loyaltyConfigured: loyaltyConfigured,
+                              loyaltyEnabled: loyaltyEnabled,
                             )
                             .animate()
                             .fadeIn(duration: 400.ms)

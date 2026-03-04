@@ -352,10 +352,13 @@ class AuthRepositoryImpl implements AuthRepository {
                 earningSettingsEnabled: item['earningSettingsEnabled'] == true,
                 earningSettingsConfigured:
                     item['earningSettingsConfigured'] == true,
+                loyaltySettingsEnabled: item['loyaltySettingsEnabled'] == true,
+                loyaltySettingsConfigured:
+                    item['loyaltySettingsConfigured'] == true,
               ),
             );
             debugPrint(
-              'Parsed Profile -> id: $id, role: $roleStr, active: $active, earningSettingsConfigured: ${item['earningSettingsConfigured']}',
+              'Parsed Profile -> id: $id, role: $roleStr, active: $active, earningSettingsConfigured: ${item['earningSettingsConfigured']}, loyaltySettingsConfigured: ${item['loyaltySettingsConfigured']}',
             );
           }
         }

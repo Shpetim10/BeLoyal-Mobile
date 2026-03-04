@@ -44,6 +44,8 @@ class BusinessProfileInfo {
     this.memberStatus,
     this.earningSettingsEnabled = false,
     this.earningSettingsConfigured = false,
+    this.loyaltySettingsEnabled = false,
+    this.loyaltySettingsConfigured = false,
   });
 
   final int businessId;
@@ -61,6 +63,12 @@ class BusinessProfileInfo {
 
   /// Whether earning settings have been configured at least once.
   final bool earningSettingsConfigured;
+
+  /// Whether loyalty (redemption) settings feature is enabled on this profile.
+  final bool loyaltySettingsEnabled;
+
+  /// Whether loyalty (redemption) settings have been configured at least once.
+  final bool loyaltySettingsConfigured;
 
   bool get isStaffInactive => memberStatus?.toUpperCase() == 'INACTIVE';
 }

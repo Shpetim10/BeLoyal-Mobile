@@ -42,7 +42,8 @@ import '../../features/profile/presentation/views/staff_profile_page.dart';
 
 // Loyalty imports
 import '../../features/business_loyalty/presentation/pages/earning_rule_management_page.dart';
-import '../../features/business_loyalty/presentation/pages/earning_rule_setup_page.dart';
+import '../../features/business_loyalty/presentation/pages/business_setup_wizard_page.dart';
+import '../../features/business_loyalty/presentation/pages/loyalty_settings_management_page.dart';
 
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
@@ -173,15 +174,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
         }
 
-        // 3. For Business Admin, if Earning Rule is not configured, redirect to Wizard
+        // 3. For Business Admin, if Earning Rule or Loyalty Settings not configured, redirect to unified wizard
         if (activeBusiness.businessId != -1 &&
             session.activeRole == UserRole.businessAdmin) {
-          if (!activeBusiness.earningSettingsConfigured) {
+          final needsSetup =
+              !activeBusiness.earningSettingsConfigured ||
+              !activeBusiness.loyaltySettingsConfigured;
+          if (needsSetup) {
             final wizardPath =
-                '/business/${activeBusiness.businessId}/onboarding/earning-rule';
+                '/business/${activeBusiness.businessId}/onboarding/loyalty-setup';
             if (path != wizardPath) {
               debugPrint(
-                'Earning settings not configured -> Redirecting to wizard',
+                'Settings not fully configured -> Redirecting to unified wizard',
               );
               return wizardPath;
             }
@@ -484,13 +488,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ── Business Loyalty ──
       GoRoute(
-        path: '/business/:businessId/onboarding/earning-rule',
+        path: '/business/:businessId/onboarding/loyalty-setup',
         pageBuilder: (context, state) {
           final idParam = state.pathParameters['businessId'];
           final id = int.tryParse(idParam ?? '') ?? 0;
           return CustomTransitionPage(
             key: state.pageKey,
-            child: EarningRuleSetupPage(businessId: id),
+            child: BusinessSetupWizardPage(businessId: id),
             transitionsBuilder: (ctx, anim, secondAnim, child) =>
                 FadeTransition(opacity: anim, child: child),
           );
@@ -504,6 +508,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: EarningRuleManagementPage(businessId: id),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/business/:businessId/loyalty/settings',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['businessId'];
+          final id = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: LoyaltySettingsManagementPage(businessId: id),
             transitionsBuilder: (ctx, anim, secondAnim, child) =>
                 FadeTransition(opacity: anim, child: child),
           );
