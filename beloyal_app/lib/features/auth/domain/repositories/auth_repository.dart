@@ -1,4 +1,5 @@
 import '../entities/auth_user.dart';
+import '../entities/customer_profile_creation_response.dart';
 
 /// Domain-level failure wrapper.
 class AuthFailure {
@@ -45,7 +46,7 @@ abstract class AuthRepository {
   });
 
   /// POST /customer/me/create-profile
-  Future<AuthResult<String>> createCustomerProfile({
+  Future<AuthResult<CustomerProfileCreationResponse>> createCustomerProfile({
     required String token,
     DateTime? birthdate,
     String? gender,

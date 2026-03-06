@@ -10,6 +10,7 @@ import 'package:besahub_app/features/auth/domain/entities/auth_user.dart';
 import 'package:besahub_app/features/dashboard/widgets/dashboard_navbar.dart';
 import 'package:besahub_app/features/dashboard/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/widgets/stat_card.dart';
+import 'package:besahub_app/features/auth/presentation/widgets/premium_loyalty_card.dart';
 
 class CustomerDashboardPage extends ConsumerStatefulWidget {
   const CustomerDashboardPage({super.key});
@@ -63,16 +64,13 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
               Expanded(
                 child: IndexedStack(
                   index: _selectedIndex,
-                  children: const [
+                  children: [
                     _CustomerHomeTab(),
                     _PlaceholderTab(
                       icon: Icons.card_giftcard_rounded,
                       label: 'Rewards',
                     ),
-                    _PlaceholderTab(
-                      icon: Icons.credit_card_rounded,
-                      label: 'Loyalty Card',
-                    ),
+                    _CustomerLoyaltyCardTab(),
                     _PlaceholderTab(
                       icon: Icons.search_rounded,
                       label: 'Search',
@@ -248,6 +246,116 @@ class _PlaceholderTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────── Customer Loyalty Card Tab ───────────────────────────
+
+class _CustomerLoyaltyCardTab extends ConsumerStatefulWidget {
+  const _CustomerLoyaltyCardTab();
+
+  @override
+  ConsumerState<_CustomerLoyaltyCardTab> createState() =>
+      _CustomerLoyaltyCardTabState();
+}
+
+class _CustomerLoyaltyCardTabState
+    extends ConsumerState<_CustomerLoyaltyCardTab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<Offset> _slideAnim;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.5), // Slides up from below
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _fadeAnim = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = ref.watch(sessionControllerProvider);
+
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: SlideTransition(
+        position: _slideAnim,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'My Loyalty Card',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              PremiumLoyaltyCard(
+                firstName: session?.user.businessProfiles.isEmpty == true
+                    ? 'Member'
+                    : 'Member',
+                lastName: '',
+                qrToken: 'TAP_TO_VIEW',
+                manualCode: '— — — —',
+                shimmer: true,
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Show your QR code at any participating location to earn points.',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

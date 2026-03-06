@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/entities/auth_user.dart';
+import '../domain/entities/customer_profile_creation_response.dart';
 import '../domain/repositories/auth_repository.dart';
 
 /// Real implementation hitting Spring Boot at /api/beloyal/...
@@ -96,9 +97,8 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // ────────────── CREATE PROFILE ──────────────
   @override
-  Future<AuthResult<String>> createCustomerProfile({
+  Future<AuthResult<CustomerProfileCreationResponse>> createCustomerProfile({
     required String token,
     DateTime? birthdate,
     String? gender,
@@ -124,15 +124,11 @@ class AuthRepositoryImpl implements AuthRepository {
           if (profileImageKey != null) 'profileImageKey': profileImageKey,
           'notificationEnabled': notificationEnabled,
         },
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-          responseType: ResponseType
-              .plain, // Handle plain text "Customer profile created successfully!"
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      final message = response.data?.toString() ?? 'Profile created';
-      return AuthSuccess(message);
+      final data = response.data as Map<String, dynamic>;
+      return AuthSuccess(CustomerProfileCreationResponse.fromJson(data));
     } on DioException catch (e) {
       return AuthError(_mapDioError(e));
     } catch (e) {

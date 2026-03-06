@@ -12,7 +12,7 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       // TODO: Change to your PC IP for physical device testing.
-      baseUrl: 'http://192.168.1.41:8080/api/besahub',
+      baseUrl: 'http://192.168.1.7:8080/api/besahub',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {

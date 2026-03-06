@@ -13,6 +13,7 @@ import '../widgets/primary_gradient_button.dart';
 import '../widgets/status_banner.dart';
 import '../../data/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
+
 import '../../../media/data/media_repository.dart';
 
 /// Premium Create Profile Page — shown after login if profile is not complete.
@@ -147,10 +148,10 @@ class _CreateProfilePageState extends ConsumerState<CreateProfilePage> {
       if (!mounted) return;
 
       switch (result) {
-        case AuthSuccess():
+        case AuthSuccess(data: final dto):
           ref.read(sessionControllerProvider.notifier).completeProfile();
           if (!mounted) return;
-          context.go('/onboarding-success');
+          context.go('/loyalty-card-reveal', extra: dto);
         case AuthError(failure: final f):
           setState(() {
             _isLoading = false;

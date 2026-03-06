@@ -119,7 +119,7 @@ class BusinessApplicationsPage extends ConsumerWidget {
           ),
 
           // Extra padding at bottom for navbar
-          const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
     );
@@ -130,11 +130,11 @@ class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
   _StickySearchBarDelegate({required this.child});
   final Widget child;
 
-  // Fixed height to avoid SliverGeometry assertion (exactly matches child 161px)
+  // Fixed height to avoid SliverGeometry assertion (exactly matches actual child height 155px)
   @override
-  double get minExtent => 161;
+  double get minExtent => 155.0;
   @override
-  double get maxExtent => 161;
+  double get maxExtent => 155.0;
 
   @override
   Widget build(
@@ -142,11 +142,17 @@ class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: AppColors.bgDark, child: child);
+    return Material(
+      color: AppColors.bgDark,
+      child: SizedBox(
+        height: 155.0,
+        child: Align(alignment: Alignment.topCenter, child: child),
+      ),
+    );
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return true; // Simple approach: always rebuild to reflect search updates
+  bool shouldRebuild(covariant _StickySearchBarDelegate oldDelegate) {
+    return child != oldDelegate.child;
   }
 }

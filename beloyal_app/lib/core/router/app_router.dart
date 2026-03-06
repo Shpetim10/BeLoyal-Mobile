@@ -45,6 +45,10 @@ import '../../features/business_loyalty/presentation/pages/earning_rule_manageme
 import '../../features/business_loyalty/presentation/pages/business_setup_wizard_page.dart';
 import '../../features/business_loyalty/presentation/pages/loyalty_settings_management_page.dart';
 
+// Customer onboarding imports
+import '../../features/auth/presentation/views/loyalty_card_reveal_page.dart';
+import '../../features/auth/domain/entities/customer_profile_creation_response.dart';
+
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
 class RouterListenable extends ChangeNotifier {
@@ -106,6 +110,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         final allowedDuringOnboarding = [
           '/create-profile',
           '/onboarding-success',
+          '/loyalty-card-reveal',
           '/login',
           '/register',
           '/check-email',
@@ -280,6 +285,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),
+      ),
+      GoRoute(
+        path: '/loyalty-card-reveal',
+        pageBuilder: (context, state) {
+          final response = state.extra as CustomerProfileCreationResponse?;
+          // Fallback: if navigated without data (e.g. from browser back), go to dashboard
+          if (response == null) {
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: const SizedBox.shrink(),
+              transitionsBuilder: (ctx, anim, secondAnim, child) => child,
+            );
+          }
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: LoyaltyCardRevealPage(response: response),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
       ),
       GoRoute(
         path: '/onboarding-success',
