@@ -2,6 +2,7 @@ import 'package:besahub_app/features/auth/presentation/controllers/auth_controll
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
 import 'package:besahub_app/features/auth/presentation/views/role_select_sheet.dart';
@@ -71,7 +72,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                       icon: Icons.card_giftcard_rounded,
                       label: 'Rewards',
                     ),
-                    _CustomerLoyaltyCardTab(),
+                    const SizedBox.shrink(),
                     _PlaceholderTab(
                       icon: Icons.search_rounded,
                       label: 'Search',
@@ -89,7 +90,13 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
       ),
       bottomNavigationBar: DashboardNavBar(
         selectedIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        onTap: (i) {
+          if (i == 2) {
+            _showLoyaltyCardModal(context);
+          } else {
+            setState(() => _selectedIndex = i);
+          }
+        },
         leftItems: const [
           DashboardNavItem(icon: Icons.home_rounded, label: 'Home'),
           DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
@@ -160,6 +167,134 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
       };
       context.go(path);
     });
+  }
+
+  Future<void> _showLoyaltyCardModal(BuildContext context) async {
+    double? originalBrightness;
+    try {
+      originalBrightness = await ScreenBrightness().application;
+      await ScreenBrightness().setApplicationScreenBrightness(1.0);
+    } catch (e) {
+      debugPrint('Could not set screen brightness: $e');
+    }
+
+    if (!context.mounted) return;
+
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withValues(alpha: 0.85),
+        builder: (modalContext) {
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, (1 - value) * 150),
+                child: child,
+              );
+            },
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final cardAsync = ref.watch(loyaltyCardProvider);
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // ── Drag handle ──
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 24),
+                            height: 5,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+
+                          // ── Card area ──
+                          cardAsync.when(
+                            loading: () => const _CardLoadingSkeleton(),
+                            error: (err, _) => _CardErrorView(
+                              onRetry: () =>
+                                  ref.invalidate(loyaltyCardProvider),
+                            ),
+                            data: (card) => PremiumLoyaltyCard(
+                              firstName: card.firstName,
+                              lastName: card.lastName,
+                              qrToken: card.qrToken,
+                              manualCode: card.manualCode,
+                              shimmer: true,
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // ── Info banner ──
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.18,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline_rounded,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: const Text(
+                                    'Show your QR code at any participating location to earn points.',
+                                    style: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 13,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      if (originalBrightness != null) {
+        try {
+          await ScreenBrightness().setApplicationScreenBrightness(
+            originalBrightness,
+          );
+        } catch (e) {
+          debugPrint('Could not restore screen brightness: $e');
+        }
+      }
+    }
   }
 }
 
@@ -252,129 +387,7 @@ class _PlaceholderTab extends StatelessWidget {
   }
 }
 
-// ─────────────────────── Customer Loyalty Card Tab ───────────────────────────
-
-class _CustomerLoyaltyCardTab extends ConsumerStatefulWidget {
-  const _CustomerLoyaltyCardTab();
-
-  @override
-  ConsumerState<_CustomerLoyaltyCardTab> createState() =>
-      _CustomerLoyaltyCardTabState();
-}
-
-class _CustomerLoyaltyCardTabState
-    extends ConsumerState<_CustomerLoyaltyCardTab>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<Offset> _slideAnim;
-  late final Animation<double> _fadeAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-    _fadeAnim = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
-    _ctrl.forward();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cardAsync = ref.watch(loyaltyCardProvider);
-
-    return FadeTransition(
-      opacity: _fadeAnim,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: RefreshIndicator(
-          color: AppColors.accent,
-          onRefresh: () => ref.read(loyaltyCardProvider.notifier).refresh(),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Loyalty Card',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ── Card area: loading / error / success ──
-                cardAsync.when(
-                  loading: () => const _CardLoadingSkeleton(),
-                  error: (err, _) => _CardErrorView(
-                    onRetry: () => ref.invalidate(loyaltyCardProvider),
-                  ),
-                  data: (card) => PremiumLoyaltyCard(
-                    firstName: card.firstName,
-                    lastName: card.lastName,
-                    qrToken: card.qrToken,
-                    manualCode: card.manualCode,
-                    shimmer: true,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ── Info banner ──
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.18),
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Show your QR code at any participating location to earn points.',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 13,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Removed _CustomerLoyaltyCardTab
 
 // ─── Loading skeleton shown while the card data is being fetched ──────────────
 
