@@ -24,6 +24,7 @@ dependencies:
   google_fonts: ^8.0.1
   confetti: ^0.8.0
   image_picker: ^1.0.7
+  qr_flutter: ^4.1.0
 
   # Utilities
   cupertino_icons: ^1.0.8

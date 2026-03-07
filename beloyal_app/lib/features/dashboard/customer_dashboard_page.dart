@@ -11,6 +11,7 @@ import 'package:besahub_app/features/dashboard/widgets/dashboard_navbar.dart';
 import 'package:besahub_app/features/dashboard/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/widgets/stat_card.dart';
 import 'package:besahub_app/features/auth/presentation/widgets/premium_loyalty_card.dart';
+import 'package:besahub_app/features/customer_loyalty/presentation/loyalty_card_provider.dart';
 
 class CustomerDashboardPage extends ConsumerStatefulWidget {
   const CustomerDashboardPage({super.key});
@@ -276,7 +277,7 @@ class _CustomerLoyaltyCardTabState
       duration: const Duration(milliseconds: 700),
     );
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.5), // Slides up from below
+      begin: const Offset(0, 0.5),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _fadeAnim = Tween<double>(
@@ -294,69 +295,221 @@ class _CustomerLoyaltyCardTabState
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(sessionControllerProvider);
+    final cardAsync = ref.watch(loyaltyCardProvider);
 
     return FadeTransition(
       opacity: _fadeAnim,
       child: SlideTransition(
         position: _slideAnim,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'My Loyalty Card',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              PremiumLoyaltyCard(
-                firstName: session?.user.businessProfiles.isEmpty == true
-                    ? 'Member'
-                    : 'Member',
-                lastName: '',
-                qrToken: 'TAP_TO_VIEW',
-                manualCode: '— — — —',
-                shimmer: true,
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.18),
+        child: RefreshIndicator(
+          color: AppColors.accent,
+          onRefresh: () => ref.read(loyaltyCardProvider.notifier).refresh(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My Loyalty Card',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      color: AppColors.primary,
-                      size: 20,
+                const SizedBox(height: 16),
+
+                // ── Card area: loading / error / success ──
+                cardAsync.when(
+                  loading: () => const _CardLoadingSkeleton(),
+                  error: (err, _) => _CardErrorView(
+                    onRetry: () => ref.invalidate(loyaltyCardProvider),
+                  ),
+                  data: (card) => PremiumLoyaltyCard(
+                    firstName: card.firstName,
+                    lastName: card.lastName,
+                    qrToken: card.qrToken,
+                    manualCode: card.manualCode,
+                    shimmer: true,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Info banner ──
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.18),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Show your QR code at any participating location to earn points.',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 13,
-                          height: 1.5,
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Show your QR code at any participating location to earn points.',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Loading skeleton shown while the card data is being fetched ──────────────
+
+class _CardLoadingSkeleton extends StatefulWidget {
+  const _CardLoadingSkeleton();
+
+  @override
+  State<_CardLoadingSkeleton> createState() => _CardLoadingSkeletonState();
+}
+
+class _CardLoadingSkeletonState extends State<_CardLoadingSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = width * 1.586;
+        return AnimatedBuilder(
+          animation: _pulse,
+          builder: (_, __) {
+            final opacity = 0.3 + 0.25 * _pulse.value;
+            return Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withValues(alpha: opacity * 0.15),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: opacity * 0.4),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.credit_card_rounded,
+                      size: 48,
+                      color: AppColors.accent.withValues(alpha: opacity),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Loading your card…',
+                      style: TextStyle(
+                        color: AppColors.textMuted.withValues(alpha: opacity),
+                        fontSize: 14,
                       ),
                     ),
                   ],
                 ),
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// ─── Error state shown when the card fetch fails ──────────────────────────────
+
+class _CardErrorView extends StatelessWidget {
+  const _CardErrorView({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = width * 1.586;
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: AppColors.error.withValues(alpha: 0.05),
+            border: Border.all(
+              color: AppColors.error.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 48,
+                color: AppColors.error.withValues(alpha: 0.7),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Could not load your card',
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Check your connection and try again.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+              ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

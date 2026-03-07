@@ -8,16 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/customer_profile_creation_response.dart';
 import '../widgets/premium_loyalty_card.dart';
 
-/// Reveals the user's new loyalty card through a premium, cinematic animation:
-///
-///  Stage 0 – [_Stage.envelope]   : Premium glowing envelope, tap-to-open prompt
-///  Stage 1 – [_Stage.opening]    : Envelope flap rotates open (300 ms)
-///  Stage 2 – [_Stage.cardReveal] : Confetti burst + card slides up
-///  Stage 3 – [_Stage.continue_]  : Continue button visible, tap triggers exit
-///  Stage 4 – [_Stage.flyOut]     : Card shrinks and flies toward nav centre
 class LoyaltyCardRevealPage extends ConsumerStatefulWidget {
   const LoyaltyCardRevealPage({super.key, required this.response});
-
   final CustomerProfileCreationResponse response;
 
   @override
@@ -29,24 +21,9 @@ enum _Stage { envelope, opening, cardReveal, continue_, flyOut }
 
 class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
     with TickerProviderStateMixin {
-  // ── Stage ──
   _Stage _stage = _Stage.envelope;
 
-  // ── Envelope glow pulse ──
-  late final AnimationController _glowCtrl;
-  late final Animation<double> _glowAnim;
-
-  // ── Envelope flap open ──
-  late final AnimationController _flapCtrl;
-  late final Animation<double> _flapAnim;
-
-  // ── Card slide-up ──
-  late final AnimationController _cardCtrl;
-  late final Animation<Offset> _cardSlide;
-  late final Animation<double> _cardFade;
-  late final Animation<double> _envelopeFade;
-
-  // ── Card fly-out to navbar ──
+  // ── Fly-out to navbar ──
   late final AnimationController _flyCtrl;
   late final Animation<double> _flyScale;
   late final Animation<Offset> _flySlide;
@@ -56,59 +33,16 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
   late final AnimationController _ctaCtrl;
   late final Animation<double> _ctaFade;
 
-  // ── Particles ──
+  // ── Confetti ──
   late final ConfettiController _confetti;
 
-  // ── Background particle animation ──
+  // ── Background particles ──
   late final AnimationController _particleCtrl;
 
   @override
   void initState() {
     super.initState();
 
-    // Glow pulse — continuous
-    _glowCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
-    _glowAnim = Tween<double>(
-      begin: 0.3,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut));
-
-    // Envelope flap
-    _flapCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _flapAnim = Tween<double>(
-      begin: 0,
-      end: math.pi,
-    ).animate(CurvedAnimation(parent: _flapCtrl, curve: Curves.easeOut));
-
-    // Card reveal
-    _cardCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.6),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _cardCtrl, curve: Curves.easeOutCubic));
-    _cardFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _cardCtrl,
-        curve: const Interval(0, 0.5, curve: Curves.easeIn),
-      ),
-    );
-    _envelopeFade = Tween<double>(begin: 1, end: 0).animate(
-      CurvedAnimation(
-        parent: _cardCtrl,
-        curve: const Interval(0, 0.4, curve: Curves.easeOut),
-      ),
-    );
-
-    // Continue button
     _ctaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -118,7 +52,6 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
       end: 1,
     ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeIn));
 
-    // Fly-out to navbar
     _flyCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -129,7 +62,7 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
     ).animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeInCubic));
     _flySlide = Tween<Offset>(
       begin: Offset.zero,
-      end: const Offset(0, 3.0), // flies down toward nav bar
+      end: const Offset(0, 3.0),
     ).animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeInQuart));
     _flyFade = Tween<double>(begin: 1, end: 0).animate(
       CurvedAnimation(
@@ -138,10 +71,8 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
       ),
     );
 
-    // Confetti
     _confetti = ConfettiController(duration: const Duration(seconds: 2));
 
-    // Background particles
     _particleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
@@ -150,9 +81,6 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
 
   @override
   void dispose() {
-    _glowCtrl.dispose();
-    _flapCtrl.dispose();
-    _cardCtrl.dispose();
     _ctaCtrl.dispose();
     _flyCtrl.dispose();
     _confetti.dispose();
@@ -162,16 +90,8 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
 
   // ─── Interaction handlers ─────────────────────────────────────────────────
 
-  Future<void> _onEnvelopeTap() async {
-    if (_stage != _Stage.envelope) return;
-    setState(() => _stage = _Stage.opening);
-    _glowCtrl.stop();
-
-    await _flapCtrl.forward();
-    setState(() => _stage = _Stage.cardReveal);
-    _confetti.play();
-    await _cardCtrl.forward();
-
+  void _onRevealComplete() {
+    if (!mounted) return;
     setState(() => _stage = _Stage.continue_);
     _ctaCtrl.forward();
   }
@@ -193,10 +113,8 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
     return Scaffold(
       body: Stack(
         children: [
-          // ── Rich dark background ──
           _RichBackground(controller: _particleCtrl, size: size),
 
-          // ── Confetti ──
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
@@ -216,18 +134,14 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
             ),
           ),
 
-          // ── Main content ──
           SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 48),
-                // Header text
                 _buildHeader(),
                 const Spacer(),
-                // Envelope / Card area
                 _buildCenterContent(size),
                 const Spacer(),
-                // CTA
                 _buildCta(),
                 const SizedBox(height: 48),
               ],
@@ -238,7 +152,7 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader() {
     final showCardTitle =
@@ -301,73 +215,70 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
         .slideY(begin: -0.15, end: 0, duration: 700.ms);
   }
 
-  // ── Centre content (envelope or card) ──────────────────────────────────────
+  // ── Centre content ────────────────────────────────────────────────────────
 
   Widget _buildCenterContent(Size size) {
-    final cardWidth = (size.width - 64).clamp(0.0, 380.0);
-    final showCard = _stage != _Stage.envelope && _stage != _Stage.opening;
+    final safeHeight = size.height - 300;
+    final cardWidth = math.min(size.width - 64, safeHeight / 1.55).clamp(0.0, 380.0);
+    final showCard =
+        _stage == _Stage.cardReveal ||
+            _stage == _Stage.continue_ ||
+            _stage == _Stage.flyOut;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // ── Envelope (fades out during card reveal) ──
+          // ── Envelope (the BesaEnvelopeReveal) ──
           if (!showCard || _stage == _Stage.cardReveal)
-            AnimatedBuilder(
-              animation: Listenable.merge([_flapAnim, _envelopeFade]),
-              builder: (context, _) {
-                final envelopeOpacity = showCard ? _envelopeFade.value : 1.0;
-                return Opacity(
-                  opacity: envelopeOpacity,
-                  child: GestureDetector(
-                    onTap: _onEnvelopeTap,
-                    child: _PremiumEnvelope(
-                      glowAnim: _glowAnim,
-                      flapAngle: _flapAnim.value,
-                      width: cardWidth,
-                    ),
-                  ),
-                );
-              },
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 400),
+              opacity: _stage == _Stage.cardReveal ? 0.0 : 1.0,
+              child: BesaEnvelopeReveal(
+                width: cardWidth,
+                card: PremiumLoyaltyCard(
+                  firstName: widget.response.firstName,
+                  lastName: widget.response.lastName,
+                  qrToken: widget.response.qrToken,
+                  manualCode: widget.response.manualCode,
+                ),
+                onTap: () {
+                  if (_stage != _Stage.envelope) return;
+                  setState(() => _stage = _Stage.opening);
+                },
+                onRevealComplete: () {
+                  _confetti.play();
+                  setState(() => _stage = _Stage.cardReveal);
+                },
+              ),
             ),
 
-          // ── Loyalty card (slides up) ──
+          // ── Revealed card (post-envelope) ──
           if (showCard)
             AnimatedBuilder(
-              animation: Listenable.merge([
-                _cardFade,
-                _flyScale,
-                _flySlide,
-                _flyFade,
-              ]),
+              animation: Listenable.merge([_flyScale, _flySlide, _flyFade]),
               builder: (context, child) {
-                final fadeVal = _stage == _Stage.flyOut
-                    ? _flyFade.value
-                    : _cardFade.value;
                 final scale = _stage == _Stage.flyOut ? _flyScale.value : 1.0;
-                final slideVal = _stage == _Stage.flyOut
-                    ? _flySlide.value
-                    : Offset.zero;
+                final slideVal = _stage == _Stage.flyOut ? _flySlide.value : Offset.zero;
+                final fadeVal = _stage == _Stage.flyOut ? _flyFade.value : 1.0;
 
                 return FadeTransition(
                   opacity: AlwaysStoppedAnimation(fadeVal),
-                  child: SlideTransition(
-                    position: _stage == _Stage.cardReveal
-                        ? _cardSlide
-                        : AlwaysStoppedAnimation(Offset.zero),
-                    child: Transform.translate(
-                      offset: Offset(0, slideVal.dy * size.height * 0.3),
-                      child: Transform.scale(scale: scale, child: child),
-                    ),
+                  child: Transform.translate(
+                    offset: Offset(0, slideVal.dy * size.height * 0.3),
+                    child: Transform.scale(scale: scale, child: child),
                   ),
                 );
               },
-              child: PremiumLoyaltyCard(
-                firstName: widget.response.firstName,
-                lastName: widget.response.lastName,
-                qrToken: widget.response.qrToken,
-                manualCode: widget.response.manualCode,
+              child: SizedBox(
+                width: cardWidth * 0.92,
+                child: PremiumLoyaltyCard(
+                  firstName: widget.response.firstName,
+                  lastName: widget.response.lastName,
+                  qrToken: widget.response.qrToken,
+                  manualCode: widget.response.manualCode,
+                ),
               ),
             ),
         ],
@@ -400,7 +311,10 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
                 SizedBox(
                   width: double.infinity,
                   child: GestureDetector(
-                    onTap: _onContinue,
+                    onTap: () async {
+                      await _onContinue();
+                      _onRevealComplete();
+                    },
                     child: Container(
                       height: 56,
                       decoration: BoxDecoration(
@@ -452,7 +366,445 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
   }
 }
 
-// ─── Rich background with subtle animated particles ───────────────────────────
+
+class BesaEnvelopeReveal extends StatefulWidget {
+  const BesaEnvelopeReveal({
+    super.key,
+    required this.width,
+    required this.card,
+    required this.onTap,
+    required this.onRevealComplete,
+  });
+
+  final double width;
+  final Widget card;
+  final VoidCallback onTap;
+  final VoidCallback onRevealComplete;
+
+  @override
+  State<BesaEnvelopeReveal> createState() => _BesaEnvelopeRevealState();
+}
+
+class _BesaEnvelopeRevealState extends State<BesaEnvelopeReveal>
+    with TickerProviderStateMixin {
+  // ── Master choreography controller (2.5 s) ──
+  late final AnimationController _master;
+
+  // ── Breathing pulse (continuous until tap) ──
+  late final AnimationController _breatheCtrl;
+  late final Animation<double> _breatheScale;
+
+  // ── Sub-animations driven by _master via Intervals ──
+  late final Animation<double> _sealSquish; // Act 2: 10%–18% (squish down)
+  late final Animation<double> _sealBurst; // Act 2: 18%–30% (burst out)
+  late final Animation<double> _sealFade; // Act 2: 15%–30% (fade)
+  late final Animation<double> _particleProg; // Act 2: 10%–35% (gold particles)
+  late final Animation<double> _flapAngle; // Act 3: 20%–60% (flap flip)
+  late final Animation<double> _cardSlideY; // Act 4: 40%–100% (card rises)
+  late final Animation<double> _cardScale; // Act 4: 40%–100% (card grows)
+  late final Animation<double> _cardTiltX; // Act 4: 40%–85% (3D tilt)
+  late final Animation<double> _dimOverlay; // Act 4: 50%–100% (bg dims)
+
+  bool _opened = false;
+
+  // Seeded RNG for consistent gold burst particles across frames
+  final _rng = math.Random(42);
+  late final List<_GoldParticle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // ── Breathing pulse ──
+    _breatheCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat(reverse: true);
+    _breatheScale = Tween<double>(
+      begin: 1.0,
+      end: 1.025,
+    ).animate(CurvedAnimation(parent: _breatheCtrl, curve: Curves.easeInOut));
+
+    // ── Master (2500 ms) ──
+    _master = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    );
+
+    // Act 2 — Seal break
+    _sealSquish = Tween<double>(begin: 1.0, end: 0.75).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.10, 0.18, curve: Curves.easeInBack),
+      ),
+    );
+    _sealBurst = Tween<double>(begin: 0.75, end: 1.5).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.18, 0.32, curve: Curves.easeOutCubic),
+      ),
+    );
+    _sealFade = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.16, 0.32, curve: Curves.easeOut),
+      ),
+    );
+    _particleProg = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.12, 0.40, curve: Curves.easeOut),
+      ),
+    );
+
+    // Act 3 — Flap opens
+    _flapAngle = Tween<double>(begin: 0.0, end: -math.pi).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.22, 0.62, curve: Curves.elasticOut),
+      ),
+    );
+
+    // Act 4 — Card rises
+    _cardSlideY = Tween<double>(begin: 0.45, end: 0.055).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.42, 1.0, curve: Curves.easeOutQuart),
+      ),
+    );
+    _cardScale = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.42, 0.95, curve: Curves.easeOutCubic),
+      ),
+    );
+    _cardTiltX = Tween<double>(begin: 0.12, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.42, 0.85, curve: Curves.easeOutCubic),
+      ),
+    );
+    _dimOverlay = Tween<double>(begin: 0.0, end: 0.35).animate(
+      CurvedAnimation(
+        parent: _master,
+        curve: const Interval(0.50, 1.0, curve: Curves.easeIn),
+      ),
+    );
+
+    // Pre-generate gold burst particles
+    _particles = List.generate(22, (_) {
+      final angle = _rng.nextDouble() * math.pi * 2;
+      final speed = 0.4 + _rng.nextDouble() * 0.6;
+      final size = 1.5 + _rng.nextDouble() * 3.0;
+      final hue = _rng.nextBool() ? 45.0 : 35.0; // gold / amber
+      return _GoldParticle(angle: angle, speed: speed, size: size, hue: hue);
+    });
+
+    _master.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        widget.onRevealComplete();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _master.dispose();
+    _breatheCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (_opened) return;
+    _opened = true;
+    _breatheCtrl.stop();
+    widget.onTap();
+    _master.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.width;
+    final h = w * 1.55;
+    final flapHeight = h * 0.52;
+    final sealSize = w * 0.22;
+    final sealTop = flapHeight - (sealSize / 2);
+
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_breatheCtrl, _master]),
+        builder: (context, _) {
+          final breatheScale = _opened ? 1.0 : _breatheScale.value;
+
+          final flapWidget = Positioned(
+            top: 0, left: 0, right: 0,
+            child: Transform(
+              alignment: Alignment.topCenter,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.002)
+                ..rotateX(_flapAngle.value),
+              child: CustomPaint(size: Size(w, flapHeight), painter: _FlapPainter()),
+            ),
+          );
+
+          return Transform.scale(
+            scale: breatheScale,
+            child: SizedBox(
+              width: w, height: h,
+              child: ClipRect(
+                clipper: _EnvelopeBottomClipper(),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Z-0:
+                    Positioned.fill(child: _EnvelopeBack(width: w, height: h)),
+
+                    // Z-1:
+                    if (_flapAngle.value <= -math.pi / 2) flapWidget,
+
+                    // Z-2:
+                    Positioned(
+                      left: w * 0.04, right: w * 0.04, top: h * _cardSlideY.value,
+                      child: Transform.scale(
+                        scale: _cardScale.value,
+                        child: Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001)
+                            ..rotateX(_cardTiltX.value),
+                          child: widget.card,
+                        ),
+                      ),
+                    ),
+
+                    // Z-3:
+                    Positioned.fill(child: CustomPaint(painter: _FrontPocketPainter())),
+
+                    // Z-4:
+                    if (_flapAngle.value > -math.pi / 2) flapWidget,
+
+                    // Z-5:
+                    if (_particleProg.value > 0)
+                      Positioned(
+                        left: 0, right: 0, top: h * 0.28, height: h * 0.3,
+                        child: CustomPaint(painter: _GoldBurstPainter(progress: _particleProg.value, particles: _particles)),
+                      ),
+
+                    // Z-6:
+                    if (_sealFade.value > 0.01)
+                      Positioned(
+                        top: sealTop, left: 0, right: 0,
+                        child: Center(
+                          child: Opacity(
+                            opacity: _sealFade.value.clamp(0.0, 1.0),
+                            child: Transform.scale(
+                              scale: _master.value < 0.18 ? _sealSquish.value : _sealBurst.value,
+                              child: Image.asset('assets/images/envelope_wax_seal.png', width: sealSize, height: sealSize),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── Gold particle data ─────────────────────────────────────────────────────
+
+class _GoldParticle {
+  final double angle;
+  final double speed;
+  final double size;
+  final double hue;
+  const _GoldParticle({
+    required this.angle,
+    required this.speed,
+    required this.size,
+    required this.hue,
+  });
+}
+
+// ─── Gold burst painter (seal explosion) ────────────────────────────────────
+
+class _GoldBurstPainter extends CustomPainter {
+  const _GoldBurstPainter({required this.progress, required this.particles});
+  final double progress;
+  final List<_GoldParticle> particles;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final maxRadius = size.width * 0.45;
+
+    for (final p in particles) {
+      final dist = maxRadius * p.speed * progress;
+      final x = cx + math.cos(p.angle) * dist;
+      final y = cy + math.sin(p.angle) * dist;
+      final opacity = (1.0 - progress).clamp(0.0, 1.0);
+      final r = p.size * (1.0 - progress * 0.5);
+
+      final paint = Paint()
+        ..color = HSLColor.fromAHSL(opacity, p.hue, 0.9, 0.55).toColor()
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(x, y), r, paint);
+
+      // Tiny sparkle glow around each particle
+      final glowPaint = Paint()
+        ..color = HSLColor.fromAHSL(opacity * 0.3, p.hue, 1.0, 0.7).toColor()
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      canvas.drawCircle(Offset(x, y), r * 2.5, glowPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GoldBurstPainter old) => old.progress != progress;
+}
+
+// ─── Envelope back interior ─────────────────────────────────────────────────
+
+class _EnvelopeBack extends StatelessWidget {
+  const _EnvelopeBack({required this.width, required this.height});
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF081428), Color(0xFF060E1E)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+          ),
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.08),
+            blurRadius: 40,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      // Inner depth shadow via a gradient overlay
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 0.9,
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.35),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Front "V" pocket painter ───────────────────────────────────────────────
+
+class _FrontPocketPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final startY = h * 0.42;
+
+    final pocketPath = Path()
+      ..moveTo(0, startY)
+      ..lineTo(w / 2, startY + 25)
+      ..lineTo(w, startY)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+
+    final paint = Paint()..color = const Color(0xFF0A1628);
+    canvas.drawPath(pocketPath, paint);
+
+    final goldPaint = Paint()
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.8)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final openingPath = Path()
+      ..moveTo(0, startY)
+      ..lineTo(w / 2, startY + 25)
+      ..lineTo(w, startY);
+    canvas.drawPath(openingPath, goldPaint);
+
+    final diagonals = Path()
+      ..moveTo(0, h)
+      ..lineTo(w / 2, startY + 25)
+      ..lineTo(w, h);
+    canvas.drawPath(diagonals, Paint()
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.3)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke);
+
+    final edgePath = Path()
+      ..moveTo(0, startY)
+      ..lineTo(0, h)
+      ..lineTo(w, h)
+      ..lineTo(w, startY);
+    canvas.drawPath(edgePath, goldPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─── Flap painter (top triangle) ────────────────────────────────────────────
+
+class _FlapPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final flapPath = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w / 2, h)
+      ..lineTo(w, 0)
+      ..close();
+
+    final flapPaint = Paint()..color = const Color(0xFF0A1628);
+
+    canvas.drawShadow(flapPath, Colors.black87, 10, true);
+
+    canvas.drawPath(flapPath, flapPaint);
+
+    final goldPaint = Paint()
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.8)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawPath(flapPath, goldPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 class _RichBackground extends StatelessWidget {
   const _RichBackground({required this.controller, required this.size});
@@ -490,20 +842,14 @@ class _BackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Deep rich background gradient
     final bgPaint = Paint();
     bgPaint.shader = const LinearGradient(
-      colors: [
-        Color(0xFF050D1A), // Very deep navy
-        Color(0xFF0A0520), // Deep purple-black
-        Color(0xFF070F1C), // Rich midnight
-      ],
+      colors: [Color(0xFF050D1A), Color(0xFF0A0520), Color(0xFF070F1C)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
-    // Large ambient orbs
     _drawOrb(
       canvas,
       size,
@@ -529,7 +875,6 @@ class _BackgroundPainter extends CustomPainter {
       color: const Color(0xFF1E3A6E).withValues(alpha: 0.15),
     );
 
-    // Floating sparkle particles
     final particlePaint = Paint()..style = PaintingStyle.fill;
     for (final (px, py, radius, phase) in _particles) {
       final floatY = math.sin((progress + phase) * math.pi * 2) * 8;
@@ -542,7 +887,6 @@ class _BackgroundPainter extends CustomPainter {
         particlePaint,
       );
 
-      // Subtle star sparkle cross
       if (radius > 2.7) {
         final crossPaint = Paint()
           ..color = Colors.white.withValues(alpha: 0.25 * opacity)
@@ -563,7 +907,6 @@ class _BackgroundPainter extends CustomPainter {
       }
     }
 
-    // Very subtle gold horizontal streak in the middle area
     final streakPaint = Paint();
     streakPaint.shader = LinearGradient(
       colors: [
@@ -604,263 +947,13 @@ class _BackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BackgroundPainter old) => old.progress != progress;
 }
-
-// ─── Premium envelope widget ──────────────────────────────────────────────────
-
-class _PremiumEnvelope extends StatelessWidget {
-  const _PremiumEnvelope({
-    required this.glowAnim,
-    required this.flapAngle,
-    required this.width,
-  });
-
-  final Animation<double> glowAnim;
-  final double flapAngle;
-  final double width;
-
+class _EnvelopeBottomClipper extends CustomClipper<Rect> {
   @override
-  Widget build(BuildContext context) {
-    final height = width * 0.7; // envelope proportions
+  Rect getClip(Size size) {
 
-    return AnimatedBuilder(
-      animation: glowAnim,
-      builder: (_, child) {
-        return Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1A1040), Color(0xFF0D1B3E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(
-              color: AppColors.accent.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accent.withValues(
-                  alpha: 0.25 * glowAnim.value,
-                ),
-                blurRadius: 50 * glowAnim.value,
-                spreadRadius: 4 * glowAnim.value,
-              ),
-              // Soft warm ambient glow
-              BoxShadow(
-                color: const Color(
-                  0xFFFBBF24,
-                ).withValues(alpha: 0.15 * glowAnim.value),
-                blurRadius: 30,
-                spreadRadius: -4,
-              ),
-              // Crisp depth shadow
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 32,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
-          child: child,
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // ── Envelope body ──
-            _EnvelopeBody(width: width, height: height),
-
-            // ── Animated flap ──
-            Align(
-              alignment: Alignment.topCenter,
-              child: Transform(
-                alignment: Alignment.topCenter,
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.001)
-                  ..rotateX(flapAngle),
-                child: _EnvelopeFlap(width: width),
-              ),
-            ),
-
-            // ── Inner glow (from inside before opening) ──
-            if (flapAngle < 0.3)
-              Positioned(
-                bottom: height * 0.1,
-                left: width * 0.2,
-                right: width * 0.2,
-                child: AnimatedBuilder(
-                  animation: glowAnim,
-                  builder: (_, __) => Container(
-                    height: height * 0.18,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(
-                            alpha: 0.5 * glowAnim.value,
-                          ),
-                          blurRadius: 30,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-            // ── Embossed seal ──
-            Center(
-              child: Padding(
-                padding: EdgeInsets.only(top: height * 0.15),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [AppColors.accent, Color(0xFFF97316)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.5),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.workspace_premium_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EnvelopeBody extends StatelessWidget {
-  const _EnvelopeBody({required this.width, required this.height});
-  final double width;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(width, height),
-      painter: _EnvelopeBodyPainter(),
-    );
-  }
-}
-
-class _EnvelopeBodyPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Bottom triangular flap (V-shape from center to bottom)
-    final bottomPath = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width / 2, size.height * 0.48)
-      ..lineTo(size.width, size.height)
-      ..close();
-
-    canvas.drawPath(
-      bottomPath,
-      Paint()
-        ..color =
-            const Color(0xFF131A3A) // Slight shadow on bottom flap
-        ..style = PaintingStyle.fill,
-    );
-
-    // Left and right diagonal lines (V from sides to center)
-    final sidePath = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height * 0.52)
-      ..lineTo(size.width, 0);
-
-    canvas.drawPath(
-      sidePath,
-      Paint()
-        ..color =
-            const Color(0xFF0F1530) // Slightly darker than full white
-        ..style = PaintingStyle.fill,
-    );
-
-    // Gold diagonal edges
-    final edgePaint = Paint()
-      ..color = AppColors.accent.withValues(alpha: 0.25)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-      Offset(0, 0),
-      Offset(size.width / 2, size.height * 0.52),
-      edgePaint,
-    );
-    canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(size.width / 2, size.height * 0.52),
-      edgePaint,
-    );
+    return Rect.fromLTRB(-1000, -1000, size.width + 1000, size.height);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _EnvelopeFlap extends StatelessWidget {
-  const _EnvelopeFlap({required this.width});
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final height = width * 0.4;
-    return CustomPaint(
-      size: Size(width, height),
-      painter: _EnvelopeFlapPainter(),
-    );
-  }
-}
-
-class _EnvelopeFlapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
-
-    // Flap gradient
-    final flapPaint = Paint();
-    flapPaint.shader = LinearGradient(
-      colors: [const Color(0xFF1C1250), const Color(0xFF111840)],
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawPath(path, flapPaint);
-
-    // Gold edge
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = AppColors.accent.withValues(alpha: 0.4)
-        ..strokeWidth = 1.2
-        ..style = PaintingStyle.stroke,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldReclip(covariant CustomClipper<Rect> oldClipper) => false;
 }
