@@ -145,6 +145,39 @@ class SessionController extends Notifier<Session?> {
     state = current.copyWith(user: newUser);
   }
 
+  /// Updates local tracking of business status (e.g. from REJECTED to PENDING)
+  /// and clears rejection reason.
+  void updateBusinessStatus({
+    required int businessId,
+    required String newStatus,
+    String? rejectionReason,
+  }) {
+    final current = state;
+    if (current == null) return;
+
+    final updatedProfiles = current.user.businessProfiles.map((p) {
+      if (p.businessId == businessId) {
+        return BusinessProfileInfo(
+          businessId: p.businessId,
+          businessName: p.businessName,
+          role: p.role,
+          active: p.active,
+          businessStatus: newStatus,
+          rejectionReason: rejectionReason,
+          memberStatus: p.memberStatus,
+          earningSettingsEnabled: p.earningSettingsEnabled,
+          earningSettingsConfigured: p.earningSettingsConfigured,
+          loyaltySettingsEnabled: p.loyaltySettingsEnabled,
+          loyaltySettingsConfigured: p.loyaltySettingsConfigured,
+        );
+      }
+      return p;
+    }).toList();
+
+    final newUser = current.user.copyWith(businessProfiles: updatedProfiles);
+    state = current.copyWith(user: newUser);
+  }
+
   /// Updates local tracking of loyalty (redemption) settings flags for a specific business profile.
   void updateLoyaltySettingsFlags({
     required int businessId,

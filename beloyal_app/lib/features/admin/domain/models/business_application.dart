@@ -29,30 +29,29 @@ class BusinessApplication {
     return BusinessApplication(
       id: (json['id'] as num?)?.toInt() ?? 0,
       businessName: (json['businessName'] as String?) ?? 'Unnamed Business',
-      businessType: BusinessType.values.firstWhere(
-        (e) => e.value == json['businessType'],
-        orElse: () => BusinessType.OTHER,
-      ),
-      businessDescription: json['businessDescription'] as String?,
-      logoPath: json['logoPath'] as String?,
-      address: json['address'] as String?,
-      city: (json['city'] as String?) ?? 'Unknown City',
-      country: json['country'] as String?,
-      websiteUrl: json['websiteUrl'] as String?,
-      vatId: (json['vatId'] as String?) ?? 'N/A',
+      businessType: BusinessType.values.firstWhere((e) {
+        final rawType = json['businessType'];
+        if (rawType is List && rawType.isNotEmpty) {
+          return e.value == rawType.first.toString();
+        }
+        return e.value == rawType?.toString();
+      }, orElse: () => BusinessType.OTHER),
+      businessDescription: _parseString(json['businessDescription']),
+      logoPath: _parseString(json['logoPath']),
+      address: _parseString(json['address']),
+      city: _parseString(json['city']) ?? 'Unknown City',
+      country: _parseString(json['country']),
+      websiteUrl: _parseString(json['websiteUrl']),
+      vatId: _parseString(json['vatId']) ?? 'N/A',
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      businessPhoneNumber: json['businessPhoneNumber'] as String?,
-      businessEmail: (json['businessEmail'] as String?) ?? 'No Email',
+      businessPhoneNumber: _parseString(json['businessPhoneNumber']),
+      businessEmail: _parseString(json['businessEmail']) ?? 'No Email',
       businessStatus:
-          BusinessStatus.fromString(json['businessStatus'] as String?) ??
+          BusinessStatus.fromString(_parseString(json['businessStatus'])) ??
           BusinessStatus.pendingApproval,
-      submittedAt: json['submittedAt'] != null
-          ? DateTime.tryParse(json['submittedAt'] as String)
-          : null,
-      reviewedAt: json['reviewedAt'] != null
-          ? DateTime.tryParse(json['reviewedAt'] as String)
-          : null,
-      rejectionReason: json['rejectionReason'] as String?,
+      submittedAt: _parseDate(json['submittedAt']),
+      reviewedAt: _parseDate(json['reviewedAt']),
+      rejectionReason: _parseString(json['rejectionReason']),
       reviewedByAdminId: (json['reviewedByAdminId'] as num?)?.toInt(),
       owner: json['owner'] != null
           ? ApplicationOwner.fromJson(json['owner'] as Map<String, dynamic>)
@@ -118,14 +117,12 @@ class ApplicationOwner {
   factory ApplicationOwner.fromJson(Map<String, dynamic> json) {
     return ApplicationOwner(
       id: (json['id'] as num?)?.toInt(),
-      firstName: json['firstName'] as String?,
-      lastName: json['lastName'] as String?,
-      email: json['email'] as String?,
-      phoneNumber: json['phoneNumber'] as String?,
-      status: json['status'] as String?,
-      lastLoginAt: json['lastLoginAt'] != null
-          ? DateTime.tryParse(json['lastLoginAt'] as String)
-          : null,
+      firstName: _parseString(json['firstName']),
+      lastName: _parseString(json['lastName']),
+      email: _parseString(json['email']),
+      phoneNumber: _parseString(json['phoneNumber']),
+      status: _parseString(json['status']),
+      lastLoginAt: _parseDate(json['lastLoginAt']),
     );
   }
 
@@ -135,4 +132,32 @@ class ApplicationOwner {
     final combined = '$first $last'.trim();
     return combined.isEmpty ? 'N/A' : combined;
   }
+}
+
+/// Helper to safely parse potentially list-wrapped strings
+String? _parseString(dynamic value) {
+  if (value == null) return null;
+  if (value is List && value.isNotEmpty) return value.first.toString();
+  return value.toString();
+}
+
+/// Helper to parse DateTimes, handling both ISO strings and Spring Boot LocalDateTime arrays
+/// (e.g., [2026, 3, 10, 14, 30, 0, 0])
+DateTime? _parseDate(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return DateTime.tryParse(value);
+  if (value is List && value.length >= 3) {
+    try {
+      final year = value[0] as int;
+      final month = value[1] as int;
+      final day = value[2] as int;
+      final hour = value.length > 3 ? value[3] as int : 0;
+      final minute = value.length > 4 ? value[4] as int : 0;
+      final second = value.length > 5 ? value[5] as int : 0;
+      return DateTime(year, month, day, hour, minute, second);
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
 }

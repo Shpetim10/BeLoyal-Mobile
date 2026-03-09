@@ -170,10 +170,11 @@ class RejectedGatePage extends ConsumerWidget {
                               _ActionItem(
                                 icon: Icons.edit_note_rounded,
                                 text:
-                                    'Review the reason above and ensure your business data is correct.',
-                                onTap: () {
-                                  // Future: Allow re-editing the application
-                                },
+                                    'Review the reason above and update your business data.',
+                                onTap: () => context.push(
+                                  '/business/rejected/update',
+                                  extra: activeBusiness.businessId,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               _ActionItem(
@@ -195,16 +196,10 @@ class RejectedGatePage extends ConsumerWidget {
                               PrimaryGradientButton(
                                 label: 'Update Application',
                                 icon: Icons.arrow_forward_rounded,
-                                onPressed: () {
-                                  // Placeholder for navigating back to onboarding with pre-filled stats
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Re-application feature coming soon',
-                                      ),
-                                    ),
-                                  );
-                                },
+                                onPressed: () => context.push(
+                                  '/business/rejected/update',
+                                  extra: activeBusiness.businessId,
+                                ),
                               ),
                             ],
                           ),

@@ -14,6 +14,10 @@ class BusinessOnboardingEndpoints {
   static const submitApplication = '/auth/register-business';
   static const getMyBusiness = '/business/me';
   static String getBusinessStatus(int id) => '/staff/$id/status';
+  static String getApplication(int businessId) =>
+      '/business/$businessId/application';
+  static String updateApplication(int businessId) =>
+      '/business/$businessId/application';
 }
 
 /// API client for business onboarding operations.
@@ -81,6 +85,55 @@ class BusinessOnboardingApi {
         BusinessOnboardingEndpoints.getBusinessStatus(businessId),
       );
       return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final errorMsg = _extractErrorMessage(e);
+      throw Exception(errorMsg);
+    }
+  }
+
+  /// GET /business/{businessId}/application
+  /// Fetches current registration data for a rejected/pending business.
+  Future<BusinessRegistrationDto> getApplication(int businessId) async {
+    try {
+      final response = await _dio.get(
+        BusinessOnboardingEndpoints.getApplication(businessId),
+      );
+      final data = response.data as Map<String, dynamic>;
+      return BusinessRegistrationDto(
+        businessName: data['businessName'] as String? ?? '',
+        businessType: data['businessType'] as String? ?? 'OTHER',
+        address: data['address'] as String?,
+        city: data['city'] as String? ?? '',
+        country: data['country'] as String?,
+        businessEmail: data['businessEmail'] as String? ?? '',
+        businessPhoneNumber: data['businessPhoneNumber'] as String? ?? '',
+        vatId: data['vatId'] as String?,
+        websiteUrl: data['websiteUrl'] as String?,
+        logoUrl: data['logoUrl'] as String?,
+        logoKey: data['logoKey'] as String?,
+        businessDescription: data['businessDescription'] as String?,
+      );
+    } on DioException catch (e) {
+      final errorMsg = _extractErrorMessage(e);
+      throw Exception(errorMsg);
+    }
+  }
+
+  /// PATCH /business/{businessId}/application
+  /// Updates registration data for a rejected business and re-submits for review.
+  Future<SubmitBusinessApplicationResponse> updateBusinessRegistration(
+    int businessId,
+    BusinessRegistrationDto dto,
+  ) async {
+    try {
+      final response = await _dio.patch(
+        BusinessOnboardingEndpoints.updateApplication(businessId),
+        data: dto.toJson(),
+      );
+      // Backend wraps the payload in { "message": { ...response fields } }
+      final wrapper = response.data as Map<String, dynamic>;
+      final inner = wrapper['message'] as Map<String, dynamic>? ?? wrapper;
+      return SubmitBusinessApplicationResponse.fromJson(inner);
     } on DioException catch (e) {
       final errorMsg = _extractErrorMessage(e);
       throw Exception(errorMsg);

@@ -16,6 +16,7 @@ import '../../features/auth/presentation/views/forgot_password_page.dart';
 import '../../features/auth/presentation/views/reset_password_page.dart';
 import '../../features/staff/presentation/views/accept_staff_invitation_page.dart';
 import '../../features/staff/presentation/views/staff_inactive_gate_page.dart';
+import '../../features/staff/presentation/views/staff_settings_pending_gate_page.dart';
 
 import '../../features/auth/presentation/controllers/session_controller.dart';
 import '../../features/auth/domain/entities/auth_user.dart';
@@ -29,6 +30,7 @@ import '../../features/business_onboarding/pages/business_details_form_page.dart
 import '../../features/business_onboarding/pages/under_review_confirmation_page.dart';
 import '../../features/business_onboarding/pages/under_review_gate_page.dart';
 import '../../features/business_onboarding/pages/rejected_gate_page.dart';
+import '../../features/business_onboarding/pages/update_registration_form_page.dart';
 
 // Admin imports
 import '../../features/admin/presentation/application_details_page.dart';
@@ -165,7 +167,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         // 2. Otherwise, if business is inactive (pending/rejected), lock to those gates
         if (activeBusiness.businessId != -1 && !activeBusiness.active) {
           if (activeBusiness.businessStatus == 'REJECTED') {
-            if (path != '/business/rejected') {
+            // Allow the update form so the user can actually correct their data
+            if (path != '/business/rejected' &&
+                path != '/business/rejected/update') {
               debugPrint(
                 'Business is rejected -> Redirecting to rejected gate',
               );
@@ -179,8 +183,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
         }
 
-        // 3. For Business Admin, if Earning Rule or Loyalty Settings not configured, redirect to unified wizard
+        // 3. For Business Admin with an ACTIVE business, if Earning Rule or
+        //    Loyalty Settings are not configured, redirect to the setup wizard.
+        //    Rejected / pending businesses are already locked to their own gate
+        //    pages above and must NOT be sent to the wizard.
         if (activeBusiness.businessId != -1 &&
+            activeBusiness.active &&
             session.activeRole == UserRole.businessAdmin) {
           final needsSetup =
               !activeBusiness.earningSettingsConfigured ||
@@ -194,6 +202,22 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
               return wizardPath;
             }
+          }
+        }
+
+        // 3b. For Staff on an ACTIVE business, if settings aren't configured,
+        //     show a read-only pending page (they can't fix it — only the admin can).
+        if (activeBusiness.businessId != -1 &&
+            activeBusiness.active &&
+            session.activeRole == UserRole.staff) {
+          final needsSetup =
+              !activeBusiness.earningSettingsConfigured ||
+              !activeBusiness.loyaltySettingsConfigured;
+          if (needsSetup && path != '/staff/settings-pending') {
+            debugPrint(
+              'Staff: settings not configured -> Redirecting to settings pending gate',
+            );
+            return '/staff/settings-pending';
           }
         }
       }
@@ -428,6 +452,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               FadeTransition(opacity: anim, child: child),
         ),
       ),
+      GoRoute(
+        path: '/business/rejected/update',
+        pageBuilder: (context, state) {
+          final businessId = state.extra as int? ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: UpdateRegistrationFormPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
 
       // ── Staff Invitation ──
       GoRoute(
@@ -455,6 +491,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const StaffInactiveGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/staff/settings-pending',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const StaffSettingsPendingGatePage(),
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),
