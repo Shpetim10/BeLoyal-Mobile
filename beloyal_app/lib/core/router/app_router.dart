@@ -1,46 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:besahub_app/features/auth/presentation/views/activation_processing_page.dart';
-import 'package:besahub_app/features/auth/presentation/views/check_email_page.dart';
-import 'package:besahub_app/features/auth/presentation/views/create_profile_page.dart';
-import 'package:besahub_app/features/auth/presentation/views/login_page.dart';
-import 'package:besahub_app/features/auth/presentation/views/register_page.dart';
-import 'package:besahub_app/features/dashboard/customer_dashboard_page.dart';
-import 'package:besahub_app/features/dashboard/business_dashboard_page.dart';
-import 'package:besahub_app/features/dashboard/staff_dashboard_page.dart';
-import 'package:besahub_app/features/dashboard/admin_dashboard_page.dart';
-import '../../features/auth/presentation/views/resend_verification_page.dart';
-import '../../features/auth/presentation/views/onboarding_success_page.dart';
-import '../../features/auth/presentation/views/forgot_password_page.dart';
-import '../../features/auth/presentation/views/reset_password_page.dart';
-import '../../features/staff/presentation/views/accept_staff_invitation_page.dart';
-import '../../features/staff/presentation/views/staff_inactive_gate_page.dart';
-import '../../features/staff/presentation/views/staff_settings_pending_gate_page.dart';
+import 'package:besahub_app/features/auth/presentation/pages/activation_processing_page.dart';
+import 'package:besahub_app/features/auth/presentation/pages/check_email_page.dart';
+import 'package:besahub_app/features/auth/presentation/pages/create_profile_page.dart';
+import 'package:besahub_app/features/auth/presentation/pages/login_page.dart';
+import 'package:besahub_app/features/auth/presentation/pages/register_page.dart';
+import 'package:besahub_app/features/dashboard/presentation/pages/customer_dashboard_page.dart';
+import 'package:besahub_app/features/dashboard/presentation/pages/business_dashboard_page.dart';
+import 'package:besahub_app/features/dashboard/presentation/pages/staff_dashboard_page.dart';
+import 'package:besahub_app/features/dashboard/presentation/pages/admin_dashboard_page.dart';
+import '../../features/auth/presentation/pages/resend_verification_page.dart';
+import '../../features/auth/presentation/pages/onboarding_success_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../../features/staff/presentation/pages/accept_staff_invitation_page.dart';
+import '../../features/staff/presentation/pages/staff_inactive_gate_page.dart';
+import '../../features/staff/presentation/pages/staff_settings_pending_gate_page.dart';
 
 import '../../features/auth/presentation/controllers/session_controller.dart';
-import '../../features/auth/domain/entities/auth_user.dart';
+import '../../features/auth/domain/models/auth_user.dart';
 
 // Business Onboarding imports
-import '../../features/business_onboarding/pages/business_registration_entry_page.dart';
-import '../../features/business_onboarding/pages/business_account_choice_page.dart';
-import '../../features/business_onboarding/pages/existing_account_verify_page.dart';
-import '../../features/business_onboarding/pages/new_account_for_business_page.dart';
-import '../../features/business_onboarding/pages/business_details_form_page.dart';
-import '../../features/business_onboarding/pages/under_review_confirmation_page.dart';
-import '../../features/business_onboarding/pages/under_review_gate_page.dart';
-import '../../features/business_onboarding/pages/rejected_gate_page.dart';
-import '../../features/business_onboarding/pages/update_registration_form_page.dart';
+import '../../features/business_onboarding/presentation/pages/business_registration_entry_page.dart';
+import '../../features/business_onboarding/presentation/pages/business_account_choice_page.dart';
+import '../../features/business_onboarding/presentation/pages/existing_account_verify_page.dart';
+import '../../features/business_onboarding/presentation/pages/new_account_for_business_page.dart';
+import '../../features/business_onboarding/presentation/pages/business_details_form_page.dart';
+import '../../features/business_onboarding/presentation/pages/under_review_confirmation_page.dart';
+import '../../features/business_onboarding/presentation/pages/under_review_gate_page.dart';
+import '../../features/business_onboarding/presentation/pages/rejected_gate_page.dart';
+import '../../features/business_onboarding/presentation/pages/update_registration_form_page.dart';
 
 // Admin imports
-import '../../features/admin/presentation/application_details_page.dart';
+import '../../features/admin/presentation/pages/application_details_page.dart';
 
 // Profile imports
-import '../../features/profile/presentation/views/profile_page.dart';
-import '../../features/profile/presentation/views/change_password_page.dart';
-import '../../features/profile/presentation/views/admin_profile_hub_page.dart';
-import '../../features/profile/presentation/views/super_admin_profile_page.dart';
-import '../../features/profile/presentation/views/staff_profile_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/change_password_page.dart';
+import '../../features/profile/presentation/pages/admin_profile_hub_page.dart';
+import '../../features/profile/presentation/pages/super_admin_profile_page.dart';
+import '../../features/profile/presentation/pages/staff_profile_page.dart';
 
 // Loyalty imports
 import '../../features/business_loyalty/presentation/pages/earning_rule_management_page.dart';
@@ -48,8 +48,8 @@ import '../../features/business_loyalty/presentation/pages/business_setup_wizard
 import '../../features/business_loyalty/presentation/pages/loyalty_settings_management_page.dart';
 
 // Customer onboarding imports
-import '../../features/auth/presentation/views/loyalty_card_reveal_page.dart';
-import '../../features/auth/domain/entities/customer_profile_creation_response.dart';
+import '../../features/auth/presentation/pages/loyalty_card_reveal_page.dart';
+import '../../features/auth/domain/models/customer_profile_creation_response.dart';
 
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
@@ -242,7 +242,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // ── Auth ──
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) => CustomTransitionPage(
@@ -372,8 +371,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-
-      // ── Business Onboarding ──
       GoRoute(
         path: '/business/register',
         pageBuilder: (context, state) => CustomTransitionPage(
@@ -464,8 +461,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-
-      // ── Staff Invitation ──
       GoRoute(
         path: '/api/besahub/auth/accept-invitation',
         pageBuilder: (context, state) {
@@ -484,8 +479,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-
-      // ── Staff Inactive Gate ──
       GoRoute(
         path: '/staff/inactive',
         pageBuilder: (context, state) => CustomTransitionPage(
@@ -504,8 +497,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               FadeTransition(opacity: anim, child: child),
         ),
       ),
-
-      // ── Dashboards ──
       GoRoute(
         path: '/customer/dashboard',
         pageBuilder: (context, state) => CustomTransitionPage(
@@ -555,8 +546,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-
-      // ── Business Loyalty ──
       GoRoute(
         path: '/business/:businessId/onboarding/loyalty-setup',
         pageBuilder: (context, state) {
@@ -596,8 +585,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-
-      // ── Profile ──
       GoRoute(
         path: '/profile',
         pageBuilder: (context, state) => CustomTransitionPage(

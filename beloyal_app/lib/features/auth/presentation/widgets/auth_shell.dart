@@ -36,7 +36,6 @@ class AuthShell extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // ── Decorative orbs ──
             Positioned(
               top: -80,
               right: -60,
@@ -55,8 +54,6 @@ class AuthShell extends StatelessWidget {
                 color: AppColors.accent.withValues(alpha: isDark ? 0.06 : 0.04),
               ),
             ),
-
-            // ── Content ──
             SafeArea(
               child: Center(
                 child: ConstrainedBox(

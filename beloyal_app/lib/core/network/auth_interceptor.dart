@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/token_storage.dart';
-import '../../features/auth/data/auth_repository_impl.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/controllers/session_controller.dart';
 
@@ -85,12 +85,12 @@ class AuthInterceptor extends Interceptor {
 
     _log('Error at $path: status=$status type=${err.type}');
 
-    // ✅ Don't intercept refresh/logout failures here
+    // Don't intercept refresh/logout failures here
     if (isRefreshCall(path) || isLogoutCall(path)) {
       return handler.next(err);
     }
 
-    // ✅ Request refresh on 401 (Unauthorized) or 403 (Forbidden, specifically for JWT versioning mismatch)
+    // Request refresh on 401 (Unauthorized) or 403 (Forbidden, specifically for JWT versioning mismatch)
     final shouldRefresh = status == 401 || status == 403;
     if (!shouldRefresh) {
       return handler.next(err);
@@ -119,8 +119,6 @@ class AuthInterceptor extends Interceptor {
 
     _isRefreshing = true;
     try {
-      // ✅ Use a fresh repo with a fresh Dio to avoid Riverpod circular dependency
-      // or interceptor loops on the main Dio instance.
       final refreshDio = Dio(
         BaseOptions(
           baseUrl: err.requestOptions.baseUrl,
@@ -178,7 +176,6 @@ class AuthInterceptor extends Interceptor {
       _failWaiters(e);
       _isRefreshing = false;
 
-      // ✅ IMPORTANT: do NOT logout on random errors
       if (e is DioException) {
         final sc = e.response?.statusCode;
         if (sc == 401 || sc == 403) {
@@ -188,7 +185,6 @@ class AuthInterceptor extends Interceptor {
         } else {
           _log('Refresh failed: [${e.runtimeType}] $e');
         }
-        // ✅ Return the NEW error (e.g. the 400 from the retry) instead of the old 401
         return handler.next(e);
       } else {
         _log('Refresh failed: [${e.runtimeType}] $e');
@@ -201,8 +197,6 @@ class AuthInterceptor extends Interceptor {
     RequestOptions requestOptions,
     String accessToken,
   ) async {
-    // ✅ Use a fresh Dio for retry to avoid circular dependency on dioProvider.
-    // This also prevents infinite refresh loops if the new token is somehow invalid.
     final dio = Dio(
       BaseOptions(
         baseUrl: requestOptions.baseUrl,
@@ -232,13 +226,10 @@ class AuthInterceptor extends Interceptor {
     );
   }
 
-  /// Helper to clone request data, specifically handled for FormData.
-  /// FormData can only be read once, so it must be recreated for retries.
   Future<dynamic> _cloneData(RequestOptions requestOptions) async {
     final data = requestOptions.data;
     final extra = requestOptions.extra;
 
-    // Use extra info if available (recommended for FormData retries)
     if (extra['isFormData'] == true) {
       final clone = FormData();
       final fields = extra['formDataFields'] as List<MapEntry<String, String>>?;
@@ -263,8 +254,6 @@ class AuthInterceptor extends Interceptor {
       return clone;
     }
 
-    // Default: if it's already a FormData but no extra info, it's probably finalized.
-    // In that case, we return as-is and Dio will throw "Bad state: The FormData has already been finalized".
     return data;
   }
 }

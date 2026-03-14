@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/auth_user.dart';
+import '../../domain/models/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import 'auth_controller.dart';
+import './auth_controller.dart';
 
 /// UI state for the Login screen.
 class LoginUiState {

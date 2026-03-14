@@ -9,7 +9,6 @@ abstract final class AppTypography {
         : const Color(0xFF0F172A);
 
     return TextTheme(
-      // ── Display ──
       displayLarge: GoogleFonts.outfit(
         fontSize: 40,
         fontWeight: FontWeight.w700,
@@ -28,8 +27,6 @@ abstract final class AppTypography {
         letterSpacing: -0.5,
         color: color,
       ),
-
-      // ── Headlines ──
       headlineLarge: GoogleFonts.outfit(
         fontSize: 24,
         fontWeight: FontWeight.w600,
@@ -45,8 +42,6 @@ abstract final class AppTypography {
         fontWeight: FontWeight.w500,
         color: color,
       ),
-
-      // ── Title ──
       titleLarge: GoogleFonts.inter(
         fontSize: 18,
         fontWeight: FontWeight.w600,
@@ -62,8 +57,6 @@ abstract final class AppTypography {
         fontWeight: FontWeight.w600,
         color: color,
       ),
-
-      // ── Body ──
       bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w400,
@@ -81,8 +74,6 @@ abstract final class AppTypography {
         fontWeight: FontWeight.w400,
         color: color.withValues(alpha: 0.7),
       ),
-
-      // ── Label ──
       labelLarge: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w600,

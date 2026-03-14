@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
-import '../../data/profile_repository.dart';
+import '../../data/repositories/profile_repository.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 
 class ChangePasswordState {

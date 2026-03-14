@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/entities/auth_user.dart';
+import '../../domain/models/auth_user.dart';
 
 /// Premium chip for displaying and selecting a user role.
 class RoleChip extends StatelessWidget {

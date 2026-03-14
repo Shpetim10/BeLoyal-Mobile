@@ -30,7 +30,6 @@ class LoyaltySettingsCard extends StatelessWidget {
       title: 'Loyalty Programme',
       icon: Icons.card_giftcard_rounded,
       children: [
-        // ── Earning Rule Row ──
         _SummaryRow(
           label: 'Earning rule',
           summaryText: summaryText,
@@ -41,7 +40,6 @@ class LoyaltySettingsCard extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 12),
           child: Divider(color: AppColors.glassBorder),
         ),
-        // ── Loyalty Settings Row ──
         _SummaryRow(
           label: 'Loyalty settings',
           summaryText: loyaltyConfigured
@@ -54,7 +52,6 @@ class LoyaltySettingsCard extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 12),
           child: Divider(color: AppColors.glassBorder),
         ),
-        // ── Navigation Rows ──
         _NavRow(
           label: 'Manage earning rule',
           onTap: () =>

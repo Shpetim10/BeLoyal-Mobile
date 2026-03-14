@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
-import '../../../auth/domain/entities/auth_user.dart';
-import '../../../media/data/media_repository.dart';
+import '../../../auth/domain/models/auth_user.dart';
+import '../../../media/data/repositories/media_repository.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
-import '../../domain/user_profile.dart';
-import '../../domain/customer_profile.dart';
-import '../../data/profile_repository.dart';
+import '../../domain/models/user_profile.dart';
+import '../../domain/models/customer_profile.dart';
+import '../../data/repositories/profile_repository.dart';
 
 class ProfilePageState {
   const ProfilePageState({
@@ -121,8 +121,6 @@ class ProfileController extends AsyncNotifier<ProfilePageState> {
     }
   }
 
-  // ── Updates ──
-
   Future<void> updateUserProfile({
     String? firstName,
     String? lastName,
@@ -218,8 +216,6 @@ class ProfileController extends AsyncNotifier<ProfilePageState> {
       );
     }
   }
-
-  // ── Avatar ──
 
   Future<void> uploadAvatar(XFile file) async {
     if (state.value == null || state.value!.user == null) return;

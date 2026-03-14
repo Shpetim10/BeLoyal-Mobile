@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/earning_rule_repository.dart';
+import '../../data/repositories/earning_rule_repository.dart';
 
 class EarningRuleState {
   const EarningRuleState({

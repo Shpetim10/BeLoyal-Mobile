@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../../auth/presentation/widgets/primary_gradient_button.dart';
 import '../controllers/loyalty_settings_controller.dart';
-import '../../data/loyalty_settings_dto.dart';
+import '../../data/models/loyalty_settings_dto.dart';
 
 /// Non-blocking page for editing loyalty settings after initial setup.
 /// Accessible from the Business Profile tab → Loyalty Settings card.
@@ -183,8 +183,6 @@ class _LoyaltySettingsManagementPageState
                               'Changes apply to future redemptions and earnings rule checks.',
                             ),
                             const SizedBox(height: 20),
-
-                            // ── Redemption Rules ──
                             _buildSectionHeader(
                               'Redemption Rules',
                               Icons.redeem_rounded,
@@ -224,8 +222,6 @@ class _LoyaltySettingsManagementPageState
                               ],
                             ),
                             const SizedBox(height: 20),
-
-                            // ── Conversion ──
                             _buildSectionHeader(
                               'Conversion',
                               Icons.swap_horiz_rounded,
@@ -265,8 +261,6 @@ class _LoyaltySettingsManagementPageState
                               ],
                             ),
                             const SizedBox(height: 20),
-
-                            // ── Transaction Caps ──
                             _buildSectionHeader(
                               'Transaction Caps',
                               Icons.block_rounded,
@@ -288,8 +282,6 @@ class _LoyaltySettingsManagementPageState
                               ],
                             ),
                             const SizedBox(height: 20),
-
-                            // ── Expiry Policy ──
                             _buildSectionHeader(
                               'Expiry Policy',
                               Icons.schedule_rounded,
@@ -362,8 +354,6 @@ class _LoyaltySettingsManagementPageState
                         ),
                       ),
                     ),
-
-                    // ── Sticky Action Bar ──
                     Positioned(
                       left: 0,
                       right: 0,
@@ -413,8 +403,6 @@ class _LoyaltySettingsManagementPageState
       ),
     );
   }
-
-  // ─────────────────────────────── SHARED HELPERS ─────────────────────────────
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(

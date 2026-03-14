@@ -73,7 +73,6 @@ class ApplicationSearchBar extends ConsumerWidget {
                   label: 'All (Coming Soon)',
                   isSelected: filter == ApplicationFilter.all,
                   onSelected: () {
-                    // Placeholder for future functionality
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('All applications view coming soon!'),

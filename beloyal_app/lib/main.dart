@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'core/router/app_router.dart';
-import 'core/services/deep_link_service.dart';
-import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/controllers/auth_controller.dart';
+import './core/router/app_router.dart';
+import './core/services/deep_link_service.dart';
+import './core/theme/app_theme.dart';
+import './features/auth/presentation/controllers/auth_controller.dart';
 
 void main() {
   runApp(const ProviderScope(child: BesaHubApp()));
@@ -61,7 +61,6 @@ class _SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Placeholder for a logo or animation
               Container(
                 width: 100,
                 height: 100,

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
-import 'app_typography.dart';
+import './app_colors.dart';
+import './app_typography.dart';
 
 /// Fully custom Material 3 theme for BesaHub.
 abstract final class AppTheme {
-  // ───────────────── DARK ─────────────────
   static ThemeData get dark {
     final textTheme = AppTypography.textTheme(Brightness.dark);
     return ThemeData(
@@ -43,8 +42,6 @@ abstract final class AppTheme {
       ),
     );
   }
-
-  // ───────────────── LIGHT ─────────────────
   static ThemeData get light {
     final textTheme = AppTypography.textTheme(Brightness.light);
     return ThemeData(
@@ -83,8 +80,6 @@ abstract final class AppTheme {
       ),
     );
   }
-
-  // ───────────── Input fields ─────────────
   static InputDecorationTheme _inputTheme(Brightness b) {
     final isDark = b == Brightness.dark;
     return InputDecorationTheme(
@@ -126,8 +121,6 @@ abstract final class AppTheme {
       errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
     );
   }
-
-  // ───────────── Buttons ─────────────
   static ElevatedButtonThemeData _elevatedButtonTheme() =>
       ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

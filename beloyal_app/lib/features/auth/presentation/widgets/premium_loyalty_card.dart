@@ -123,7 +123,6 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
           height: height,
           child: Stack(
             children: [
-              // ── Layer 1: Template image background ──────────────────────
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/loyalty_card_template.png',
@@ -140,8 +139,6 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
                   ),
                 ),
               ),
-
-              // ── Layer 2: Full Name overlay ───────────────────────────────
               Positioned(
                 top: height * nameFraction,
                 left: hPad,
@@ -161,8 +158,6 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
                   ),
                 ),
               ),
-
-              // ── Layer 3: QR Code with transparent background ─────────────
               Positioned(
                 top: height * qrTopFraction,
                 left: (width - qrSize) / 2,
@@ -189,8 +184,6 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
                   semanticsLabel: 'Loyalty card QR code',
                 ),
               ),
-
-              // ── Layer 4: Manual code overlay ────────────────────────────
               Positioned(
                 top: height * codeFraction,
                 left: hPad,
@@ -209,8 +202,6 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
                   ),
                 ),
               ),
-
-              // ── Layer 5: Shimmer stripe ─────────────────────────────────
               if (widget.shimmer) _ShimmerStripe(progress: _shimmerAnim.value),
             ],
           ),
@@ -229,8 +220,6 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
     required double max,
   }) => _clamp(width * 0.058, min, max);
 }
-
-// ─── Moving shimmer stripe ────────────────────────────────────────────────────
 
 class _ShimmerStripe extends StatelessWidget {
   const _ShimmerStripe({required this.progress});

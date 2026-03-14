@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'auth_interceptor.dart';
+import './auth_interceptor.dart';
 
 /// Central Dio instance configured for the BesaHub Spring Boot API.
 ///
@@ -11,8 +11,7 @@ import 'auth_interceptor.dart';
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      // TODO: Change to your PC IP for physical device testing.
-      baseUrl: 'http://192.168.1.7:8080/api/besahub',
+      baseUrl: 'http://192.168.1.10:8080/api/besahub',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {
@@ -21,11 +20,7 @@ final dioProvider = Provider<Dio>((ref) {
       },
     ),
   );
-
-  // ── Auth interceptor for tokens & refresh ──
   dio.interceptors.add(AuthInterceptor(ref));
-
-  // ── Logging interceptor (dev only) ──
   dio.interceptors.add(
     LogInterceptor(
       requestBody: true,

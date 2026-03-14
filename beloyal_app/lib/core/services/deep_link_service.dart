@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Specifically handles email verification links:
 /// https://<HOST>/api/beloyal/auth/activate?token=XYZ
 class DeepLinkService {
-  // TODO: TAKE A LOOK
   DeepLinkService(this.ref);
   final Ref ref;
 

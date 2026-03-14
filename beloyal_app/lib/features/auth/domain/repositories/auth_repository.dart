@@ -1,5 +1,5 @@
-import '../entities/auth_user.dart';
-import '../entities/customer_profile_creation_response.dart';
+import '../models/auth_user.dart';
+import '../models/customer_profile_creation_response.dart';
 
 /// Domain-level failure wrapper.
 class AuthFailure {

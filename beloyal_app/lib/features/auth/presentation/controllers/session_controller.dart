@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/auth_user.dart';
-import '../../domain/entities/session.dart';
+import '../../domain/models/auth_user.dart';
+import '../../domain/models/session.dart';
 
 /// Global session state. Holds the authenticated user + active role.
 /// Null == unauthenticated.

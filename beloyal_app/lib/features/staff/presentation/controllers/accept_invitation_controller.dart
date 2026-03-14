@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
-import '../../../auth/domain/entities/auth_user.dart';
+import '../../../auth/domain/models/auth_user.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
-import '../../data/staff_invitation_repository.dart';
+import '../../data/repositories/staff_invitation_repository.dart';
 
 /// UI state for the Accept Staff Invitation screen.
 class AcceptInvitationUiState {

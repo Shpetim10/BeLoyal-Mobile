@@ -2,11 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/auth_user.dart';
+import '../../domain/models/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../../data/auth_repository_impl.dart';
+import '../../data/repositories/auth_repository_impl.dart';
 import '../../../../core/services/token_storage.dart';
-import 'session_controller.dart';
+import './session_controller.dart';
 
 /// Set to false to disable auth debug logs.
 bool get kAuthDebugLog => kDebugMode;

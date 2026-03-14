@@ -1,16 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/admin_repository.dart';
+import '../../data/repositories/admin_repository.dart';
 import '../../domain/models/business_application.dart';
-import '../../../business_onboarding/models/submit_application_models.dart';
-
-// ─────────────────────── Filter / Sort enums ──────────────────────────────────
+import '../../../business_onboarding/data/models/submit_application_models.dart';
 
 enum ApplicationFilter { pending, all }
 
 enum ApplicationSort { newest, oldest, nameAZ }
-
-// ─────────────────────── Filter + Sort state ──────────────────────────────────
 
 class AppSearchQueryNotifier extends Notifier<String> {
   @override
@@ -45,8 +41,6 @@ class AppSortNotifier extends Notifier<ApplicationSort> {
 final appSortProvider = NotifierProvider<AppSortNotifier, ApplicationSort>(
   AppSortNotifier.new,
 );
-
-// ─────────────────────── Main async controller ────────────────────────────────
 
 /// Manages fetching the list of business applications.
 class ApplicationsController extends AsyncNotifier<List<BusinessApplication>> {
@@ -116,8 +110,6 @@ final applicationsControllerProvider =
       ApplicationsController.new,
     );
 
-// ─────────────────────── Derived (Filtered & Sorted) List ─────────────────────
-
 final filteredSortedApplicationsProvider = Provider<List<BusinessApplication>>((
   ref,
 ) {
@@ -169,8 +161,6 @@ final filteredSortedApplicationsProvider = Provider<List<BusinessApplication>>((
 
   return result;
 });
-
-// ─────────────────────── Summary Counts ──────────────────────────────────────
 
 final pendingCountProvider = Provider<int>((ref) {
   final list = ref.watch(applicationsControllerProvider).value ?? [];

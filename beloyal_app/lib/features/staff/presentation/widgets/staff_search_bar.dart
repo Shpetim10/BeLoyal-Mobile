@@ -19,7 +19,6 @@ class StaffSearchBar extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Search & Sort Row ──
           Row(
             children: [
               Expanded(
@@ -58,8 +57,6 @@ class StaffSearchBar extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-
-          // ── Filter Chips ──
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(

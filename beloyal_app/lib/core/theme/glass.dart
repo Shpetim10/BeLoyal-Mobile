@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import './app_colors.dart';
 
 /// Premium glassmorphism card with blur, border gradient, and micro-shadow.
 class GlassCard extends StatelessWidget {

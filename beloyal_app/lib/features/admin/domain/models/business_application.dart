@@ -1,5 +1,5 @@
-import '../../../business_onboarding/models/business_registration_dto.dart';
-import '../../../business_onboarding/models/submit_application_models.dart';
+import '../../../business_onboarding/data/models/business_registration_dto.dart';
+import '../../../business_onboarding/data/models/submit_application_models.dart';
 
 /// Represents a business application submitted for review by the Super Admin.
 class BusinessApplication {

@@ -1,11 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/domain/repositories/auth_repository.dart';
-import '../../domain/business_profile.dart';
-import '../../data/business_profile_repository.dart';
+import '../../domain/models/business_profile.dart';
+import '../../data/repositories/business_profile_repository.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
-
-// ─────────────────────────── State ───────────────────────────────────────────
 
 class AdminOverrideState {
   const AdminOverrideState({
@@ -42,8 +40,6 @@ class AdminOverrideState {
     );
   }
 }
-
-// ─────────────────────────── Controller ──────────────────────────────────────
 
 /// Controller used by Super Admin to override/edit all business fields
 /// from the ApplicationDetailsPage (business details view in admin dashboard).

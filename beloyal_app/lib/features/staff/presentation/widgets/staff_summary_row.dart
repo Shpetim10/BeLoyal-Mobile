@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../features/dashboard/widgets/stat_card.dart';
+import '../../../dashboard/presentation/widgets/stat_card.dart';
 import '../controllers/staff_controller.dart';
 
 /// Horizontal row of frosted summary cards using the existing [StatCard].

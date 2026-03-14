@@ -72,8 +72,6 @@ class StaffMember {
     return result.isEmpty ? '?' : result;
   }
 
-  // ── JSON helpers ──
-
   factory StaffMember.fromJson(Map<String, dynamic> json) {
     // Helper to parse dates that might come as a list [year, month, day, ...]
     // or as a standard ISO string.

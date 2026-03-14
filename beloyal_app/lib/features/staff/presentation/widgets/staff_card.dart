@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/staff_member.dart';
-import 'staff_status_badge.dart';
-import 'staff_role_pill.dart';
+import './staff_status_badge.dart';
+import './staff_role_pill.dart';
 import 'package:intl/intl.dart';
 
 class StaffCard extends StatelessWidget {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/staff_membership.dart';
-import 'readonly_field_row.dart';
-import 'section_card_widget.dart';
-import 'status_badge_widget.dart';
+import '../../domain/models/staff_membership.dart';
+import './readonly_field_row.dart';
+import './section_card_widget.dart';
+import './status_badge_widget.dart';
 import '../../../auth/presentation/widgets/status_banner.dart';
 
 /// Displays the staff's membership context (restaurant, status, hire date).

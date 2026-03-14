@@ -37,7 +37,6 @@ class ApplicationCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // ── Icon/Logo Area ──
                 Container(
                   width: 48,
                   height: 48,
@@ -66,8 +65,6 @@ class ApplicationCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-
-                // ── Info Area ──
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,8 +111,6 @@ class ApplicationCard extends StatelessWidget {
                 ),
 
                 const SizedBox(width: 12),
-
-                // ── Trailing Area ──
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

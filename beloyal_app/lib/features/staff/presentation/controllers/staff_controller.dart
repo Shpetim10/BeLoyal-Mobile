@@ -1,16 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/controllers/session_controller.dart';
-import '../../data/staff_repository.dart';
+import '../../data/repositories/staff_repository.dart';
 import '../../domain/models/staff_member.dart';
-
-// ─────────────────────── Filter / Sort enums ──────────────────────────────────
 
 enum StaffFilter { all, active, inactive, invited }
 
 enum StaffSort { nameAZ, lastLogin, newestAdded }
-
-// ─────────────────────── Filter + Sort state ──────────────────────────────────
 
 class StaffSearchQueryNotifier extends Notifier<String> {
   @override
@@ -46,8 +42,6 @@ final staffSortProvider = NotifierProvider<StaffSortNotifier, StaffSort>(
   StaffSortNotifier.new,
 );
 
-// ─────────────────────── Main async controller ────────────────────────────────
-
 /// Provides the raw list of staff members for the active business.
 final staffControllerProvider =
     AsyncNotifierProvider<StaffController, List<StaffMember>>(
@@ -71,8 +65,6 @@ class StaffController extends AsyncNotifier<List<StaffMember>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => build());
   }
-
-  // ── Invite ──
 
   Future<String?> inviteStaff({
     required String email,
@@ -108,8 +100,6 @@ class StaffController extends AsyncNotifier<List<StaffMember>> {
     }
   }
 
-  // ── Update member status ──
-
   Future<String?> updateStatus(int memberId, MemberStatus newStatus) async {
     final bId = _businessId;
     if (bId == null) return 'No active business selected.';
@@ -134,15 +124,11 @@ class StaffController extends AsyncNotifier<List<StaffMember>> {
     }
   }
 
-  // ── Resend invite (same as updateStatus to INVITED) ──
-
   Future<String?> resendInvite(int memberId) async {
     // For now, treat as a status update to re-trigger the invite
     return updateStatus(memberId, MemberStatus.invited);
   }
 }
-
-// ─────────────────────── Derived providers ────────────────────────────────────
 
 /// Filtered + sorted staff list.
 final filteredStaffProvider = Provider<AsyncValue<List<StaffMember>>>((ref) {

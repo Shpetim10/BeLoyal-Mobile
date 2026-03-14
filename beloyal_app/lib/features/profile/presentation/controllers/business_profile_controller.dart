@@ -3,10 +3,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
-import '../../domain/business_profile.dart';
-import '../../data/business_profile_repository.dart';
-
-// ─────────────────────────── State ───────────────────────────────────────────
+import '../../domain/models/business_profile.dart';
+import '../../data/repositories/business_profile_repository.dart';
 
 class BusinessProfilePageState {
   const BusinessProfilePageState({
@@ -45,8 +43,6 @@ class BusinessProfilePageState {
     );
   }
 }
-
-// ─────────────────────────── Controller ──────────────────────────────────────
 
 class BusinessProfileController
     extends AsyncNotifier<BusinessProfilePageState> {
@@ -150,8 +146,6 @@ class BusinessProfileController
       );
     }
   }
-
-  // ── Logo ──
 
   Future<void> uploadLogo(XFile file) async {
     if (state.value == null || state.value!.business == null) return;

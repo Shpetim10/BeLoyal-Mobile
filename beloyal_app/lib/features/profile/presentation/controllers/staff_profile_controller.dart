@@ -3,10 +3,10 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
-import '../../../media/data/media_repository.dart';
-import '../../domain/staff_membership.dart';
-import '../../domain/user_profile.dart';
-import '../../data/profile_repository.dart';
+import '../../../media/data/repositories/media_repository.dart';
+import '../../domain/models/staff_membership.dart';
+import '../../domain/models/user_profile.dart';
+import '../../data/repositories/profile_repository.dart';
 
 class StaffProfilePageState {
   const StaffProfilePageState({

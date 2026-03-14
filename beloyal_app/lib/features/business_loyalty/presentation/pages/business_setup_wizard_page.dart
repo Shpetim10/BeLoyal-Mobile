@@ -10,7 +10,7 @@ import '../controllers/loyalty_settings_controller.dart';
 import '../widgets/earning_rule_builder_card.dart';
 import '../widgets/earning_rule_preview_card.dart';
 import '../widgets/preset_chips_row.dart';
-import '../../data/loyalty_settings_dto.dart';
+import '../../data/models/loyalty_settings_dto.dart';
 
 /// Unified two-step onboarding wizard.
 /// Step 1: Earning Rule setup (pointsPer / amountPer)
@@ -38,14 +38,10 @@ class BusinessSetupWizardPage extends ConsumerStatefulWidget {
 class _BusinessSetupWizardPageState
     extends ConsumerState<BusinessSetupWizardPage> {
   int _currentStep = 0;
-
-  // ── Step 1 Controllers ──
   final _step1FormKey = GlobalKey<FormState>();
   late final TextEditingController _pointsCtrl;
   late final TextEditingController _amountCtrl;
   bool _step1Initialized = false;
-
-  // ── Step 2 Controllers ──
   final _step2FormKey = GlobalKey<FormState>();
   late final TextEditingController _minRedeemCtrl;
   late final TextEditingController _maxRedeemCtrl;
@@ -268,8 +264,6 @@ class _BusinessSetupWizardPageState
     );
   }
 
-  // ─────────────────────────────── STEP INDICATOR ────────────────────────────
-
   Widget _buildStepIndicator() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
@@ -300,8 +294,6 @@ class _BusinessSetupWizardPageState
       ),
     );
   }
-
-  // ─────────────────────────────── STEP 1 ────────────────────────────────────
 
   Widget _buildStep1() {
     final step1State = ref.watch(earningRuleControllerProvider);
@@ -366,8 +358,6 @@ class _BusinessSetupWizardPageState
     );
   }
 
-  // ─────────────────────────────── STEP 2 ────────────────────────────────────
-
   Widget _buildStep2() {
     final s = ref.watch(loyaltySettingsControllerProvider);
 
@@ -415,8 +405,6 @@ class _BusinessSetupWizardPageState
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // ── Redemption Rules ──
                 _buildSectionHeader('Redemption Rules', Icons.redeem_rounded),
                 _buildGlassCard(
                   children: [
@@ -458,8 +446,6 @@ class _BusinessSetupWizardPageState
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // ── Conversion ──
                 _buildSectionHeader(
                   'Conversion (points → discount)',
                   Icons.swap_horiz_rounded,
@@ -503,8 +489,6 @@ class _BusinessSetupWizardPageState
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // ── Transaction Caps ──
                 _buildSectionHeader('Transaction Caps', Icons.block_rounded),
                 _buildGlassCard(
                   children: [
@@ -530,8 +514,6 @@ class _BusinessSetupWizardPageState
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // ── Expiry Policy ──
                 _buildSectionHeader('Expiry Policy', Icons.schedule_rounded),
                 _buildGlassCard(
                   children: [
@@ -615,8 +597,6 @@ class _BusinessSetupWizardPageState
       ),
     );
   }
-
-  // ─────────────────────────────── SHARED WIDGETS ────────────────────────────
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
@@ -897,8 +877,6 @@ class _BusinessSetupWizardPageState
     );
   }
 }
-
-// ─────────────────────────────── STEP DOT ──────────────────────────────────
 
 class _StepDot extends StatelessWidget {
   const _StepDot({

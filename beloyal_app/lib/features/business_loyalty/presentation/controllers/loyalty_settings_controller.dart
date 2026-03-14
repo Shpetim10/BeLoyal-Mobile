@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/loyalty_settings_dto.dart';
-import '../../data/loyalty_settings_repository.dart';
+import '../../data/models/loyalty_settings_dto.dart';
+import '../../data/repositories/loyalty_settings_repository.dart';
 
 class LoyaltySettingsState {
   const LoyaltySettingsState({
