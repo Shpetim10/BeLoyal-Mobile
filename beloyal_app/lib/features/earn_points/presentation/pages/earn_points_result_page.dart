@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
+import '../../data/models/resolved_guest.dart';
+import '../../data/models/points_preview.dart';
 import '../controllers/earn_points_controller.dart';
 import '../widgets/points_explosion_animation.dart';
 
@@ -274,8 +276,8 @@ class _InfoRow extends StatelessWidget {
 
 class _GuestResultTile extends StatelessWidget {
   const _GuestResultTile({required this.gResult, required this.guest});
-  final dynamic gResult; // GuestPointsResult
-  final dynamic guest; // ResolvedGuest
+  final GuestPointsResult gResult;
+  final ResolvedGuest guest;
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +311,7 @@ class _GuestResultTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'New Balance: ${gResult.currentBalance} pts',
+                  'New Balance: ${gResult.projectedBalance} pts',
                   style: TextStyle(
                     color: AppColors.textMuted.withValues(alpha: 0.7),
                     fontSize: 11,
@@ -325,7 +327,7 @@ class _GuestResultTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              '+${gResult.earnedPoints}',
+              '+${gResult.pointsEarned}',
               style: const TextStyle(
                 color: AppColors.accent,
                 fontSize: 13,

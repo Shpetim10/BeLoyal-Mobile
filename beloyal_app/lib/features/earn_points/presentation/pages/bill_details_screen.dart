@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +23,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
   final _invoiceController = TextEditingController();
   final _noteController = TextEditingController();
   final _amountFocus = FocusNode();
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -36,6 +38,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _amountFocus.removeListener(_onAmountFocusChanged);
     _amountController.dispose();
     _invoiceController.dispose();
@@ -45,10 +48,11 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
   }
 
   void _onAmountFocusChanged() {
-    // Fire preview only when focus leaves the field and amount is valid.
+    // Fire preview immediately if focus leaves the field.
     if (!_amountFocus.hasFocus) {
       final draft = ref.read(earnPointsControllerProvider);
       if (draft.billAmount != null && draft.billAmount! > 0) {
+        _debounce?.cancel();
         ref
             .read(earnPointsControllerProvider.notifier)
             .fetchPreview(businessId: widget.businessId);
@@ -59,7 +63,15 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
   void _onAmountChanged(String value) {
     final amount = double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), ''));
     ref.read(earnPointsControllerProvider.notifier).updateBillAmount(amount);
-    // Preview fires on focus-loss (→ _onAmountFocusChanged), not on every keypress.
+
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 750), () {
+      if (mounted && amount != null && amount > 0) {
+        ref
+            .read(earnPointsControllerProvider.notifier)
+            .fetchPreview(businessId: widget.businessId);
+      }
+    });
   }
 
   @override
@@ -342,14 +354,17 @@ class _PointsPreviewCard extends StatelessWidget {
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
-      child: draft.isPreviewLoading
-          // ── Premium loading state ──────────────────────────────────────
-          ? Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 120),
+        alignment: draft.isPreviewLoading ? Alignment.center : Alignment.centerLeft,
+        child: draft.isPreviewLoading
+            // ── Premium loading state ──────────────────────────────────────
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const PointsCalculatingIndicator(size: 72),
-                  const SizedBox(height: 12),
+                  const PointsCalculatingIndicator(size: 64),
+                  const SizedBox(height: 16),
                   Text(
                     'Calculating points…',
                     style: TextStyle(
@@ -360,12 +375,12 @@ class _PointsPreviewCard extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-            )
-          // ── Result / error / idle state ───────────────────────────────
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              )
+            // ── Result / error / idle state ───────────────────────────────
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   children: [
                     const Icon(
@@ -470,6 +485,7 @@ class _PointsPreviewCard extends StatelessWidget {
                 ],
               ],
             ),
+      ),
     );
   }
 }
