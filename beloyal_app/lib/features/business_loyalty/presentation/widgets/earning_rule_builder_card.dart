@@ -64,8 +64,7 @@ class EarningRuleBuilderCard extends StatelessWidget {
           controller: amountController,
           label: 'For every',
           hint: 'e.g., 100',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           prefixIcon: Icons.payments_rounded,
           suffixIcon: const Padding(
             padding: EdgeInsets.only(right: 16),
@@ -84,7 +83,7 @@ class EarningRuleBuilderCard extends StatelessWidget {
           ),
           validator: (v) {
             if (v == null || v.isEmpty) return 'Amount cannot be empty';
-            final amount = int.tryParse(v);
+            final amount = double.tryParse(v);
             if (amount == null || amount <= 0) return 'Must be greater than 0';
             return null;
           },

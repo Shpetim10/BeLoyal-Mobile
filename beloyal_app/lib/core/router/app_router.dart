@@ -47,6 +47,9 @@ import '../../features/business_loyalty/presentation/pages/earning_rule_manageme
 import '../../features/business_loyalty/presentation/pages/business_setup_wizard_page.dart';
 import '../../features/business_loyalty/presentation/pages/loyalty_settings_management_page.dart';
 
+// Earn Points imports
+import '../../features/earn_points/presentation/pages/earn_points_flow_page.dart';
+
 // Customer onboarding imports
 import '../../features/auth/presentation/pages/loyalty_card_reveal_page.dart';
 import '../../features/auth/domain/models/customer_profile_creation_response.dart';
@@ -496,6 +499,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),
+      ),
+
+      // ── Staff Earn Points ──
+      GoRoute(
+        path: '/staff/earn-points',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EarnPointsFlowPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
       ),
       GoRoute(
         path: '/customer/dashboard',

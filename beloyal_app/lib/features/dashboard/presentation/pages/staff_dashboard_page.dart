@@ -67,17 +67,14 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
               const SizedBox(height: 4),
               Expanded(
                 child: IndexedStack(
-                  index: _selectedIndex,
+                  index: _selectedIndex >= 2 ? _selectedIndex - 1 : _selectedIndex,
                   children: const [
                     _StaffHomeTab(),
                     _PlaceholderTab(
                       icon: Icons.receipt_long_rounded,
                       label: 'Transactions',
                     ),
-                    _PlaceholderTab(
-                      icon: Icons.qr_code_scanner_rounded,
-                      label: 'Scan QR',
-                    ),
+                    // index 2 (Scan QR) is handled by route push, not a tab.
                     _PlaceholderTab(
                       icon: Icons.search_rounded,
                       label: 'Search',
@@ -95,7 +92,14 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
       ),
       bottomNavigationBar: DashboardNavBar(
         selectedIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        onTap: (i) {
+          if (i == 2) {
+            // Push the Earn Points flow as a full-screen route.
+            context.push('/staff/earn-points');
+            return;
+          }
+          setState(() => _selectedIndex = i);
+        },
         leftItems: const [
           DashboardNavItem(icon: Icons.home_rounded, label: 'Home'),
           DashboardNavItem(

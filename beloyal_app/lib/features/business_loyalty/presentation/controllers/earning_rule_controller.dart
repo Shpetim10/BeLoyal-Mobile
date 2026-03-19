@@ -4,14 +4,14 @@ import '../../data/repositories/earning_rule_repository.dart';
 class EarningRuleState {
   const EarningRuleState({
     this.pointsPer = 1,
-    this.amountPer = 100,
+    this.amountPer = 100.0,
     this.isDirty = false,
     this.isSaving = false,
     this.errorMessage,
   });
 
   final int pointsPer;
-  final int amountPer;
+  final double amountPer;
   final bool isDirty;
   final bool isSaving;
   final String? errorMessage;
@@ -20,7 +20,7 @@ class EarningRuleState {
 
   EarningRuleState copyWith({
     int? pointsPer,
-    int? amountPer,
+    double? amountPer,
     bool? isDirty,
     bool? isSaving,
     String? errorMessage,
@@ -42,7 +42,7 @@ class EarningRuleController extends Notifier<EarningRuleState> {
     return const EarningRuleState();
   }
 
-  void updateFields({int? pointsPer, int? amountPer}) {
+  void updateFields({int? pointsPer, double? amountPer}) {
     state = state.copyWith(
       pointsPer: pointsPer,
       amountPer: amountPer,
@@ -51,7 +51,7 @@ class EarningRuleController extends Notifier<EarningRuleState> {
     );
   }
 
-  void applyPreset({required int pointsPer, required int amountPer}) {
+  void applyPreset({required int pointsPer, required double amountPer}) {
     state = state.copyWith(
       pointsPer: pointsPer,
       amountPer: amountPer,

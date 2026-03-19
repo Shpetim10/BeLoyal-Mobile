@@ -10,9 +10,6 @@ class AdminRepository {
   final Dio _dio;
 
   /// Fetches pending business applications.
-  /// Note: Real API might have pagination or specific status filters.
-  /// We'll assume GET /business-applications returns pending applications or
-  /// we can pass an explicit query param to fetch them.
   Future<List<BusinessApplication>> fetchPendingApplications() async {
     try {
       final response = await _dio.get('/admin/business-applications');

@@ -142,7 +142,6 @@ String? _parseString(dynamic value) {
 }
 
 /// Helper to parse DateTimes, handling both ISO strings and Spring Boot LocalDateTime arrays
-/// (e.g., [2026, 3, 10, 14, 30, 0, 0])
 DateTime? _parseDate(dynamic value) {
   if (value == null) return null;
   if (value is String) return DateTime.tryParse(value);

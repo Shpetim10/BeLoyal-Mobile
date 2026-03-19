@@ -46,13 +46,13 @@ class _EarningRuleSetupPageState extends ConsumerState<EarningRuleSetupPage> {
 
   void _updateState() {
     final points = int.tryParse(_pointsCtrl.text);
-    final amount = int.tryParse(_amountCtrl.text);
+    final amount = double.tryParse(_amountCtrl.text);
     ref
         .read(earningRuleControllerProvider.notifier)
         .updateFields(pointsPer: points, amountPer: amount);
   }
 
-  void _applyPreset(int points, int amount) {
+  void _applyPreset(int points, double amount) {
     _pointsCtrl.text = points.toString();
     _amountCtrl.text = amount.toString();
     ref

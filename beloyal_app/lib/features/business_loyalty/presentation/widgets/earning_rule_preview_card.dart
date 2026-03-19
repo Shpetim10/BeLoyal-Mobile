@@ -10,7 +10,7 @@ class EarningRulePreviewCard extends StatelessWidget {
   });
 
   final int pointsPer;
-  final int amountPer;
+  final double amountPer;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class EarningRulePreviewCard extends StatelessWidget {
     }
 
     int calc(int bill) {
-      return (bill ~/ amountPer) * pointsPer;
+      return (bill / amountPer).truncate() * pointsPer;
     }
 
     return SectionCardWidget(

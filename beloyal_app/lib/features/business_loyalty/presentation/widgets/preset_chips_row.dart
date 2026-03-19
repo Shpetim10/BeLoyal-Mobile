@@ -4,7 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 class PresetChipsRow extends StatelessWidget {
   const PresetChipsRow({super.key, required this.onSelect});
 
-  final void Function(int points, int amount) onSelect;
+  final void Function(int points, double amount) onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +25,13 @@ class PresetChipsRow extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _PresetChip(label: '1 per 100', onTap: () => onSelect(1, 100)),
+              _PresetChip(label: '1 per 100', onTap: () => onSelect(1, 100.0)),
               const SizedBox(width: 8),
-              _PresetChip(label: '1 per 200', onTap: () => onSelect(1, 200)),
+              _PresetChip(label: '1 per 200', onTap: () => onSelect(1, 200.0)),
               const SizedBox(width: 8),
-              _PresetChip(label: '2 per 100', onTap: () => onSelect(2, 100)),
+              _PresetChip(label: '2 per 100', onTap: () => onSelect(2, 100.0)),
               const SizedBox(width: 8),
-              _PresetChip(label: '5 per 500', onTap: () => onSelect(5, 500)),
+              _PresetChip(label: '5 per 500', onTap: () => onSelect(5, 500.0)),
             ],
           ),
         ),

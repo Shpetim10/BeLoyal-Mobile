@@ -8,7 +8,7 @@ class EarningRuleRepository {
 
   Future<void> patchEarningSettings({
     required int businessId,
-    required int amountPer,
+    required double amountPer,
     required int pointsPer,
   }) async {
     await _dio.patch(

@@ -122,7 +122,7 @@ class _BusinessSetupWizardPageState
 
   void _updateStep1State() {
     final points = int.tryParse(_pointsCtrl.text);
-    final amount = int.tryParse(_amountCtrl.text);
+    final amount = double.tryParse(_amountCtrl.text);
     ref
         .read(earningRuleControllerProvider.notifier)
         .updateFields(pointsPer: points, amountPer: amount);
@@ -140,7 +140,7 @@ class _BusinessSetupWizardPageState
         );
   }
 
-  void _applyStep1Preset(int points, int amount) {
+  void _applyStep1Preset(int points, double amount) {
     _pointsCtrl.text = points.toString();
     _amountCtrl.text = amount.toString();
     ref

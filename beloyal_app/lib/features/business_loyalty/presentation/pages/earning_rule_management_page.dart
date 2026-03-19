@@ -64,13 +64,13 @@ class _EarningRuleManagementPageState
   void _updateState() {
     if (!_initialized) return;
     final points = int.tryParse(_pointsCtrl.text);
-    final amount = int.tryParse(_amountCtrl.text);
+    final amount = double.tryParse(_amountCtrl.text);
     ref
         .read(earningRuleControllerProvider.notifier)
         .updateFields(pointsPer: points, amountPer: amount);
   }
 
-  void _applyPreset(int points, int amount) {
+  void _applyPreset(int points, double amount) {
     _pointsCtrl.text = points.toString();
     _amountCtrl.text = amount.toString();
     ref
@@ -274,7 +274,7 @@ class _EarningRuleManagementPageState
                       OutlinedButton(
                         onPressed: state.isSaving
                             ? null
-                            : () => _applyPreset(1, 100),
+                            : () => _applyPreset(1, 100.0),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(56),
                         ),
