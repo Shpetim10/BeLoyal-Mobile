@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../data/earn_points_repository.dart';
 import '../../data/models/resolved_guest.dart';
 import '../../data/models/points_preview.dart';
@@ -45,6 +46,7 @@ class EarnPointsDraftState {
     this.totalPointsAwarded,
     this.lastScannedRaw,
     this.finalResult,
+    this.idempotencyKey,
   });
 
   final WizardStep currentStep;
@@ -62,6 +64,7 @@ class EarnPointsDraftState {
   final bool isSuccess;
   final int? totalPointsAwarded;
   final PointsPreview? finalResult;
+  final String? idempotencyKey;
 
   /// Raw value of the last scanned QR — used to prevent duplicate reads.
   final String? lastScannedRaw;
@@ -102,6 +105,8 @@ class EarnPointsDraftState {
     bool clearLastScanned = false,
     PointsPreview? finalResult,
     bool clearFinalResult = false,
+    String? idempotencyKey,
+    bool clearIdempotencyKey = false,
   }) {
     return EarnPointsDraftState(
       currentStep: currentStep ?? this.currentStep,
@@ -128,6 +133,7 @@ class EarnPointsDraftState {
           clearLastScanned ? null : (lastScannedRaw ?? this.lastScannedRaw),
       finalResult:
           clearFinalResult ? null : (finalResult ?? this.finalResult),
+      idempotencyKey: clearIdempotencyKey ? null : (idempotencyKey ?? this.idempotencyKey),
     );
   }
 }
@@ -212,6 +218,7 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
     state = state.copyWith(
       guests: state.guests.where((g) => g.customerId != customerId).toList(),
       clearPreview: true,
+      clearIdempotencyKey: true,
     );
     // If no guests remain, reset scanner.
     if (state.guests.isEmpty) {
@@ -241,7 +248,10 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
 
   void goToConfirmation() {
     if (!state.isBillValid) return;
-    state = state.copyWith(currentStep: WizardStep.confirmation);
+    state = state.copyWith(
+      currentStep: WizardStep.confirmation,
+      idempotencyKey: state.idempotencyKey ?? const Uuid().v4(),
+    );
   }
 
   // ── Bill Details ──────────────────────────────────────────────────────────
@@ -252,15 +262,22 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
       clearBillAmount: amount == null,
       clearPreview: true,
       clearPreviewError: true,
+      clearIdempotencyKey: true,
     );
   }
 
   void updateInvoiceNumber(String value) {
-    state = state.copyWith(invoiceNumber: value);
+    state = state.copyWith(
+      invoiceNumber: value,
+      clearIdempotencyKey: true,
+    );
   }
 
   void updateNote(String value) {
-    state = state.copyWith(note: value);
+    state = state.copyWith(
+      note: value,
+      clearIdempotencyKey: true,
+    );
   }
 
   // ── Points Preview ────────────────────────────────────────────────────────
@@ -324,6 +341,7 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
       final response = await _repo.submitEarnTransaction(
         businessId: businessId,
         request: request,
+        idempotencyKey: state.idempotencyKey!,
       );
 
       state = state.copyWith(
