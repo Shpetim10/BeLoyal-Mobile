@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 
 class PremiumLoyaltyCard extends StatefulWidget {
   const PremiumLoyaltyCard({
@@ -31,9 +32,16 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
   late final AnimationController _shimmerCtrl;
   late final Animation<double> _shimmerAnim;
 
+  late final ImageProvider _cardImageProvider;
+  bool _isImageLoaded = false;
+  bool _imageLoadingRequested = false;
+
   @override
   void initState() {
     super.initState();
+    _cardImageProvider =
+        const AssetImage('assets/images/loyalty_card_template.png');
+
     _shimmerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -43,6 +51,21 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
       end: 2,
     ).animate(CurvedAnimation(parent: _shimmerCtrl, curve: Curves.linear));
     if (widget.shimmer) _shimmerCtrl.repeat();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_imageLoadingRequested) {
+      _imageLoadingRequested = true;
+      precacheImage(_cardImageProvider, context).then((_) {
+        if (mounted) {
+          setState(() {
+            _isImageLoaded = true;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -63,12 +86,43 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
         return SizedBox(
           width: width,
           height: height,
-          child: AnimatedBuilder(
-            animation: _shimmerAnim,
-            builder: (_, __) => _buildCard(width, height),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 700),
+            switchInCurve: Curves.easeIn,
+            switchOutCurve: Curves.easeOut,
+            child: !_isImageLoaded
+                ? _buildLoaderCard(width, height)
+                : AnimatedBuilder(
+                    key: const ValueKey('loadedCard'),
+                    animation: _shimmerAnim,
+                    builder: (_, __) => _buildCard(width, height),
+                  ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLoaderCard(double width, double height) {
+    return Container(
+      key: const ValueKey('loaderCard'),
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFF071120), // Deep blue luxury background
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: const Center(
+        child: BesaLoader(size: 36.0),
+      ),
     );
   }
 
@@ -124,9 +178,9 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
           child: Stack(
             children: [
               Positioned.fill(
-                child: Image.asset(
-                  'assets/images/loyalty_card_template.png',
-                  fit: BoxFit.fill, // fill keeps proportions tied to the stack
+                child: Image(
+                  image: _cardImageProvider,
+                  fit: BoxFit.fill,
                   filterQuality: FilterQuality.high,
                   errorBuilder: (_, __, ___) => Container(
                     decoration: const BoxDecoration(
@@ -173,11 +227,11 @@ class _PremiumLoyaltyCardState extends State<PremiumLoyaltyCard>
                   backgroundColor: Colors.transparent,
                   eyeStyle: QrEyeStyle(
                     eyeShape: QrEyeShape.square,
-                    color: const Color(0xFF071120).withOpacity(0.9),
+                    color: const Color(0xFF071120).withValues(alpha: 0.9),
                   ),
                   dataModuleStyle: QrDataModuleStyle(
                     dataModuleShape: QrDataModuleShape.square,
-                    color: const Color(0xFF071120).withOpacity(0.9),
+                    color: const Color(0xFF071120).withValues(alpha: 0.9),
                   ),
                   padding: EdgeInsets.all(qrSize * 0.035),
                   errorCorrectionLevel: QrErrorCorrectLevel.M,
