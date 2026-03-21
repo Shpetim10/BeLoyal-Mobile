@@ -11,6 +11,7 @@ import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_na
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/stat_card.dart';
 import 'package:besahub_app/features/staff/presentation/pages/staff_management_page.dart';
+import 'package:besahub_app/features/point_transactions/presentation/pages/point_transactions_page.dart';
 
 class BusinessDashboardPage extends ConsumerStatefulWidget {
   const BusinessDashboardPage({super.key});
@@ -70,21 +71,18 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
               Expanded(
                 child: IndexedStack(
                   index: _selectedIndex,
-                  children: const [
-                    _BusinessHomeTab(),
-                    StaffManagementPage(),
-                    _PlaceholderTab(
+                  children: [
+                    const _BusinessHomeTab(),
+                    const StaffManagementPage(),
+                    const _PlaceholderTab(
                       icon: Icons.qr_code_scanner_rounded,
                       label: 'Scan QR',
                     ),
-                    _PlaceholderTab(
+                    const _PlaceholderTab(
                       icon: Icons.card_giftcard_rounded,
                       label: 'Manage Rewards',
                     ),
-                    _PlaceholderTab(
-                      icon: Icons.list_alt_rounded,
-                      label: 'Transaction Logs',
-                    ),
+                    PointTransactionsPage(),
                   ],
                 ),
               ),
