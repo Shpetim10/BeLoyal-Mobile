@@ -8,7 +8,7 @@ import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../data/models/point_transaction_view_dto.dart';
 import '../../data/point_transactions_repository.dart';
 
-final transactionDetailProvider = FutureProvider.family<PointTransactionViewDto, ({int businessId, int txId})>((ref, args) async {
+final transactionDetailProvider = FutureProvider.autoDispose.family<PointTransactionViewDto, ({int businessId, int txId})>((ref, args) async {
   return ref.read(pointTransactionsRepositoryProvider).fetchTransactionDetail(args.businessId, args.txId);
 });
 
@@ -59,6 +59,15 @@ class TransactionDetailSheet extends ConsumerWidget {
                         err.toString(),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 24),
+                      TextButton.icon(
+                        onPressed: () => ref.invalidate(transactionDetailProvider((businessId: businessId, txId: transactionId))),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Try Again'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
                       ),
                     ],
                   ),

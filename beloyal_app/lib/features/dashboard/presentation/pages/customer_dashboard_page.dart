@@ -45,6 +45,17 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                   activeRoleName: session?.activeRole.displayName ?? '',
                   onRoleSwitchTap: () => _switchRole(context, ref, session!),
                   onLogoutTap: () => _logout(context, ref),
+                  actions: [
+                    IconButton(
+                        icon: const Icon(
+                          Icons.receipt_long_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () => context.push('/customer/transactions'),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

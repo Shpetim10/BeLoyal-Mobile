@@ -10,6 +10,7 @@ import 'package:besahub_app/features/auth/domain/models/auth_user.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_navbar.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/stat_card.dart';
+import 'package:besahub_app/features/point_transactions/presentation/pages/staff_point_transactions_page.dart';
 
 class StaffDashboardPage extends ConsumerStatefulWidget {
   const StaffDashboardPage({super.key});
@@ -70,10 +71,7 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
                   index: _selectedIndex >= 2 ? _selectedIndex - 1 : _selectedIndex,
                   children: const [
                     _StaffHomeTab(),
-                    _PlaceholderTab(
-                      icon: Icons.receipt_long_rounded,
-                      label: 'Transactions',
-                    ),
+                    StaffPointTransactionsPage(),
                     // index 2 (Scan QR) is handled by route push, not a tab.
                     _PlaceholderTab(
                       icon: Icons.search_rounded,

@@ -54,6 +54,9 @@ import '../../features/earn_points/presentation/pages/earn_points_flow_page.dart
 import '../../features/auth/presentation/pages/loyalty_card_reveal_page.dart';
 import '../../features/auth/domain/models/customer_profile_creation_response.dart';
 
+// Transaction imports
+import '../../features/point_transactions/presentation/pages/customer_point_transactions_page.dart';
+
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
 class RouterListenable extends ChangeNotifier {
@@ -520,6 +523,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CustomerDashboardPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/customer/transactions',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const CustomerPointTransactionsPage(),
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),

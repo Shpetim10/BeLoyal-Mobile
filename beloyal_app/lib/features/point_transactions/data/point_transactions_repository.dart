@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
 import 'models/point_transaction_list_dto.dart';
+import 'models/point_transaction_staff_list_dto.dart';
 import 'models/point_transaction_view_dto.dart';
+import 'models/point_transaction_customer_list_dto.dart';
 
 class PointTransactionsRepository {
   PointTransactionsRepository(this._dio);
@@ -26,10 +28,42 @@ class PointTransactionsRepository {
     }
   }
 
+  /// Fetches points transactions for the specific logged-in staff member.
+  Future<List<PointTransactionStaffListViewDto>> fetchStaffTransactions(int businessId) async {
+    try {
+      final response = await _dio.get('/business/$businessId/transactions/business-member');
+      final data = response.data;
+      if (data is List) {
+        return data
+            .map((e) => PointTransactionStaffListViewDto.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Fetches all points transactions for the logged-in customer.
+  Future<List<PointTransactionCustomerAllListViewDto>> fetchCustomerTransactions() async {
+    try {
+      final response = await _dio.get('/customer/transactions');
+      final data = response.data;
+      if (data is List) {
+        return data
+            .map((e) => PointTransactionCustomerAllListViewDto.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   /// Fetches full details for a single points transaction.
   Future<PointTransactionViewDto> fetchTransactionDetail(int businessId, int transactionId) async {
     try {
-      final response = await _dio.get('/business/$businessId/transactions/$transactionId');
+      final response = await _dio.get('/transactions/$transactionId');
       return PointTransactionViewDto.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);

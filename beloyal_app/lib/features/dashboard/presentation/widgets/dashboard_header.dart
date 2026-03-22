@@ -22,6 +22,7 @@ class DashboardHeader extends StatelessWidget {
     required this.onLogoutTap,
     this.subtitle,
     this.initials,
+    this.actions,
   });
 
   final bool canSwitchRoles;
@@ -34,6 +35,9 @@ class DashboardHeader extends StatelessWidget {
 
   /// Optional 1-2 letter initials for the avatar. Falls back to a person icon.
   final String? initials;
+
+  /// Optional list of widgets to place before the profile dropdown.
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +63,7 @@ class DashboardHeader extends StatelessWidget {
             ),
 
             const Spacer(),
+            if (actions != null) ...actions!,
             if (canSwitchRoles) ...[
               _RoleSwitchChip(roleName: activeRoleName, onTap: onRoleSwitchTap),
               const SizedBox(width: 12),
