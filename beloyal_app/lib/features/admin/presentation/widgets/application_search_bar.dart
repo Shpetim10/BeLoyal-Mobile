@@ -9,8 +9,6 @@ class ApplicationSearchBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filter = ref.watch(appFilterProvider);
-
     return Container(
       color: AppColors.bgDark,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -55,76 +53,7 @@ class ApplicationSearchBar extends ConsumerWidget {
               _SortDropdown(),
             ],
           ),
-          const SizedBox(height: 12),
-          // Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: 'Pending',
-                  isSelected: filter == ApplicationFilter.pending,
-                  onSelected: () => ref
-                      .read(appFilterProvider.notifier)
-                      .updateFilter(ApplicationFilter.pending),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'All (Coming Soon)',
-                  isSelected: filter == ApplicationFilter.all,
-                  onSelected: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('All applications view coming soon!'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onSelected,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onSelected,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.surfaceDark.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.glassBorder,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColors.primary : AppColors.textOnDark,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            fontSize: 13,
-          ),
-        ),
       ),
     );
   }

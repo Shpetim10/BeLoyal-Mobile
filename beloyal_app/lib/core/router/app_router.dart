@@ -34,6 +34,7 @@ import '../../features/business_onboarding/presentation/pages/update_registratio
 
 // Admin imports
 import '../../features/admin/presentation/pages/application_details_page.dart';
+import '../../features/admin/presentation/pages/admin_business_details_page.dart';
 
 // Profile imports
 import '../../features/profile/presentation/pages/profile_page.dart';
@@ -584,6 +585,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: ApplicationDetailsPage(applicationId: id),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/admin/businesses/:id',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['id'];
+          final id = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: AdminBusinessDetailsPage(businessId: id),
             transitionsBuilder: (ctx, anim, secondAnim, child) =>
                 FadeTransition(opacity: anim, child: child),
           );

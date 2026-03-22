@@ -4,8 +4,6 @@ import '../../data/repositories/admin_repository.dart';
 import '../../domain/models/business_application.dart';
 import '../../../business_onboarding/data/models/submit_application_models.dart';
 
-enum ApplicationFilter { pending, all }
-
 enum ApplicationSort { newest, oldest, nameAZ }
 
 class AppSearchQueryNotifier extends Notifier<String> {
@@ -18,18 +16,6 @@ class AppSearchQueryNotifier extends Notifier<String> {
 final appSearchQueryProvider = NotifierProvider<AppSearchQueryNotifier, String>(
   AppSearchQueryNotifier.new,
 );
-
-class AppFilterNotifier extends Notifier<ApplicationFilter> {
-  @override
-  ApplicationFilter build() => ApplicationFilter.pending;
-
-  void updateFilter(ApplicationFilter value) => state = value;
-}
-
-final appFilterProvider =
-    NotifierProvider<AppFilterNotifier, ApplicationFilter>(
-      AppFilterNotifier.new,
-    );
 
 class AppSortNotifier extends Notifier<ApplicationSort> {
   @override
@@ -115,16 +101,10 @@ final filteredSortedApplicationsProvider = Provider<List<BusinessApplication>>((
 ) {
   final appsList = ref.watch(applicationsControllerProvider).value ?? [];
   final q = ref.watch(appSearchQueryProvider).toLowerCase().trim();
-  final filter = ref.watch(appFilterProvider);
   final sort = ref.watch(appSortProvider);
 
   // 1. Filter
   var result = appsList.where((app) {
-    if (filter == ApplicationFilter.pending &&
-        app.businessStatus != BusinessStatus.pendingApproval) {
-      return false;
-    }
-
     if (q.isNotEmpty) {
       final n = app.businessName.toLowerCase();
       final e = app.businessEmail.toLowerCase();

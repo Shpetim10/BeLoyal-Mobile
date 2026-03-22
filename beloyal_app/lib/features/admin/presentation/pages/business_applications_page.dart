@@ -88,9 +88,6 @@ class BusinessApplicationsPage extends ConsumerWidget {
                   child: ApplicationEmptyState.noResults(
                     onClearFilters: () {
                       ref.read(appSearchQueryProvider.notifier).updateQuery('');
-                      ref
-                          .read(appFilterProvider.notifier)
-                          .updateFilter(ApplicationFilter.all);
                     },
                   ),
                 );
@@ -126,11 +123,11 @@ class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
   _StickySearchBarDelegate({required this.child});
   final Widget child;
 
-  // Fixed height to avoid SliverGeometry assertion (exactly matches actual child height 155px)
+  // Fixed height to avoid SliverGeometry assertion (exactly matches actual child height 110px)
   @override
-  double get minExtent => 155.0;
+  double get minExtent => 110.0;
   @override
-  double get maxExtent => 155.0;
+  double get maxExtent => 110.0;
 
   @override
   Widget build(
@@ -141,7 +138,7 @@ class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
     return Material(
       color: AppColors.bgDark,
       child: SizedBox(
-        height: 155.0,
+        height: 110.0,
         child: Align(alignment: Alignment.topCenter, child: child),
       ),
     );

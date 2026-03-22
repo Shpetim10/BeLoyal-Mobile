@@ -1,3 +1,4 @@
+import 'package:besahub_app/features/admin/presentation/pages/admin_all_businesses_page.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,10 +68,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                   children: const [
                     _AdminHomeTab(),
                     BusinessApplicationsPage(),
-                    _PlaceholderTab(
-                      icon: Icons.business_rounded,
-                      label: 'All Businesses',
-                    ),
+                    AdminAllBusinessesPage(),
                     _PlaceholderTab(
                       icon: Icons.search_rounded,
                       label: 'Search',
