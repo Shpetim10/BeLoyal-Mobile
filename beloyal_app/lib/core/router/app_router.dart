@@ -504,7 +504,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // ── Staff Earn Points ──
+      // ── Business Admin & Staff Earn Points ──
+      GoRoute(
+        path: '/business/earn-points',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EarnPointsFlowPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
       GoRoute(
         path: '/staff/earn-points',
         pageBuilder: (context, state) {

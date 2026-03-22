@@ -92,7 +92,13 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
       ),
       bottomNavigationBar: DashboardNavBar(
         selectedIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        onTap: (i) {
+          if (i == 2) {
+            context.push('/business/earn-points');
+            return;
+          }
+          setState(() => _selectedIndex = i);
+        },
         leftItems: const [
           DashboardNavItem(icon: Icons.home_rounded, label: 'Home'),
           DashboardNavItem(icon: Icons.people_rounded, label: 'Staff'),
