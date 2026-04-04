@@ -10,6 +10,7 @@ import 'package:besahub_app/features/auth/domain/models/auth_user.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_navbar.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/stat_card.dart';
+import 'package:besahub_app/features/dashboard/presentation/widgets/app_sidebar_drawer.dart';
 import 'package:besahub_app/features/point_transactions/presentation/pages/staff_point_transactions_page.dart';
 
 class StaffDashboardPage extends ConsumerStatefulWidget {
@@ -32,6 +33,7 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
 
     return Scaffold(
       extendBody: true,
+      drawer: const AppSidebarDrawer(),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -47,12 +49,20 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: DashboardHeader(
-                  canSwitchRoles: session?.user.canSwitchRoles ?? false,
-                  activeRoleName: session?.activeRole.displayName ?? '',
-                  subtitle: businessSubtitle,
-                  onRoleSwitchTap: () => _switchRole(context, ref, session!),
-                  onLogoutTap: () => _logout(context, ref),
+                child: Row(
+                  children: [
+                    const HamburgerMenuButton(),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: DashboardHeader(
+                        canSwitchRoles: session?.user.canSwitchRoles ?? false,
+                        activeRoleName: session?.activeRole.displayName ?? '',
+                        subtitle: businessSubtitle,
+                        onRoleSwitchTap: () => _switchRole(context, ref, session!),
+                        onLogoutTap: () => _logout(context, ref),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -69,15 +79,15 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
               Expanded(
                 child: IndexedStack(
                   index: _selectedIndex >= 2 ? _selectedIndex - 1 : _selectedIndex,
-                  children: const [
-                    _StaffHomeTab(),
-                    StaffPointTransactionsPage(),
+                  children: [
+                    _StaffHomeTab(businessId: session?.activeBusinessId ?? 0),
+                    const StaffPointTransactionsPage(),
                     // index 2 (Scan QR) is handled by route push, not a tab.
-                    _PlaceholderTab(
+                    const _PlaceholderTab(
                       icon: Icons.search_rounded,
                       label: 'Search',
                     ),
-                    _PlaceholderTab(
+                    const _PlaceholderTab(
                       icon: Icons.redeem_rounded,
                       label: 'Redeem Rewards',
                     ),
@@ -92,7 +102,6 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
         selectedIndex: _selectedIndex,
         onTap: (i) {
           if (i == 2) {
-            // Push the Earn Points flow as a full-screen route.
             context.push('/staff/earn-points');
             return;
           }
@@ -111,7 +120,6 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
         ],
         centerIcon: Icons.qr_code_scanner_rounded,
         centerLabel: 'Scan QR',
-        // Primary blue gradient for QR scan (matches the reference photo)
         centerGradient: AppColors.primaryGradient,
       ),
     );
@@ -175,7 +183,8 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
 }
 
 class _StaffHomeTab extends StatelessWidget {
-  const _StaffHomeTab();
+  const _StaffHomeTab({required this.businessId});
+  final int businessId;
 
   @override
   Widget build(BuildContext context) {
@@ -188,28 +197,32 @@ class _StaffHomeTab extends StatelessWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
         childAspectRatio: 1.05,
-        children: const [
-          StatCard(
+        children: [
+          const StatCard(
             icon: Icons.qr_code_scanner_rounded,
             label: "Today's Scans",
             value: '—',
             iconColor: AppColors.primary,
             subtitle: 'Tap to scan',
           ),
-          StatCard(
+          const StatCard(
             icon: Icons.pending_actions_rounded,
             label: 'Pending Redemptions',
             value: '—',
             iconColor: AppColors.accent,
             subtitle: 'Awaiting approval',
           ),
-          StatCard(
-            icon: Icons.receipt_long_rounded,
-            label: 'Total Transactions',
-            value: '—',
-            iconColor: AppColors.secondary,
+          GestureDetector(
+            onTap: () => context.push('/staff/catalog-categories'),
+            child: const StatCard(
+              icon: Icons.category_rounded,
+              label: 'Catalog Categories',
+              value: '—',
+              iconColor: Color(0xFF7C3AED),
+              subtitle: 'Browse catalog',
+            ),
           ),
-          StatCard(
+          const StatCard(
             icon: Icons.people_rounded,
             label: 'Active Customers',
             value: '—',

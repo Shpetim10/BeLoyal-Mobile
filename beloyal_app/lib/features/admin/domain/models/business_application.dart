@@ -28,7 +28,7 @@ class BusinessApplication {
   factory BusinessApplication.fromJson(Map<String, dynamic> json) {
     return BusinessApplication(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      businessName: (json['businessName'] as String?) ?? 'Unnamed Business',
+      businessName: _parseString(json['businessName']) ?? 'Unnamed Business',
       businessType: BusinessType.values.firstWhere((e) {
         final rawType = json['businessType'];
         if (rawType is List && rawType.isNotEmpty) {

@@ -10,14 +10,21 @@ class BusinessListViewDto {
   });
 
   factory BusinessListViewDto.fromJson(Map<String, dynamic> json) {
+    String? parseString(dynamic v) {
+      if (v == null) return null;
+      if (v is List && v.isNotEmpty) return v.first.toString();
+      return v.toString();
+    }
+
     return BusinessListViewDto(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      businessName: json['businessName']?.toString() ?? 'Unknown Business',
-      businessAddress: json['businessAddress']?.toString() ?? 'No address provided',
-      businessPhone: json['businessPhone']?.toString() ?? 'No phone',
-      businessEmail: json['businessEmail']?.toString() ?? 'No email',
-      businessStatus: json['businessStatus']?.toString() ?? 'UNKNOWN',
-      logoPath: json['logoPath']?.toString(),
+      businessName: parseString(json['businessName']) ?? 'Unknown Business',
+      businessAddress:
+          parseString(json['businessAddress']) ?? 'No address provided',
+      businessPhone: parseString(json['businessPhone']) ?? 'No phone',
+      businessEmail: parseString(json['businessEmail']) ?? 'No email',
+      businessStatus: parseString(json['businessStatus']) ?? 'UNKNOWN',
+      logoPath: parseString(json['logoPath']),
     );
   }
 
@@ -58,15 +65,21 @@ class BusinessMemberDetailsDto {
       return null;
     }
 
+    String? parseString(dynamic v) {
+      if (v == null) return null;
+      if (v is List && v.isNotEmpty) return v.first.toString();
+      return v.toString();
+    }
+
     return BusinessMemberDetailsDto(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      firstName: json['firstName']?.toString() ?? '',
-      lastName: json['lastName']?.toString() ?? '',
-      email: json['email']?.toString() ?? '',
+      firstName: parseString(json['firstName']) ?? '',
+      lastName: parseString(json['lastName']) ?? '',
+      email: parseString(json['email']) ?? '',
       lastLogin: parseDate(json['lastLogin']),
-      role: json['role']?.toString() ?? 'UNKNOWN',
+      role: parseString(json['role']) ?? 'UNKNOWN',
       hireDate: parseDate(json['hireDate']),
-      memberStatus: json['memberStatus']?.toString() ?? 'UNKNOWN',
+      memberStatus: parseString(json['memberStatus']) ?? 'UNKNOWN',
     );
   }
 
@@ -117,23 +130,30 @@ class BusinessDetailsDto {
       return null;
     }
 
+    String? parseString(dynamic v) {
+      if (v == null) return null;
+      if (v is List && v.isNotEmpty) return v.first.toString();
+      return v.toString();
+    }
+
     return BusinessDetailsDto(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      businessName: json['businessName']?.toString() ?? 'Unknown',
-      businessType: json['businessType']?.toString() ?? '',
-      businessDescription: json['businessDescription']?.toString() ?? '',
-      logoPath: json['logoPath']?.toString(),
-      address: json['address']?.toString() ?? '',
-      city: json['city']?.toString() ?? '',
-      country: json['country']?.toString() ?? '',
-      vatId: json['vatId']?.toString(),
-      businessPhoneNumber: json['businessPhoneNumber']?.toString() ?? '',
-      businessStatus: json['businessStatus']?.toString() ?? 'UNKNOWN',
+      businessName: parseString(json['businessName']) ?? 'Unknown',
+      businessType: parseString(json['businessType']) ?? '',
+      businessDescription: parseString(json['businessDescription']) ?? '',
+      logoPath: parseString(json['logoPath']),
+      address: parseString(json['address']) ?? '',
+      city: parseString(json['city']) ?? '',
+      country: parseString(json['country']) ?? '',
+      vatId: parseString(json['vatId']),
+      businessPhoneNumber: parseString(json['businessPhoneNumber']) ?? '',
+      businessStatus: parseString(json['businessStatus']) ?? 'UNKNOWN',
       submittedAt: parseDate(json['submittedAt']),
       reviewedAt: parseDate(json['reviewedAt']),
-      rejectionReason: json['rejectionReason']?.toString(),
+      rejectionReason: parseString(json['rejectionReason']),
       businessMembers: (json['businessMembers'] as List?)
-              ?.map((e) => BusinessMemberDetailsDto.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => BusinessMemberDetailsDto.fromJson(
+                  e as Map<String, dynamic>))
               .toList() ??
           [],
     );

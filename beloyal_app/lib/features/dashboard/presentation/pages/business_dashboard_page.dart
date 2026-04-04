@@ -10,6 +10,7 @@ import 'package:besahub_app/features/auth/domain/models/auth_user.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_navbar.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/stat_card.dart';
+import 'package:besahub_app/features/dashboard/presentation/widgets/app_sidebar_drawer.dart';
 import 'package:besahub_app/features/staff/presentation/pages/staff_management_page.dart';
 import 'package:besahub_app/features/point_transactions/presentation/pages/point_transactions_page.dart';
 
@@ -34,6 +35,7 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
 
     return Scaffold(
       extendBody: true,
+      drawer: const AppSidebarDrawer(),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -49,12 +51,20 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: DashboardHeader(
-                  canSwitchRoles: session?.user.canSwitchRoles ?? false,
-                  activeRoleName: session?.activeRole.displayName ?? '',
-                  subtitle: businessSubtitle,
-                  onRoleSwitchTap: () => _switchRole(context, ref, session!),
-                  onLogoutTap: () => _logout(context, ref),
+                child: Row(
+                  children: [
+                    const HamburgerMenuButton(),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: DashboardHeader(
+                        canSwitchRoles: session?.user.canSwitchRoles ?? false,
+                        activeRoleName: session?.activeRole.displayName ?? '',
+                        subtitle: businessSubtitle,
+                        onRoleSwitchTap: () => _switchRole(context, ref, session!),
+                        onLogoutTap: () => _logout(context, ref),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -72,7 +82,7 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
                 child: IndexedStack(
                   index: _selectedIndex,
                   children: [
-                    const _BusinessHomeTab(),
+                    _BusinessHomeTab(businessId: session?.activeBusinessId ?? 0),
                     const StaffManagementPage(),
                     const _PlaceholderTab(
                       icon: Icons.qr_code_scanner_rounded,
@@ -109,7 +119,6 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
         ],
         centerIcon: Icons.qr_code_scanner_rounded,
         centerLabel: 'Scan QR',
-        // Primary blue gradient for QR scan
         centerGradient: AppColors.primaryGradient,
       ),
     );
@@ -173,7 +182,8 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
 }
 
 class _BusinessHomeTab extends StatelessWidget {
-  const _BusinessHomeTab();
+  const _BusinessHomeTab({required this.businessId});
+  final int businessId;
 
   @override
   Widget build(BuildContext context) {
@@ -186,28 +196,32 @@ class _BusinessHomeTab extends StatelessWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
         childAspectRatio: 1.05,
-        children: const [
-          StatCard(
+        children: [
+          const StatCard(
             icon: Icons.badge_rounded,
             label: 'Staff Members',
             value: '—',
             iconColor: AppColors.primary,
             subtitle: 'View all staff',
           ),
-          StatCard(
+          const StatCard(
             icon: Icons.card_giftcard_rounded,
             label: 'Active Rewards',
             value: '—',
             iconColor: AppColors.accent,
             subtitle: 'Live campaigns',
           ),
-          StatCard(
-            icon: Icons.receipt_rounded,
-            label: "Today's Transactions",
-            value: '—',
-            iconColor: AppColors.secondary,
+          GestureDetector(
+            onTap: () => context.push('/business/catalog-categories'),
+            child: const StatCard(
+              icon: Icons.category_rounded,
+              label: 'Catalog Categories',
+              value: '—',
+              iconColor: Color(0xFF7C3AED),
+              subtitle: 'Manage catalog',
+            ),
           ),
-          StatCard(
+          const StatCard(
             icon: Icons.analytics_rounded,
             label: 'Revenue Overview',
             value: '—',

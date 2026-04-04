@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../../auth/presentation/widgets/primary_gradient_button.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../controllers/earning_rule_controller.dart';
 import '../widgets/earning_rule_builder_card.dart';
 import '../widgets/earning_rule_preview_card.dart';
@@ -36,20 +37,28 @@ class _EarningRuleManagementPageState
     _amountCtrl.addListener(_updateState);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initFromSession();
+      _fetchData();
     });
   }
 
-  void _initFromSession() {
+  Future<void> _fetchData() async {
     if (_initialized) return;
 
-    final session = ref.read(sessionControllerProvider);
-    if (session == null) return;
+    await ref
+        .read(earningRuleControllerProvider.notifier)
+        .fetch(widget.businessId);
+
+    if (!mounted) return;
 
     final currentState = ref.read(earningRuleControllerProvider);
 
     _pointsCtrl.text = currentState.pointsPer.toString();
-    _amountCtrl.text = currentState.amountPer.toString();
+    
+    // Format double to remove '.0' if it's a whole number
+    final amount = currentState.amountPer;
+    _amountCtrl.text = amount == amount.truncateToDouble()
+        ? amount.toInt().toString()
+        : amount.toString();
 
     _initialized = true;
   }
@@ -141,9 +150,14 @@ class _EarningRuleManagementPageState
         child: SafeArea(
           child: Stack(
             children: [
-              Form(
-                key: _formKey,
-                child: SingleChildScrollView(
+              if (state.isLoading)
+                const Center(
+                  child: BesaLoader(size: 40, color: AppColors.primary),
+                )
+              else
+                Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 150),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +253,8 @@ class _EarningRuleManagementPageState
               ),
 
               // Sticky Action Bar
-              Positioned(
+              if (!state.isLoading)
+                Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,

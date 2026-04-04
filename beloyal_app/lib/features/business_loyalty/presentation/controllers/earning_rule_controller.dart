@@ -6,6 +6,7 @@ class EarningRuleState {
     this.pointsPer = 1,
     this.amountPer = 100.0,
     this.isDirty = false,
+    this.isLoading = false,
     this.isSaving = false,
     this.errorMessage,
   });
@@ -13,6 +14,7 @@ class EarningRuleState {
   final int pointsPer;
   final double amountPer;
   final bool isDirty;
+  final bool isLoading;
   final bool isSaving;
   final String? errorMessage;
 
@@ -22,6 +24,7 @@ class EarningRuleState {
     int? pointsPer,
     double? amountPer,
     bool? isDirty,
+    bool? isLoading,
     bool? isSaving,
     String? errorMessage,
     bool clearError = false,
@@ -30,6 +33,7 @@ class EarningRuleState {
       pointsPer: pointsPer ?? this.pointsPer,
       amountPer: amountPer ?? this.amountPer,
       isDirty: isDirty ?? this.isDirty,
+      isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -58,6 +62,30 @@ class EarningRuleController extends Notifier<EarningRuleState> {
       isDirty: true,
       clearError: true,
     );
+  }
+
+  Future<void> fetch(int businessId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final repo = ref.read(earningRuleRepositoryProvider);
+      final data = await repo.getEarningSettings(businessId: businessId);
+      
+      final pointsPer = data['pointsPer'] as int? ?? 1;
+      final amountRaw = data['amountPer'];
+      final amountPer = amountRaw == null ? 100.0 : (amountRaw as num).toDouble();
+
+      state = state.copyWith(
+        pointsPer: pointsPer,
+        amountPer: amountPer,
+        isLoading: false,
+        isDirty: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to fetch earning rules, using defaults.',
+      );
+    }
   }
 
   Future<bool> save(int businessId) async {

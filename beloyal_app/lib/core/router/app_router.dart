@@ -51,6 +51,9 @@ import '../../features/business_loyalty/presentation/pages/loyalty_settings_mana
 // Earn Points imports
 import '../../features/earn_points/presentation/pages/earn_points_flow_page.dart';
 
+// Catalog Categories imports
+import '../../features/catalog_categories/presentation/pages/catalog_category_list_page.dart';
+
 // Customer onboarding imports
 import '../../features/auth/presentation/pages/loyalty_card_reveal_page.dart';
 import '../../features/auth/domain/models/customer_profile_creation_response.dart';
@@ -527,6 +530,34 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: EarnPointsFlowPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+
+      // ── Catalog Categories ──
+      GoRoute(
+        path: '/business/catalog-categories',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CatalogCategoryListPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/staff/catalog-categories',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CatalogCategoryListPage(businessId: businessId),
             transitionsBuilder: (ctx, anim, secondAnim, child) =>
                 FadeTransition(opacity: anim, child: child),
           );

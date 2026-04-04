@@ -6,6 +6,13 @@ class EarningRuleRepository {
   EarningRuleRepository(this._dio);
   final Dio _dio;
 
+  Future<Map<String, dynamic>> getEarningSettings({
+    required int businessId,
+  }) async {
+    final response = await _dio.get('/business/$businessId/earning-settings');
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<void> patchEarningSettings({
     required int businessId,
     required double amountPer,
