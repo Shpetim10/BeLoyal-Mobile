@@ -54,12 +54,17 @@ import '../../features/earn_points/presentation/pages/earn_points_flow_page.dart
 // Catalog Categories imports
 import '../../features/catalog_categories/presentation/pages/catalog_category_list_page.dart';
 
+// Catalog Items imports
+import '../../features/catalog_items/presentation/pages/catalog_item_list_page.dart';
+
 // Customer onboarding imports
 import '../../features/auth/presentation/pages/loyalty_card_reveal_page.dart';
 import '../../features/auth/domain/models/customer_profile_creation_response.dart';
 
 // Transaction imports
 import '../../features/point_transactions/presentation/pages/customer_point_transactions_page.dart';
+import '../../features/point_transactions/presentation/pages/point_transactions_page.dart';
+import '../../features/point_transactions/presentation/pages/staff_point_transactions_page.dart';
 
 final routerListenableProvider = Provider((ref) => RouterListenable(ref));
 
@@ -538,10 +543,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ── Catalog Categories ──
       GoRoute(
-        path: '/business/catalog-categories',
+        path: '/business/:businessId/catalog-categories',
         pageBuilder: (context, state) {
-          final session = ref.read(sessionControllerProvider);
-          final businessId = session?.activeBusinessId ?? 0;
+          final idParam = state.pathParameters['businessId'];
+          final businessId = int.tryParse(idParam ?? '') ?? 0;
           return CustomTransitionPage(
             key: state.pageKey,
             child: CatalogCategoryListPage(businessId: businessId),
@@ -551,10 +556,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/staff/catalog-categories',
+        path: '/staff/:businessId/catalog-categories',
         pageBuilder: (context, state) {
-          final session = ref.read(sessionControllerProvider);
-          final businessId = session?.activeBusinessId ?? 0;
+          final idParam = state.pathParameters['businessId'];
+          final businessId = int.tryParse(idParam ?? '') ?? 0;
           return CustomTransitionPage(
             key: state.pageKey,
             child: CatalogCategoryListPage(businessId: businessId),
@@ -562,6 +567,67 @@ final routerProvider = Provider<GoRouter>((ref) {
                 FadeTransition(opacity: anim, child: child),
           );
         },
+      ),
+
+      // ── Catalog Items ──
+      GoRoute(
+        path: '/business/:businessId/catalog-items',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['businessId'];
+          final businessId = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CatalogItemListPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/staff/:businessId/catalog-items',
+        pageBuilder: (context, state) {
+          final idParam = state.pathParameters['businessId'];
+          final businessId = int.tryParse(idParam ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CatalogItemListPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/staff/catalog-items',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CatalogItemListPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+
+      // ── Point Transactions ──
+      GoRoute(
+        path: '/business/:businessId/transactions',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const PointTransactionsPage(showAppBar: true),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/staff/:businessId/transactions',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const StaffPointTransactionsPage(showAppBar: true),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
       ),
       GoRoute(
         path: '/customer/dashboard',

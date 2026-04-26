@@ -213,7 +213,7 @@ class _StaffHomeTab extends StatelessWidget {
             subtitle: 'Awaiting approval',
           ),
           GestureDetector(
-            onTap: () => context.push('/staff/catalog-categories'),
+            onTap: () => context.push('/staff/$businessId/catalog-categories'),
             child: const StatCard(
               icon: Icons.category_rounded,
               label: 'Catalog Categories',

@@ -2,10 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import 'models/catalog_category.dart';
+import 'models/catalog_category_short_response.dart';
 
 /// Repository for all Catalog Category API operations.
 ///
-/// Base path: /api/besahub/business/{businessId}/catalog-category
+/// Base path: business/{businessId}/catalog-category
 ///
 /// Currently implemented:
 ///   - GET all categories
@@ -31,6 +32,15 @@ class CatalogCategoryRepository {
     final list = response.data as List<dynamic>;
     return list
         .map((e) => CatalogCategory.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Fetches only active categories, using the short response DTO.
+  Future<List<CatalogCategoryShortResponse>> getActiveShort({required int businessId}) async {
+    final response = await _dio.get('${_base(businessId)}/active');
+    final list = response.data as List<dynamic>;
+    return list
+        .map((e) => CatalogCategoryShortResponse.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
@@ -182,4 +192,14 @@ class CatalogCategoryRepository {
 final catalogCategoryRepositoryProvider =
     Provider<CatalogCategoryRepository>((ref) {
   return CatalogCategoryRepository(ref.watch(dioProvider));
+});
+
+final activeCatalogCategoriesProvider = FutureProvider.family
+    .autoDispose<List<CatalogCategoryShortResponse>, int>((ref, businessId) async {
+  return ref.watch(catalogCategoryRepositoryProvider).getActiveShort(businessId: businessId);
+});
+
+final allCatalogCategoriesProvider = FutureProvider.family
+    .autoDispose<List<CatalogCategory>, int>((ref, businessId) async {
+  return ref.watch(catalogCategoryRepositoryProvider).getAll(businessId: businessId);
 });

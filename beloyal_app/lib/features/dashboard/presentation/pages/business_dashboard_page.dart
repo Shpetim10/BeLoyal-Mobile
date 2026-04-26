@@ -92,7 +92,7 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
                       icon: Icons.card_giftcard_rounded,
                       label: 'Manage Rewards',
                     ),
-                    PointTransactionsPage(),
+                    const PointTransactionsPage(),
                   ],
                 ),
               ),
@@ -212,7 +212,7 @@ class _BusinessHomeTab extends StatelessWidget {
             subtitle: 'Live campaigns',
           ),
           GestureDetector(
-            onTap: () => context.push('/business/catalog-categories'),
+            onTap: () => context.push('/business/$businessId/catalog-categories'),
             child: const StatCard(
               icon: Icons.category_rounded,
               label: 'Catalog Categories',

@@ -21,28 +21,57 @@ class _CustomerPointTransactionsPageState extends ConsumerState<CustomerPointTra
   @override
   Widget build(BuildContext context) {
     final transactionsState = ref.watch(customerTransactionsControllerProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: AppColors.bgDark,
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Premium Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.surfaceDark : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'My Transactions',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'My Transactions',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Text(
+                          'Your activity history',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

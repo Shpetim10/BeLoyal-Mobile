@@ -143,11 +143,24 @@ class _DrawerContent extends ConsumerWidget {
                         onTap: () {
                           Navigator.pop(context);
                           final path = isAdmin
-                              ? '/business/catalog-categories'
-                              : '/staff/catalog-categories';
+                              ? '/business/$businessId/catalog-categories'
+                              : '/staff/$businessId/catalog-categories';
                           context.push(path);
                         },
                         delay: 2,
+                      ),
+                      _SidebarItem(
+                        icon: Icons.inventory_2_rounded,
+                        label: 'Catalog Items',
+                        color: const Color(0xFFF59E0B),
+                        onTap: () {
+                          Navigator.pop(context);
+                          final path = isAdmin
+                              ? '/business/$businessId/catalog-items'
+                              : '/staff/$businessId/catalog-items';
+                          context.push(path);
+                        },
+                        delay: 3,
                       ),
                       _SidebarItem(
                         icon: Icons.receipt_long_rounded,
@@ -155,9 +168,12 @@ class _DrawerContent extends ConsumerWidget {
                         color: AppColors.secondary,
                         onTap: () {
                           Navigator.pop(context);
+                          final path = isAdmin 
+                              ? '/business/$businessId/transactions' 
+                              : '/staff/$businessId/transactions';
+                          context.push(path);
                         },
-                        delay: 3,
-                        badge: 'Soon',
+                        delay: 4,
                       ),
 
                       // ── Admin-only sections ──────────────────────────────

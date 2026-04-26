@@ -67,7 +67,9 @@ class CustomerTransactionCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
         onTap: () {
           showModalBottomSheet(
             context: context,
@@ -198,6 +200,7 @@ class CustomerTransactionCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
