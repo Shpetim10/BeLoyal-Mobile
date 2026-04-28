@@ -2,11 +2,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/catalog_item_repository.dart';
+import '../../data/models/catalog_item_create_request.dart';
 import '../../data/models/catalog_item_detail_response.dart';
 import '../../data/models/catalog_item_short_response.dart';
-import '../../data/models/catalog_item_short_response.dart';
 import '../../data/models/catalog_item_status.dart';
-import '../../data/models/catalog_item_create_request.dart';
+import '../../../auth/presentation/controllers/session_controller.dart';
+import '../../../auth/domain/models/auth_user.dart';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+enum CatalogItemStatusFilter { all, active, inactive }
 
 class CatalogItemListState {
   const CatalogItemListState({
@@ -16,6 +21,7 @@ class CatalogItemListState {
     this.searchQuery = '',
     this.categoryIdFilter,
     this.categoryNameFilter,
+    this.statusFilter = CatalogItemStatusFilter.all,
     this.isSubmitting = false,
   });
 
@@ -25,19 +31,34 @@ class CatalogItemListState {
   final String searchQuery;
   final int? categoryIdFilter;
   final String? categoryNameFilter;
+  final CatalogItemStatusFilter statusFilter;
   final bool isSubmitting;
 
   List<CatalogItemShortResponse> get filteredItems {
     var list = items;
 
-    // Filter by category if a filter is active
-    if (categoryNameFilter != null) {
-      list = list.where((item) => item.categoryName == categoryNameFilter).toList();
+    // Category filter
+    if (categoryIdFilter != null) {
+      list = list.where((item) => item.categoryId == categoryIdFilter).toList();
     }
 
+    // Status filter
+    list = switch (statusFilter) {
+      CatalogItemStatusFilter.all => list,
+      CatalogItemStatusFilter.active =>
+        list.where((i) => i.status == CatalogItemStatus.active).toList(),
+      CatalogItemStatusFilter.inactive =>
+        list.where((i) => i.status == CatalogItemStatus.inactive).toList(),
+    };
+
+    // Search filter
     if (searchQuery.trim().isNotEmpty) {
       final query = searchQuery.toLowerCase();
-      list = list.where((item) => item.name.toLowerCase().contains(query)).toList();
+      list = list
+          .where((i) =>
+              i.name.toLowerCase().contains(query) ||
+              (i.categoryName?.toLowerCase().contains(query) ?? false))
+          .toList();
     }
 
     return list;
@@ -52,6 +73,7 @@ class CatalogItemListState {
     int? categoryIdFilter,
     String? categoryNameFilter,
     bool clearCategoryFilter = false,
+    CatalogItemStatusFilter? statusFilter,
     bool? isSubmitting,
   }) {
     return CatalogItemListState(
@@ -59,32 +81,61 @@ class CatalogItemListState {
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
       searchQuery: searchQuery ?? this.searchQuery,
-      categoryIdFilter: clearCategoryFilter ? null : (categoryIdFilter ?? this.categoryIdFilter),
-      categoryNameFilter: clearCategoryFilter ? null : (categoryNameFilter ?? this.categoryNameFilter),
+      categoryIdFilter:
+          clearCategoryFilter ? null : (categoryIdFilter ?? this.categoryIdFilter),
+      categoryNameFilter: clearCategoryFilter
+          ? null
+          : (categoryNameFilter ?? this.categoryNameFilter),
+      statusFilter: statusFilter ?? this.statusFilter,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
   }
 }
 
+// ── Controller ────────────────────────────────────────────────────────────────
+
 class CatalogItemController extends Notifier<CatalogItemListState> {
   @override
-  CatalogItemListState build() => const CatalogItemListState();
+  CatalogItemListState build() {
+    return const CatalogItemListState();
+  }
 
   CatalogItemRepository get _repo => ref.read(catalogItemRepositoryProvider);
 
-  Future<void> fetchItems(int businessId) async {
+  bool get isAdmin =>
+      ref.read(sessionControllerProvider)?.activeRole == UserRole.businessAdmin;
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  Future<void> fetchItems(int businessId, {int? categoryId}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final list = await _repo.getAll(businessId: businessId);
+      final list = await _repo.getAll(businessId: businessId, categoryId: categoryId);
+      // Sort by orderIndex
       list.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       state = state.copyWith(items: list, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _extractMessage(e));
+      state = state.copyWith(
+        isLoading: false,
+        error: _extractMessage(e),
+      );
     }
   }
 
   void updateSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
+  }
+
+  void updateStatusFilter(CatalogItemStatusFilter filter) {
+    state = state.copyWith(statusFilter: filter);
+  }
+
+  void filterByCategory(int? categoryId, String? categoryName) {
+    state = state.copyWith(
+      categoryIdFilter: categoryId,
+      categoryNameFilter: categoryName,
+      clearCategoryFilter: categoryId == null,
+    );
   }
 
   Future<void> createItem({
@@ -94,8 +145,12 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
   }) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
-      await _repo.createItem(businessId: businessId, categoryId: categoryId, request: request);
-      await fetchItems(businessId); // Refresh list
+      await _repo.createItem(
+        businessId: businessId,
+        categoryId: categoryId,
+        request: request,
+      );
+      await fetchItems(businessId, categoryId: categoryId);
     } catch (e) {
       state = state.copyWith(isSubmitting: false, error: _extractMessage(e));
       rethrow;
@@ -109,21 +164,20 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
   }) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
-      await _repo.updateItem(businessId: businessId, itemId: itemId, request: request);
-      await fetchItems(businessId); // Refresh list
+      await _repo.updateItem(
+        businessId: businessId,
+        itemId: itemId,
+        request: request,
+      );
+      // We can't easily refresh the whole list without categoryId, 
+      // but we can update the item in the list if we find it.
+      // For now, let's just invalidate the detail and let the caller handle it.
       ref.invalidate(catalogItemDetailProvider((businessId: businessId, itemId: itemId)));
+      state = state.copyWith(isSubmitting: false);
     } catch (e) {
       state = state.copyWith(isSubmitting: false, error: _extractMessage(e));
       rethrow;
     }
-  }
-
-  void filterByCategory(int? categoryId, String? categoryName) {
-    state = state.copyWith(
-      categoryIdFilter: categoryId,
-      categoryNameFilter: categoryName,
-      clearCategoryFilter: categoryId == null,
-    );
   }
 
   Future<void> activateItem(int businessId, int itemId) async {
@@ -163,7 +217,6 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
     state = state.copyWith(isSubmitting: true);
     try {
       await _repo.restore(businessId: businessId, itemId: itemId);
-      // Remove from deleted list if we were in the trash view
       final newList = state.items.where((i) => i.id != itemId).toList();
       state = state.copyWith(items: newList, isSubmitting: false);
       ref.invalidate(deletedCatalogItemsProvider(businessId));
@@ -202,9 +255,11 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
       await _repo.reorder(businessId: businessId, categoryId: categoryId, orderedIds: orderedIds);
     } catch (e) {
       state = state.copyWith(error: _extractMessage(e));
-      await fetchItems(businessId); // Revert on failure
+      await fetchItems(businessId, categoryId: categoryId); // Revert on failure
     }
   }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   void _updateItemStatus(int itemId, CatalogItemStatus status) {
     final newList = state.items.map((i) {
@@ -221,17 +276,13 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
       final data = error.response?.data;
       if (data is Map<String, dynamic>) {
         final message = data['message'];
-        if (message is List) {
-          return message.join(', ');
-        }
+        if (message is List) return message.join(', ');
         if (message is String) return message;
-
+        
         final err = data['error'];
-        if (err is List) {
-          return err.join(', ');
-        }
+        if (err is List) return err.join(', ');
         if (err is String) return err;
-
+        
         return 'Something went wrong';
       }
       return 'Network error. Check your connection.';
@@ -240,19 +291,19 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
   }
 }
 
+// ── Providers ─────────────────────────────────────────────────────────────────
+
 final catalogItemControllerProvider =
     NotifierProvider<CatalogItemController, CatalogItemListState>(
   CatalogItemController.new,
 );
 
-// Detail provider
 final catalogItemDetailProvider = FutureProvider.family.autoDispose<CatalogItemDetailResponse, ({int businessId, int itemId})>(
   (ref, args) {
     return ref.read(catalogItemRepositoryProvider).getById(businessId: args.businessId, itemId: args.itemId);
   },
 );
 
-// Deleted items provider
 final deletedCatalogItemsProvider = FutureProvider.family.autoDispose<List<CatalogItemShortResponse>, int>(
   (ref, businessId) {
     return ref.read(catalogItemRepositoryProvider).getDeleted(businessId: businessId);

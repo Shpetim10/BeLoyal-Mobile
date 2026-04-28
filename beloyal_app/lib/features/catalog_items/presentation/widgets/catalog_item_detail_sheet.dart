@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/catalog_item_controller.dart';
 import '../../data/models/catalog_item_status.dart';
 import 'catalog_item_form_sheet.dart';
+import 'catalog_item_variants_section.dart';
 import 'move_category_sheet.dart';
 
 class CatalogItemDetailSheet extends ConsumerWidget {
@@ -17,20 +18,29 @@ class CatalogItemDetailSheet extends ConsumerWidget {
     required this.itemId,
   });
 
-  String _getCurrencySymbol(String? currency) {
-    switch (currency?.toUpperCase()) {
+  String _currencyDisplayText(String? currencyCode) {
+    final code = currencyCode?.trim().toUpperCase();
+    switch (code) {
       case 'EURO':
       case 'EUR':
-        return '€';
+        return 'Euro (EUR)';
       case 'DOLLAR':
       case 'USD':
-        return '\$';
+        return 'Dollar (USD)';
       case 'LEK':
       case 'ALL':
-        return 'L';
+        return 'Lek (ALL)';
       default:
-        return '€'; // default
+        return currencyCode?.trim() ?? '';
     }
+  }
+
+  String _formatMainPrice(double price, String? currencyCode) {
+    final displayCurrency = _currencyDisplayText(currencyCode);
+    if (displayCurrency.isEmpty) {
+      return price.toStringAsFixed(2);
+    }
+    return '${price.toStringAsFixed(2)} $displayCurrency';
   }
 
   @override
@@ -65,10 +75,11 @@ class CatalogItemDetailSheet extends ConsumerWidget {
             final isDeleted = item.isDeleted || item.status == CatalogItemStatus.deleted;
             final isActive = item.status == CatalogItemStatus.active && !isDeleted;
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 // Image Header
                 if (item.imageUrl != null)
                   Container(
@@ -105,26 +116,11 @@ class CatalogItemDetailSheet extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.name,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${_getCurrencySymbol(item.currencyCode)} ${item.price.toStringAsFixed(2)}',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: theme.primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        item.name,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       // Status Badge
@@ -143,31 +139,50 @@ class CatalogItemDetailSheet extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      if (item.categoryName != null) ...[
-                        Row(
-                          children: [
-                            const Icon(Icons.category, size: 20, color: Colors.grey),
-                            const SizedBox(width: 8),
-                            Text(
-                              item.categoryName!,
-                              style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[800]),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.payments_outlined,
+                            size: 20,
+                            color: theme.primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatMainPrice(item.price, item.currencyCode),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (item.categoryName != null) ...[
+                        _DetailFieldRow(
+                          icon: Icons.category_outlined,
+                          text: item.categoryName!,
+                          textStyle: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.grey[800],
+                          ),
                         ),
                         const SizedBox(height: 16),
                       ],
                       if (item.description != null && item.description!.isNotEmpty) ...[
-                        Text(
-                          'Description',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.description!,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                        _DetailFieldRow(
+                          icon: Icons.notes_rounded,
+                          text: item.description!,
+                          textStyle: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[700],
+                          ),
                         ),
                         const SizedBox(height: 16),
                       ],
+
+                      CatalogItemVariantsSection(
+                        businessId: businessId,
+                        itemId: itemId,
+                        currencyCode: item.currencyCode,
+                      ),
 
                       // Action Panel
                       if (!isDeleted) ...[
@@ -301,7 +316,8 @@ class CatalogItemDetailSheet extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -394,3 +410,35 @@ class _ActionIconButton extends StatelessWidget {
     );
   }
 }
+
+class _DetailFieldRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final TextStyle? textStyle;
+
+  const _DetailFieldRow({
+    required this.icon,
+    required this.text,
+    this.textStyle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: textStyle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+
