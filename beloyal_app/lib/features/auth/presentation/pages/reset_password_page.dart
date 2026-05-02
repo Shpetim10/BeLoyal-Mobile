@@ -147,9 +147,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         PasswordField(
                           controller: _confirmPwdCtrl,
                           label: 'Confirm Password',
-                          validator: Validators.confirmPassword(
-                            _newPwdCtrl.text,
-                          ),
+                          validator: (v) =>
+                              Validators.confirmPassword(_newPwdCtrl.text)(v),
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _handleSubmit(),
                         ),

@@ -17,24 +17,24 @@ enum CategoryStatus {
   }
 
   String get displayName => switch (this) {
-        CategoryStatus.active => 'Active',
-        CategoryStatus.inactive => 'Inactive',
-      };
+    CategoryStatus.active => 'Active',
+    CategoryStatus.inactive => 'Inactive',
+  };
 
   Color get color => switch (this) {
-        CategoryStatus.active => const Color(0xFF22C55E),
-        CategoryStatus.inactive => const Color(0xFF94A3B8),
-      };
+    CategoryStatus.active => const Color(0xFF22C55E),
+    CategoryStatus.inactive => const Color(0xFF94A3B8),
+  };
 
   Color get backgroundColor => switch (this) {
-        CategoryStatus.active => const Color(0xFF22C55E).withValues(alpha: 0.12),
-        CategoryStatus.inactive => const Color(0xFF94A3B8).withValues(alpha: 0.12),
-      };
+    CategoryStatus.active => const Color(0xFF22C55E).withValues(alpha: 0.12),
+    CategoryStatus.inactive => const Color(0xFF94A3B8).withValues(alpha: 0.12),
+  };
 
   IconData get icon => switch (this) {
-        CategoryStatus.active => Icons.check_circle_rounded,
-        CategoryStatus.inactive => Icons.pause_circle_rounded,
-      };
+    CategoryStatus.active => Icons.check_circle_rounded,
+    CategoryStatus.inactive => Icons.pause_circle_rounded,
+  };
 }
 
 // ── Filter Enum (UI-only) ────────────────────────────────────────────────────
@@ -45,10 +45,10 @@ enum CategoryStatusFilter {
   inactive;
 
   String get label => switch (this) {
-        CategoryStatusFilter.all => 'All',
-        CategoryStatusFilter.active => 'Active',
-        CategoryStatusFilter.inactive => 'Inactive',
-      };
+    CategoryStatusFilter.all => 'All',
+    CategoryStatusFilter.active => 'Active',
+    CategoryStatusFilter.inactive => 'Inactive',
+  };
 }
 
 // ── Model ────────────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ class CatalogCategory {
       if (v == null) return null;
       if (v is String) return DateTime.tryParse(v);
       if (v is List && v.isNotEmpty) {
-        int year = v.length > 0 ? (v[0] as num).toInt() : 1970;
+        int year = (v[0] as num).toInt();
         int month = v.length > 1 ? (v[1] as num).toInt() : 1;
         int day = v.length > 2 ? (v[2] as num).toInt() : 1;
         int hour = v.length > 3 ? (v[3] as num).toInt() : 0;
@@ -113,13 +113,13 @@ class CatalogCategory {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        if (description != null) 'description': description,
-        'orderIndex': orderIndex,
-        'status': status.name.toUpperCase(),
-        if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    if (description != null) 'description': description,
+    'orderIndex': orderIndex,
+    'status': status.name.toUpperCase(),
+    if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+  };
 
   CatalogCategory copyWith({
     int? id,

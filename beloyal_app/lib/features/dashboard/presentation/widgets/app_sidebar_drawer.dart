@@ -25,8 +25,7 @@ class AppSidebarDrawer extends ConsumerWidget {
     final isAdmin = session.activeRole == UserRole.businessAdmin;
     final isStaff = session.activeRole == UserRole.staff;
     final businessId = session.activeBusinessId ?? 0;
-    final businessName =
-        session.activeBusinessName ?? 'Your Business';
+    final businessName = session.activeBusinessName ?? 'Your Business';
     final user = session.user;
 
     return Drawer(
@@ -76,13 +75,12 @@ class _DrawerContent extends ConsumerWidget {
             color: isDark
                 ? const Color(0xFF0D1829).withValues(alpha: 0.97)
                 : Colors.white.withValues(alpha: 0.97),
-            borderRadius:
-                const BorderRadius.horizontal(right: Radius.circular(28)),
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(28),
+            ),
             border: Border(
               right: BorderSide(
-                color: isDark
-                    ? AppColors.glassBorder
-                    : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
                 width: 1,
               ),
             ),
@@ -103,10 +101,11 @@ class _DrawerContent extends ConsumerWidget {
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     children: [
                       // ── Main ────────────────────────────────────────────
-
                       _SidebarSection('Main'),
                       _SidebarItem(
                         icon: Icons.home_rounded,
@@ -168,8 +167,8 @@ class _DrawerContent extends ConsumerWidget {
                         color: AppColors.secondary,
                         onTap: () {
                           Navigator.pop(context);
-                          final path = isAdmin 
-                              ? '/business/$businessId/transactions' 
+                          final path = isAdmin
+                              ? '/business/$businessId/transactions'
                               : '/staff/$businessId/transactions';
                           context.push(path);
                         },
@@ -195,27 +194,39 @@ class _DrawerContent extends ConsumerWidget {
                           onTap: () {
                             Navigator.pop(context);
                             context.push(
-                                '/business/$businessId/loyalty/earning-rule');
+                              '/business/$businessId/loyalty/earning-rule',
+                            );
                           },
                           delay: 5,
                         ),
                         _SidebarItem(
                           icon: Icons.card_giftcard_rounded,
+                          label: 'Coupons',
+                          color: const Color(0xFF16A34A),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push('/business/$businessId/coupons');
+                          },
+                          delay: 6,
+                        ),
+                        _SidebarItem(
+                          icon: Icons.tune_rounded,
                           label: 'Loyalty Settings',
                           color: const Color(0xFF0891B2),
                           onTap: () {
                             Navigator.pop(context);
                             context.push(
-                                '/business/$businessId/loyalty/settings');
+                              '/business/$businessId/loyalty/settings',
+                            );
                           },
-                          delay: 6,
+                          delay: 7,
                         ),
                         _SidebarItem(
                           icon: Icons.analytics_rounded,
                           label: 'Analytics',
                           color: AppColors.error,
                           onTap: () {},
-                          delay: 7,
+                          delay: 8,
                           badge: 'Soon',
                         ),
                       ],
@@ -248,9 +259,7 @@ class _DrawerContent extends ConsumerWidget {
                         label: 'Profile',
                         onTap: () {
                           Navigator.pop(context);
-                          final path = isAdmin
-                              ? '/profile'
-                              : '/staff/profile';
+                          final path = isAdmin ? '/profile' : '/staff/profile';
                           context.push(path);
                         },
                         delay: 8,
@@ -302,14 +311,15 @@ class _DrawerContent extends ConsumerWidget {
       final role = result['role'] as UserRole;
       final bid = result['businessId'] as int?;
 
-      if (role == UserRole.customer &&
-          !session.user.customerProfileComplete) {
+      if (role == UserRole.customer && !session.user.customerProfileComplete) {
         ref.read(sessionControllerProvider.notifier).switchRole(role);
         context.go('/create-profile');
         return;
       }
 
-      ref.read(sessionControllerProvider.notifier).switchRole(
+      ref
+          .read(sessionControllerProvider.notifier)
+          .switchRole(
             role,
             businessId: bid,
             businessName: result['businessName'] as String?,
@@ -355,9 +365,7 @@ class _DrawerHeader extends StatelessWidget {
         ),
         border: Border(
           bottom: BorderSide(
-            color: isDark
-                ? AppColors.glassBorder
-                : const Color(0xFFE2E8F0),
+            color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
           ),
         ),
       ),
@@ -378,10 +386,7 @@ class _DrawerHeader extends StatelessWidget {
               ],
             ),
             child: Center(
-              child: Text(
-                roleIcon,
-                style: const TextStyle(fontSize: 24),
-              ),
+              child: Text(roleIcon, style: const TextStyle(fontSize: 24)),
             ),
           ),
           const SizedBox(width: 14),
@@ -392,9 +397,9 @@ class _DrawerHeader extends StatelessWidget {
                 Text(
                   'BesaHub',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -402,14 +407,16 @@ class _DrawerHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -486,61 +493,63 @@ class _SidebarItemState extends State<_SidebarItem> {
     final iconColor = widget.color ?? AppColors.textMuted;
 
     return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _hovered = true),
-      onTapUp: (_) => setState(() => _hovered = false),
-      onTapCancel: () => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.symmetric(vertical: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: _hovered
-              ? iconColor.withValues(alpha: 0.08)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(widget.icon, size: 18, color: iconColor),
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _hovered = true),
+          onTapUp: (_) => setState(() => _hovered = false),
+          onTapCancel: () => setState(() => _hovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: _hovered
+                  ? iconColor.withValues(alpha: 0.08)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                widget.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(widget.icon, size: 18, color: iconColor),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
-              ),
-            ),
-            if (widget.badge != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.textMuted.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  widget.badge!,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-          ],
-        ),
-      ),
-    )
+                if (widget.badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.textMuted.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.badge!,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        )
         .animate(delay: (widget.delay * 45).ms + 100.ms)
         .fadeIn(duration: 300.ms)
         .slideX(begin: -0.15, end: 0, curve: Curves.easeOut);
@@ -563,9 +572,7 @@ class _LogoutButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.error.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.error.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
@@ -609,8 +616,7 @@ class HamburgerMenuButton extends StatelessWidget {
           color: isDark ? AppColors.surfaceDark : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color:
-                isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
+            color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
           ),
           boxShadow: [
             BoxShadow(

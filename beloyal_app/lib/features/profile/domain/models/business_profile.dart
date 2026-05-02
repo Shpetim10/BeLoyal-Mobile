@@ -7,6 +7,7 @@ class BusinessProfile {
     required this.id,
     required this.businessName,
     this.businessType,
+    this.currencyCode,
     this.publicDescription,
     this.address,
     this.city,
@@ -24,6 +25,7 @@ class BusinessProfile {
   final int id;
   final String businessName;
   final BusinessType? businessType;
+  final String? currencyCode;
   final String? publicDescription;
   final String? address;
   final String? city;
@@ -50,6 +52,8 @@ class BusinessProfile {
               orElse: () => BusinessType.OTHER,
             )
           : null,
+      currencyCode:
+          json['currency'] as String? ?? json['currencyCode'] as String?,
       publicDescription:
           json['businessDescription'] as String? ??
           json['publicDescription'] as String?,
@@ -89,6 +93,7 @@ class BusinessProfile {
     int? id,
     String? businessName,
     BusinessType? businessType,
+    String? currencyCode,
     String? publicDescription,
     String? address,
     String? city,
@@ -110,6 +115,7 @@ class BusinessProfile {
       id: id ?? this.id,
       businessName: businessName ?? this.businessName,
       businessType: businessType ?? this.businessType,
+      currencyCode: currencyCode ?? this.currencyCode,
       publicDescription: clearPublicDescription
           ? null
           : (publicDescription ?? this.publicDescription),

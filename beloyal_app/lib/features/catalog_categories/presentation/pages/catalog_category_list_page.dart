@@ -57,9 +57,10 @@ class _CatalogCategoryListPageState
   // ── Refresh ───────────────────────────────────────────────────────────────
 
   Future<void> _refresh() async {
+    final isTrashView = ref.read(catalogCategoryControllerProvider).isTrashView;
     await ref
         .read(catalogCategoryControllerProvider.notifier)
-        .fetchCategories(widget.businessId);
+        .fetchCategories(widget.businessId, trashView: isTrashView);
   }
 
   // ── Auto-scroll to newly created item ────────────────────────────────────
@@ -71,7 +72,9 @@ class _CatalogCategoryListPageState
 
     // Approx 100px per card
     final targetOffset = (idx * 100.0).clamp(
-        0.0, _scrollCtrl.position.maxScrollExtent);
+      0.0,
+      _scrollCtrl.position.maxScrollExtent,
+    );
 
     _scrollCtrl.animateTo(
       targetOffset,
@@ -79,9 +82,7 @@ class _CatalogCategoryListPageState
       curve: Curves.easeOutCubic,
     );
 
-    ref
-        .read(catalogCategoryControllerProvider.notifier)
-        .clearLastCreatedId();
+    ref.read(catalogCategoryControllerProvider.notifier).clearLastCreatedId();
   }
 
   void _startReorderMode(List<CatalogCategory> items) {
@@ -96,7 +97,9 @@ class _CatalogCategoryListPageState
     setState(() {
       _isReorderMode = false;
     });
-    ref.read(catalogCategoryControllerProvider.notifier).reorderCategories(
+    ref
+        .read(catalogCategoryControllerProvider.notifier)
+        .reorderCategories(
           businessId: widget.businessId,
           orderedIds: orderedIds,
         );
@@ -107,24 +110,24 @@ class _CatalogCategoryListPageState
   @override
   Widget build(BuildContext context) {
     // ── Error Feedback Listener ──────────────────────────────────────────────
-    ref.listen<CatalogCategoryListState>(
-      catalogCategoryControllerProvider,
-      (previous, next) {
-        if (next.error != null && next.error != previous?.error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.error!),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.all(20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+    ref.listen<CatalogCategoryListState>(catalogCategoryControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        }
-      },
-    );
+          ),
+        );
+      }
+    });
 
     final state = ref.watch(catalogCategoryControllerProvider);
     final controller = ref.read(catalogCategoryControllerProvider.notifier);
@@ -142,14 +145,17 @@ class _CatalogCategoryListPageState
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final isFiltered = state.searchQuery.isNotEmpty ||
+    final isFiltered =
+        state.searchQuery.isNotEmpty ||
         state.statusFilter != CategoryStatusFilter.all;
-    final canReorder = isAdmin && state.categories.length > 1 && !isFiltered;
+    final canReorder =
+        isAdmin &&
+        !state.isTrashView &&
+        state.categories.length > 1 &&
+        !isFiltered;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
         body: SafeArea(
@@ -161,10 +167,15 @@ class _CatalogCategoryListPageState
                 businessName: businessName,
                 categoryCount: state.categories.length,
                 isAdmin: isAdmin && !_isReorderMode,
+                isTrashView: state.isTrashView,
                 onCreateTap: () => CategoryFormSheet.show(
                   context,
                   businessId: widget.businessId,
                   onSuccess: _refresh,
+                ),
+                onTrashToggle: () => controller.setTrashView(
+                  businessId: widget.businessId,
+                  enabled: !state.isTrashView,
                 ),
                 showReorderButton: canReorder && !_isReorderMode,
                 onReorderTap: () => _startReorderMode(state.categories),
@@ -173,18 +184,30 @@ class _CatalogCategoryListPageState
               if (_isReorderMode) ...[
                 // ── Reorder Mode Actions ─────────────────────────────────────────
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.touch_app_rounded, color: AppColors.primary, size: 20),
+                          const Icon(
+                            Icons.touch_app_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -202,7 +225,8 @@ class _CatalogCategoryListPageState
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
-                            onPressed: () => setState(() => _isReorderMode = false),
+                            onPressed: () =>
+                                setState(() => _isReorderMode = false),
                             child: const Text('Cancel'),
                           ),
                           const SizedBox(width: 10),
@@ -213,7 +237,10 @@ class _CatalogCategoryListPageState
                               elevation: 0,
                             ),
                             onPressed: _saveReorder,
-                            child: const Text('Save Order', style: TextStyle(fontWeight: FontWeight.w700)),
+                            child: const Text(
+                              'Save Order',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                           ),
                         ],
                       ),
@@ -231,13 +258,14 @@ class _CatalogCategoryListPageState
                 ),
 
                 // ── Filter Chips ───────────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 14, 0, 0),
-                  child: _FilterChipRow(
-                    selected: state.statusFilter,
-                    onSelected: controller.updateStatusFilter,
+                if (!state.isTrashView)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 14, 0, 0),
+                    child: _FilterChipRow(
+                      selected: state.statusFilter,
+                      onSelected: controller.updateStatusFilter,
+                    ),
                   ),
-                ),
               ],
 
               const SizedBox(height: 8),
@@ -246,17 +274,14 @@ class _CatalogCategoryListPageState
               Expanded(
                 child: _isReorderMode
                     ? _buildReorderList()
-                    : _buildBody(
-                        state: state,
-                        isAdmin: isAdmin,
-                      ),
+                    : _buildBody(state: state, isAdmin: isAdmin),
               ),
             ],
           ),
         ),
 
         // ── FAB (Admin only) ──────────────────────────────────────────────
-        floatingActionButton: (isAdmin && !_isReorderMode)
+        floatingActionButton: (isAdmin && !_isReorderMode && !state.isTrashView)
             ? _CreateFAB(
                 onTap: () => CategoryFormSheet.show(
                   context,
@@ -311,10 +336,7 @@ class _CatalogCategoryListPageState
         child: Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Column(
-            children: [
-              const SizedBox(height: 4),
-              const CategoryShimmer(),
-            ],
+            children: [const SizedBox(height: 4), const CategoryShimmer()],
           ),
         ),
       );
@@ -322,17 +344,15 @@ class _CatalogCategoryListPageState
 
     // ── Error ────────────────────────────────────────────────────────────────
     if (state.hasError && state.categories.isEmpty) {
-      return _ErrorState(
-        message: state.error!,
-        onRetry: _refresh,
-      );
+      return _ErrorState(message: state.error!, onRetry: _refresh);
     }
 
     // ── Empty ────────────────────────────────────────────────────────────────
     if (state.isEmpty) {
       return CategoryEmptyState(
         isAdmin: isAdmin,
-        isFiltered: state.searchQuery.isNotEmpty ||
+        isFiltered:
+            state.searchQuery.isNotEmpty ||
             state.statusFilter != CategoryStatusFilter.all,
         onCreateTap: () => CategoryFormSheet.show(
           context,
@@ -364,6 +384,7 @@ class _CatalogCategoryListPageState
               context,
               category: cat,
               businessId: widget.businessId,
+              isTrashView: state.isTrashView,
               onRefresh: _refresh,
             ),
           );
@@ -380,7 +401,9 @@ class _AppBar extends StatelessWidget {
     required this.businessName,
     required this.categoryCount,
     required this.isAdmin,
+    required this.isTrashView,
     required this.onCreateTap,
+    required this.onTrashToggle,
     this.showReorderButton = false,
     this.onReorderTap,
   });
@@ -388,7 +411,9 @@ class _AppBar extends StatelessWidget {
   final String businessName;
   final int categoryCount;
   final bool isAdmin;
+  final bool isTrashView;
   final VoidCallback onCreateTap;
+  final VoidCallback onTrashToggle;
   final bool showReorderButton;
   final VoidCallback? onReorderTap;
 
@@ -408,9 +433,7 @@ class _AppBar extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.surfaceDark
-                    : Colors.white,
+                color: isDark ? AppColors.surfaceDark : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isDark
@@ -418,10 +441,7 @@ class _AppBar extends StatelessWidget {
                       : const Color(0xFFE2E8F0),
                 ),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 18,
-              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
             ),
           ),
           const SizedBox(width: 14),
@@ -434,7 +454,7 @@ class _AppBar extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Catalog Categories',
+                      isTrashView ? 'Category Trash' : 'Catalog Categories',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -443,10 +463,11 @@ class _AppBar extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary
-                              .withValues(alpha: 0.12),
+                          color: AppColors.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -470,6 +491,36 @@ class _AppBar extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 12),
+
+          GestureDetector(
+            onTap: onTrashToggle,
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: isTrashView
+                    ? AppColors.error.withValues(alpha: 0.14)
+                    : (isDark ? AppColors.surfaceDark : Colors.white),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isTrashView
+                      ? AppColors.error.withValues(alpha: 0.35)
+                      : (isDark
+                            ? AppColors.glassBorder
+                            : const Color(0xFFE2E8F0)),
+                ),
+              ),
+              child: Icon(
+                isTrashView
+                    ? Icons.restore_from_trash_rounded
+                    : Icons.delete_outline_rounded,
+                color: isTrashView ? AppColors.error : AppColors.textMuted,
+                size: 21,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
 
           // ── Reorder button (Admin only) ───────────────────────────
           if (isAdmin && showReorderButton) ...[
@@ -482,7 +533,9 @@ class _AppBar extends StatelessWidget {
                   color: isDark ? AppColors.surfaceDark : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? AppColors.glassBorder
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 child: const Icon(
@@ -529,10 +582,7 @@ class _AppBar extends StatelessWidget {
 // ── Search Bar ────────────────────────────────────────────────────────────────
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({
-    required this.controller,
-    required this.onChanged,
-  });
+  const _SearchBar({required this.controller, required this.onChanged});
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
@@ -574,8 +624,11 @@ class _SearchBar extends StatelessWidget {
             builder: (_, val, __) => val.text.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        size: 18, color: AppColors.textMuted),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
                     onPressed: () {
                       controller.clear();
                       onChanged('');
@@ -598,10 +651,7 @@ class _SearchBar extends StatelessWidget {
 // ── Filter Chip Row ───────────────────────────────────────────────────────────
 
 class _FilterChipRow extends StatelessWidget {
-  const _FilterChipRow({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _FilterChipRow({required this.selected, required this.onSelected});
 
   final CategoryStatusFilter selected;
   final ValueChanged<CategoryStatusFilter> onSelected;
@@ -624,16 +674,11 @@ class _FilterChipRow extends StatelessWidget {
                 onSelected: (_) => onSelected(filter),
                 showCheckmark: false,
                 avatar: isSelected
-                    ? Icon(
-                        _filterIcon(filter),
-                        size: 14,
-                        color: Colors.white,
-                      )
+                    ? Icon(_filterIcon(filter), size: 14, color: Colors.white)
                     : null,
                 labelStyle: TextStyle(
                   color: isSelected ? Colors.white : AppColors.textMuted,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   fontSize: 13,
                 ),
                 backgroundColor: Colors.transparent,
@@ -647,7 +692,9 @@ class _FilterChipRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
             ),
           );
@@ -657,10 +704,10 @@ class _FilterChipRow extends StatelessWidget {
   }
 
   IconData _filterIcon(CategoryStatusFilter f) => switch (f) {
-        CategoryStatusFilter.all => Icons.apps_rounded,
-        CategoryStatusFilter.active => Icons.check_circle_outline_rounded,
-        CategoryStatusFilter.inactive => Icons.pause_circle_outline_rounded,
-      };
+    CategoryStatusFilter.all => Icons.apps_rounded,
+    CategoryStatusFilter.active => Icons.check_circle_outline_rounded,
+    CategoryStatusFilter.inactive => Icons.pause_circle_outline_rounded,
+  };
 }
 
 // ── Create FAB ────────────────────────────────────────────────────────────────
@@ -672,38 +719,38 @@ class _CreateFAB extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+          onTap: onTap,
+          child: Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.add_rounded, color: Colors.white, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Add Category',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Add Category',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    )
+          ),
+        )
         .animate()
         .scale(
           begin: const Offset(0.8, 0.8),
@@ -733,60 +780,67 @@ class _ErrorState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
-                color: AppColors.error,
-                size: 38,
-              ),
-            )
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.wifi_off_rounded,
+                    color: AppColors.error,
+                    size: 38,
+                  ),
+                )
                 .animate()
                 .scale(
-                    begin: const Offset(0.7, 0.7), duration: 450.ms,
-                    curve: Curves.elasticOut)
+                  begin: const Offset(0.7, 0.7),
+                  duration: 450.ms,
+                  curve: Curves.elasticOut,
+                )
                 .fadeIn(duration: 350.ms),
 
             const SizedBox(height: 20),
             Text(
-              'Failed to load categories',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            )
+                  'Failed to load categories',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                )
                 .animate(delay: 100.ms)
                 .fadeIn(duration: 350.ms)
                 .slideY(begin: 0.2),
 
             const SizedBox(height: 8),
             Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textMuted,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            )
+                  message,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textMuted,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                )
                 .animate(delay: 160.ms)
                 .fadeIn(duration: 350.ms)
                 .slideY(begin: 0.2),
 
             const SizedBox(height: 28),
             OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Try Again'),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.primary, width: 1.5),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 28, vertical: 14),
-              ),
-            )
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Try Again'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 14,
+                    ),
+                  ),
+                )
                 .animate(delay: 220.ms)
                 .fadeIn(duration: 350.ms)
                 .slideY(begin: 0.3),

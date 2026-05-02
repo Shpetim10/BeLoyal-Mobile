@@ -144,7 +144,7 @@ class _GuestIdentificationScreenState
             child: MobileScanner(
               controller: _scannerController!,
               onDetect: _onDetect,
-              errorBuilder: (context, error, child) {
+              errorBuilder: (context, error) {
                 return _CameraErrorView(
                   error: error,
                   onRetry: () {

@@ -114,7 +114,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
         centerIcon: Icons.credit_card_rounded,
         centerLabel: 'My Card',
         // Gold accent gradient for customer (loyalty card theme)
-        centerGradient: AppColors.accentGradient,
+        centerGradient: AppColors.coinGradient,
       ),
     );
   }

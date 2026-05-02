@@ -49,7 +49,7 @@ class DashboardHeader extends StatelessWidget {
           children: [
             ShaderMask(
               shaderCallback: (bounds) =>
-                  AppColors.accentGradient.createShader(bounds),
+                  AppColors.primaryGradient.createShader(bounds),
               blendMode: BlendMode.srcIn,
               child: const Text(
                 'BesaHub',

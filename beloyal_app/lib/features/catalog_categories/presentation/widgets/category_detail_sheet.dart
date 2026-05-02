@@ -7,6 +7,7 @@ import '../../../../features/auth/presentation/controllers/session_controller.da
 import '../../../../features/auth/domain/models/auth_user.dart';
 import 'category_form_sheet.dart';
 import '../controllers/catalog_category_controller.dart';
+
 /// Full-detail bottom sheet for a [CatalogCategory].
 ///
 /// Roles:
@@ -18,17 +19,20 @@ class CategoryDetailSheet extends ConsumerWidget {
     super.key,
     required this.category,
     required this.businessId,
+    required this.isTrashView,
     required this.onRefresh,
   });
 
   final CatalogCategory category;
   final int businessId;
+  final bool isTrashView;
   final VoidCallback onRefresh;
 
   static Future<void> show(
     BuildContext context, {
     required CatalogCategory category,
     required int businessId,
+    required bool isTrashView,
     required VoidCallback onRefresh,
   }) {
     return showModalBottomSheet(
@@ -38,6 +42,7 @@ class CategoryDetailSheet extends ConsumerWidget {
       builder: (_) => CategoryDetailSheet(
         category: category,
         businessId: businessId,
+        isTrashView: isTrashView,
         onRefresh: onRefresh,
       ),
     );
@@ -62,8 +67,7 @@ class CategoryDetailSheet extends ConsumerWidget {
         return Container(
           decoration: BoxDecoration(
             color: sheetBg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),
@@ -94,8 +98,7 @@ class CategoryDetailSheet extends ConsumerWidget {
               Flexible(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(
-                      24, 8, 24, 24 + bottomPadding),
+                  padding: EdgeInsets.fromLTRB(24, 8, 24, 24 + bottomPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -115,14 +118,15 @@ class CategoryDetailSheet extends ConsumerWidget {
                           _MetaRow(
                             icon: Icons.format_list_numbered_rounded,
                             label: 'Order',
-                            value: '#${category.orderIndex+1}',
+                            value: '#${category.orderIndex + 1}',
                           ),
                           if (category.createdAt != null)
                             _MetaRow(
                               icon: Icons.calendar_today_rounded,
                               label: 'Created',
-                              value: DateFormat('MMM d, yyyy  HH:mm')
-                                  .format(category.createdAt!),
+                              value: DateFormat(
+                                'MMM d, yyyy  HH:mm',
+                              ).format(category.createdAt!),
                             ),
                         ],
                       ),
@@ -164,6 +168,7 @@ class CategoryDetailSheet extends ConsumerWidget {
                         _AdminActionsSection(
                           category: category,
                           businessId: businessId,
+                          isTrashView: isTrashView,
                           onRefresh: onRefresh,
                         ),
                       ],
@@ -279,9 +284,7 @@ class _MetaSection extends StatelessWidget {
                 height: 1,
                 thickness: 1,
                 indent: 16,
-                color: isDark
-                    ? AppColors.glassBorder
-                    : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
               ),
           ],
         ],
@@ -312,11 +315,7 @@ class _MetaRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: iconColor ?? AppColors.textMuted,
-          ),
+          Icon(icon, size: 18, color: iconColor ?? AppColors.textMuted),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -355,9 +354,7 @@ class _StatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: status.backgroundColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: status.color.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: status.color.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -389,10 +386,10 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.textMuted,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w700,
-          ),
+        color: AppColors.textMuted,
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 }
@@ -403,15 +400,45 @@ class _AdminActionsSection extends ConsumerWidget {
   const _AdminActionsSection({
     required this.category,
     required this.businessId,
+    required this.isTrashView,
     required this.onRefresh,
   });
 
   final CatalogCategory category;
   final int businessId;
+  final bool isTrashView;
   final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isTrashView) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionLabel('Actions'),
+          const SizedBox(height: 14),
+          _ActionButton(
+            icon: Icons.restore_rounded,
+            label: 'Restore Category',
+            color: AppColors.secondary,
+            onTap: () async {
+              final controller = ref.read(
+                catalogCategoryControllerProvider.notifier,
+              );
+              final success = await controller.restoreCategory(
+                businessId: businessId,
+                categoryId: category.id,
+              );
+              if (success) {
+                if (context.mounted) Navigator.of(context).pop();
+                onRefresh();
+              }
+            },
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -441,11 +468,11 @@ class _AdminActionsSection extends ConsumerWidget {
               ? Icons.pause_circle_outline_rounded
               : Icons.play_circle_outline_rounded,
           label: category.isActive ? 'Deactivate' : 'Activate',
-          color: category.isActive
-              ? AppColors.warning
-              : AppColors.secondary,
+          color: category.isActive ? AppColors.warning : AppColors.secondary,
           onTap: () async {
-            final controller = ref.read(catalogCategoryControllerProvider.notifier);
+            final controller = ref.read(
+              catalogCategoryControllerProvider.notifier,
+            );
             if (category.isActive) {
               await controller.deactivateCategory(
                 businessId: businessId,
@@ -473,7 +500,9 @@ class _AdminActionsSection extends ConsumerWidget {
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('Delete Category?'),
-                content: const Text('Are you sure you want to delete this category? This action cannot be undone.'),
+                content: const Text(
+                  'Are you sure you want to delete this category? This action cannot be undone.',
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(false),
@@ -481,14 +510,19 @@ class _AdminActionsSection extends ConsumerWidget {
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('DELETE', style: const TextStyle(color: AppColors.error)),
+                    child: const Text(
+                      'DELETE',
+                      style: TextStyle(color: AppColors.error),
+                    ),
                   ),
                 ],
               ),
             );
 
             if (confirm == true) {
-              final controller = ref.read(catalogCategoryControllerProvider.notifier);
+              final controller = ref.read(
+                catalogCategoryControllerProvider.notifier,
+              );
               final success = await controller.deleteCategory(
                 businessId: businessId,
                 categoryId: category.id,
@@ -528,9 +562,7 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [

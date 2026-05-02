@@ -35,12 +35,29 @@ class CatalogCategoryRepository {
         .toList();
   }
 
+  /// Fetches categories from trash.
+  ///
+  /// Backend:
+  ///   GET /business/{businessId}/catalog-category/trash
+  Future<List<CatalogCategory>> getTrash({required int businessId}) async {
+    final response = await _dio.get('${_base(businessId)}/trash');
+    final list = response.data as List<dynamic>;
+    return list
+        .map((e) => CatalogCategory.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Fetches only active categories, using the short response DTO.
-  Future<List<CatalogCategoryShortResponse>> getActiveShort({required int businessId}) async {
+  Future<List<CatalogCategoryShortResponse>> getActiveShort({
+    required int businessId,
+  }) async {
     final response = await _dio.get('${_base(businessId)}/active');
     final list = response.data as List<dynamic>;
     return list
-        .map((e) => CatalogCategoryShortResponse.fromJson(e as Map<String, dynamic>))
+        .map(
+          (e) =>
+              CatalogCategoryShortResponse.fromJson(e as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -110,10 +127,12 @@ class CatalogCategoryRepository {
     if (status != null) body['status'] = status.name.toUpperCase();
     if (orderIndex != null) body['orderIndex'] = orderIndex;
 
-    final response = await _dio.patch('${_base(businessId)}/$categoryId', data: body);
+    final response = await _dio.patch(
+      '${_base(businessId)}/$categoryId',
+      data: body,
+    );
     return CatalogCategory.fromJson(response.data as Map<String, dynamic>);
   }
-
 
   // ── PATCH Activate ────────────────────────────────────────────────────────
   //
@@ -124,8 +143,9 @@ class CatalogCategoryRepository {
     required int businessId,
     required int categoryId,
   }) async {
-    final response = await _dio
-        .patch('${_base(businessId)}/$categoryId/activate');
+    final response = await _dio.patch(
+      '${_base(businessId)}/$categoryId/activate',
+    );
     return CatalogCategory.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -138,8 +158,9 @@ class CatalogCategoryRepository {
     required int businessId,
     required int categoryId,
   }) async {
-    final response = await _dio
-        .patch('${_base(businessId)}/$categoryId/deactivate');
+    final response = await _dio.patch(
+      '${_base(businessId)}/$categoryId/deactivate',
+    );
     return CatalogCategory.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -153,6 +174,19 @@ class CatalogCategoryRepository {
     required int categoryId,
   }) async {
     await _dio.delete('${_base(businessId)}/$categoryId');
+  }
+
+  // ── PATCH Restore ────────────────────────────────────────────────────────
+  //
+  // Expected contract:
+  //   PATCH /api/besahub/business/{businessId}/catalog-category/{id}/restore
+  //
+  // Response may be a status payload; refresh list after calling.
+  Future<void> restore({
+    required int businessId,
+    required int categoryId,
+  }) async {
+    await _dio.patch('${_base(businessId)}/$categoryId/restore');
   }
 
   // ── PATCH Reorder ─────────────────────────────────────────────────────────
@@ -170,10 +204,7 @@ class CatalogCategoryRepository {
       'categoryOrders': orderedIds
           .asMap()
           .entries
-          .map((entry) => {
-                'categoryId': entry.value,
-                'orderIndex': entry.key,
-              })
+          .map((entry) => {'categoryId': entry.value, 'orderIndex': entry.key})
           .toList(),
     };
     final response = await _dio.patch(
@@ -189,17 +220,25 @@ class CatalogCategoryRepository {
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
-final catalogCategoryRepositoryProvider =
-    Provider<CatalogCategoryRepository>((ref) {
+final catalogCategoryRepositoryProvider = Provider<CatalogCategoryRepository>((
+  ref,
+) {
   return CatalogCategoryRepository(ref.watch(dioProvider));
 });
 
 final activeCatalogCategoriesProvider = FutureProvider.family
-    .autoDispose<List<CatalogCategoryShortResponse>, int>((ref, businessId) async {
-  return ref.watch(catalogCategoryRepositoryProvider).getActiveShort(businessId: businessId);
-});
+    .autoDispose<List<CatalogCategoryShortResponse>, int>((
+      ref,
+      businessId,
+    ) async {
+      return ref
+          .watch(catalogCategoryRepositoryProvider)
+          .getActiveShort(businessId: businessId);
+    });
 
 final allCatalogCategoriesProvider = FutureProvider.family
     .autoDispose<List<CatalogCategory>, int>((ref, businessId) async {
-  return ref.watch(catalogCategoryRepositoryProvider).getAll(businessId: businessId);
-});
+      return ref
+          .watch(catalogCategoryRepositoryProvider)
+          .getAll(businessId: businessId);
+    });

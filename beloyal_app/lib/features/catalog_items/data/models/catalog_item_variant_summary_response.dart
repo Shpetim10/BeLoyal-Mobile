@@ -15,14 +15,22 @@ class CatalogItemVariantSummaryResponse {
     required this.orderIndex,
   });
 
-  factory CatalogItemVariantSummaryResponse.fromJson(Map<String, dynamic> json) {
+  factory CatalogItemVariantSummaryResponse.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    int parseInt(dynamic value, {int fallback = 0}) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return fallback;
+    }
+
     return CatalogItemVariantSummaryResponse(
-      id: json['id'] as int,
-      name: json['name'] as String,
+      id: parseInt(json['id']),
+      name: json['name']?.toString() ?? '',
       description: json['description'] as String?,
       priceOverride: (json['priceOverride'] as num?)?.toDouble(),
-      status: json['status'] as String,
-      orderIndex: json['orderIndex'] as int,
+      status: json['status']?.toString() ?? 'ACTIVE',
+      orderIndex: parseInt(json['orderIndex']),
     );
   }
 

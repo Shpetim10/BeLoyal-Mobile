@@ -12,6 +12,7 @@ class CatalogCategoryListState {
     this.categories = const [],
     this.isLoading = false,
     this.error,
+    this.isTrashView = false,
     this.searchQuery = '',
     this.statusFilter = CategoryStatusFilter.all,
     this.isSubmitting = false,
@@ -22,6 +23,7 @@ class CatalogCategoryListState {
   final List<CatalogCategory> categories;
   final bool isLoading;
   final String? error;
+  final bool isTrashView;
   final String searchQuery;
   final CategoryStatusFilter statusFilter;
 
@@ -48,9 +50,11 @@ class CatalogCategoryListState {
     if (searchQuery.trim().isNotEmpty) {
       final query = searchQuery.toLowerCase();
       list = list
-          .where((c) =>
-              c.name.toLowerCase().contains(query) ||
-              (c.description?.toLowerCase().contains(query) ?? false))
+          .where(
+            (c) =>
+                c.name.toLowerCase().contains(query) ||
+                (c.description?.toLowerCase().contains(query) ?? false),
+          )
           .toList();
     }
 
@@ -65,6 +69,7 @@ class CatalogCategoryListState {
     bool? isLoading,
     String? error,
     bool clearError = false,
+    bool? isTrashView,
     String? searchQuery,
     CategoryStatusFilter? statusFilter,
     bool? isSubmitting,
@@ -77,11 +82,11 @@ class CatalogCategoryListState {
       categories: categories ?? this.categories,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
+      isTrashView: isTrashView ?? this.isTrashView,
       searchQuery: searchQuery ?? this.searchQuery,
       statusFilter: statusFilter ?? this.statusFilter,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      createError:
-          clearCreateError ? null : (createError ?? this.createError),
+      createError: clearCreateError ? null : (createError ?? this.createError),
       lastCreatedId: clearLastCreatedId
           ? null
           : (lastCreatedId ?? this.lastCreatedId),
@@ -91,8 +96,7 @@ class CatalogCategoryListState {
 
 // ── Controller ────────────────────────────────────────────────────────────────
 
-class CatalogCategoryController
-    extends Notifier<CatalogCategoryListState> {
+class CatalogCategoryController extends Notifier<CatalogCategoryListState> {
   @override
   CatalogCategoryListState build() => const CatalogCategoryListState();
 
@@ -102,23 +106,26 @@ class CatalogCategoryController
   // ── Role helpers ──────────────────────────────────────────────────────────
 
   bool get isAdmin =>
-      ref.read(sessionControllerProvider)?.activeRole ==
-      UserRole.businessAdmin;
+      ref.read(sessionControllerProvider)?.activeRole == UserRole.businessAdmin;
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
 
-  Future<void> fetchCategories(int businessId) async {
+  Future<void> fetchCategories(int businessId, {bool? trashView}) async {
+    final useTrash = trashView ?? state.isTrashView;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final list = await _repo.getAll(businessId: businessId);
+      final list = useTrash
+          ? await _repo.getTrash(businessId: businessId)
+          : await _repo.getAll(businessId: businessId);
       // Sort by orderIndex for correct display order
       list.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-      state = state.copyWith(categories: list, isLoading: false);
-    } catch (e) {
       state = state.copyWith(
+        categories: list,
         isLoading: false,
-        error: _extractMessage(e),
+        isTrashView: useTrash,
       );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _extractMessage(e));
     }
   }
 
@@ -130,6 +137,18 @@ class CatalogCategoryController
 
   void updateStatusFilter(CategoryStatusFilter filter) {
     state = state.copyWith(statusFilter: filter);
+  }
+
+  Future<void> setTrashView({
+    required int businessId,
+    required bool enabled,
+  }) async {
+    state = state.copyWith(
+      isTrashView: enabled,
+      searchQuery: '',
+      statusFilter: CategoryStatusFilter.all,
+    );
+    await fetchCategories(businessId, trashView: enabled);
   }
 
   // ── Create ────────────────────────────────────────────────────────────────
@@ -151,10 +170,7 @@ class CatalogCategoryController
       // Optimistically prepend the new category and refresh list
       await fetchCategories(businessId);
 
-      state = state.copyWith(
-        isSubmitting: false,
-        lastCreatedId: created.id,
-      );
+      state = state.copyWith(isSubmitting: false, lastCreatedId: created.id);
       return created;
     } catch (e) {
       state = state.copyWith(
@@ -243,9 +259,24 @@ class CatalogCategoryController
   }) async {
     try {
       await _repo.delete(businessId: businessId, categoryId: categoryId);
-      final newList =
-          state.categories.where((c) => c.id != categoryId).toList();
+      final newList = state.categories
+          .where((c) => c.id != categoryId)
+          .toList();
       state = state.copyWith(categories: newList);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: _extractMessage(e));
+      return false;
+    }
+  }
+
+  Future<bool> restoreCategory({
+    required int businessId,
+    required int categoryId,
+  }) async {
+    try {
+      await _repo.restore(businessId: businessId, categoryId: categoryId);
+      await fetchCategories(businessId, trashView: state.isTrashView);
       return true;
     } catch (e) {
       state = state.copyWith(error: _extractMessage(e));
@@ -260,8 +291,10 @@ class CatalogCategoryController
     required List<int> orderedIds,
   }) async {
     try {
-      final updated =
-          await _repo.reorder(businessId: businessId, orderedIds: orderedIds);
+      final updated = await _repo.reorder(
+        businessId: businessId,
+        orderedIds: orderedIds,
+      );
       updated.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       state = state.copyWith(categories: updated);
     } catch (e) {
@@ -300,5 +333,5 @@ class CatalogCategoryController
 
 final catalogCategoryControllerProvider =
     NotifierProvider<CatalogCategoryController, CatalogCategoryListState>(
-  CatalogCategoryController.new,
-);
+      CatalogCategoryController.new,
+    );

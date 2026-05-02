@@ -1,7 +1,6 @@
 // Force-refresh timestamp: 2026-04-06T22:49:00Z
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -21,7 +20,8 @@ class CatalogItemListPage extends ConsumerStatefulWidget {
   const CatalogItemListPage({super.key, required this.businessId});
 
   @override
-  ConsumerState<CatalogItemListPage> createState() => _CatalogItemListPageState();
+  ConsumerState<CatalogItemListPage> createState() =>
+      _CatalogItemListPageState();
 }
 
 class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
@@ -35,7 +35,9 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(catalogItemControllerProvider.notifier).fetchItems(widget.businessId);
+      ref
+          .read(catalogItemControllerProvider.notifier)
+          .fetchItems(widget.businessId);
     });
   }
 
@@ -47,7 +49,9 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
   }
 
   Future<void> _refresh() async {
-    await ref.read(catalogItemControllerProvider.notifier).fetchItems(widget.businessId);
+    await ref
+        .read(catalogItemControllerProvider.notifier)
+        .fetchItems(widget.businessId);
   }
 
   void _startReorderMode(List<CatalogItemShortResponse> items) {
@@ -62,40 +66,40 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
     setState(() {
       _isReorderMode = false;
     });
-    ref.read(catalogItemControllerProvider.notifier).reorderItems(
-          widget.businessId,
-          categoryId,
-          orderedIds,
-        );
+    ref
+        .read(catalogItemControllerProvider.notifier)
+        .reorderItems(widget.businessId, categoryId, orderedIds);
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<CatalogItemListState>(
-      catalogItemControllerProvider,
-      (previous, next) {
-        if (next.error != null && next.error != previous?.error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.error!),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.all(20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+    ref.listen<CatalogItemListState>(catalogItemControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        }
-      },
-    );
+          ),
+        );
+      }
+    });
 
     final state = ref.watch(catalogItemControllerProvider);
     final controller = ref.read(catalogItemControllerProvider.notifier);
-    
+
     // Watch active categories directly from the new specifically scoped provider
-    final activeCategoriesAsync = ref.watch(activeCatalogCategoriesProvider(widget.businessId));
-    
+    final activeCategoriesAsync = ref.watch(
+      activeCatalogCategoriesProvider(widget.businessId),
+    );
+
     final session = ref.read(sessionControllerProvider);
     final isAdmin = session?.activeRole == UserRole.businessAdmin;
     final businessName = session?.activeBusinessName ?? 'Your Business';
@@ -105,10 +109,11 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
 
     final isFiltered = state.searchQuery.isNotEmpty;
     // We can only reorder if we are filtered to a specific category and have > 1 items
-    final canReorder = isAdmin && 
-                       state.categoryIdFilter != null && 
-                       state.filteredItems.length > 1 && 
-                       !isFiltered;
+    final canReorder =
+        isAdmin &&
+        state.categoryIdFilter != null &&
+        state.filteredItems.length > 1 &&
+        !isFiltered;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
@@ -139,31 +144,47 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
                   // Only items for the currently selected category can be reordered
                   _startReorderMode(state.filteredItems);
                 },
-                onTrashTap: isAdmin && !_isReorderMode ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DeletedCatalogItemsPage(businessId: widget.businessId),
-                    ),
-                  );
-                } : null,
+                onTrashTap: isAdmin && !_isReorderMode
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DeletedCatalogItemsPage(
+                              businessId: widget.businessId,
+                            ),
+                          ),
+                        );
+                      }
+                    : null,
               ),
 
               if (_isReorderMode) ...[
                 // Reorder Mode Actions
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.touch_app_rounded, color: AppColors.primary, size: 20),
+                          const Icon(
+                            Icons.touch_app_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -181,7 +202,8 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
-                            onPressed: () => setState(() => _isReorderMode = false),
+                            onPressed: () =>
+                                setState(() => _isReorderMode = false),
                             child: const Text('Cancel'),
                           ),
                           const SizedBox(width: 10),
@@ -191,8 +213,12 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
                               foregroundColor: Colors.white,
                               elevation: 0,
                             ),
-                            onPressed: () => _saveReorder(state.categoryIdFilter!),
-                            child: const Text('Save Order', style: TextStyle(fontWeight: FontWeight.w700)),
+                            onPressed: () =>
+                                _saveReorder(state.categoryIdFilter!),
+                            child: const Text(
+                              'Save Order',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                           ),
                         ],
                       ),
@@ -220,9 +246,10 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
                         _CategoryChip(
                           label: 'All Categories',
                           isSelected: state.categoryIdFilter == null,
-                          onSelected: () => controller.filterByCategory(null, null),
+                          onSelected: () =>
+                              controller.filterByCategory(null, null),
                         ),
-                        
+
                         activeCategoriesAsync.when(
                           data: (categories) => Row(
                             mainAxisSize: MainAxisSize.min,
@@ -232,14 +259,21 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
                                 child: _CategoryChip(
                                   label: cat.name,
                                   isSelected: state.categoryIdFilter == cat.id,
-                                  onSelected: () => controller.filterByCategory(cat.id, cat.name),
+                                  onSelected: () => controller.filterByCategory(
+                                    cat.id,
+                                    cat.name,
+                                  ),
                                 ),
                               );
                             }).toList(),
                           ),
                           loading: () => const Padding(
                             padding: EdgeInsets.only(left: 16),
-                            child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
@@ -287,6 +321,7 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
             item: item,
             animationIndex: index,
             isReorderable: true,
+            showOrderIndex: true,
             onTap: () {}, // disabled during reorder
           ),
         );
@@ -294,7 +329,10 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
     );
   }
 
-  Widget _buildBody({required CatalogItemListState state, required bool isAdmin}) {
+  Widget _buildBody({
+    required CatalogItemListState state,
+    required bool isAdmin,
+  }) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -306,10 +344,7 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
           children: [
             Text(state.error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _refresh,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _refresh, child: const Text('Retry')),
           ],
         ),
       );
@@ -317,7 +352,10 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
 
     if (state.filteredItems.isEmpty) {
       return const Center(
-        child: Text('No items found.', style: TextStyle(color: AppColors.textMuted)),
+        child: Text(
+          'No items found.',
+          style: TextStyle(color: AppColors.textMuted),
+        ),
       );
     }
 
@@ -336,6 +374,7 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
             key: ValueKey(item.id),
             item: item,
             animationIndex: index,
+            showOrderIndex: state.categoryIdFilter != null,
             onTap: () {
               showModalBottomSheet(
                 context: context,
@@ -393,7 +432,9 @@ class _AppBar extends StatelessWidget {
                 color: isDark ? AppColors.surfaceDark : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
+                  color: isDark
+                      ? AppColors.glassBorder
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
               child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
@@ -416,7 +457,10 @@ class _AppBar extends StatelessWidget {
                     if (itemCount > 0) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
@@ -455,7 +499,9 @@ class _AppBar extends StatelessWidget {
                   color: isDark ? AppColors.surfaceDark : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? AppColors.glassBorder
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 child: const Icon(
@@ -478,7 +524,9 @@ class _AppBar extends StatelessWidget {
                   color: isDark ? AppColors.surfaceDark : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? AppColors.glassBorder
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 child: const Icon(
@@ -534,7 +582,9 @@ class _SearchBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark.withValues(alpha: 0.8) : Colors.white,
+        color: isDark
+            ? AppColors.surfaceDark.withValues(alpha: 0.8)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? AppColors.glassBorder : const Color(0xFFE2E8F0),
@@ -564,7 +614,11 @@ class _SearchBar extends StatelessWidget {
             builder: (_, val, __) => val.text.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
                     onPressed: () {
                       controller.clear();
                       onChanged('');
@@ -574,7 +628,10 @@ class _SearchBar extends StatelessWidget {
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -611,11 +668,11 @@ class _CategoryChip extends StatelessWidget {
         backgroundColor: Colors.transparent,
         selectedColor: AppColors.primary,
         side: BorderSide(
-          color: isSelected ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.3),
+          color: isSelected
+              ? AppColors.primary
+              : AppColors.textMuted.withValues(alpha: 0.3),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );

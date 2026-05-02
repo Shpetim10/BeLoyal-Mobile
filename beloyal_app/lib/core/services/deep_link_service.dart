@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../router/app_router.dart';
 
-/// Service to handle deep links (App Links / Universal Links).
+/// Service to handle deep links via the besahub:// custom scheme.
 ///
-/// Specifically handles email verification links:
-/// https://<HOST>/api/beloyal/auth/activate?token=XYZ
+/// URIs must use triple-slash form so the full path is unambiguous:
+///   besahub:///api/besahub/auth/activate?token=XYZ
+/// Dart parses these with an empty host and the full path in uri.path.
 class DeepLinkService {
   DeepLinkService(this.ref);
   final Ref ref;
@@ -16,10 +18,7 @@ class DeepLinkService {
   String? _lastProcessedToken;
   DateTime? _lastProcessedTime;
 
-  /// Initialize deep link listening.
-  /// Should be called early in the app lifecycle (e.g. main.dart).
   Future<void> init() async {
-    // 1. Handle cold start (app opened from terminated state)
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
@@ -29,12 +28,8 @@ class DeepLinkService {
       debugPrint('⚠️ DeepLinkService: Failed to get initial URI: $e');
     }
 
-    // 2. Handle runtime links (app already running/backgrounded)
-    // Note: AppLinks handles stream errors internally usually, but we catch.
     _sub = _appLinks.uriLinkStream.listen(
-      (Uri uri) {
-        _handleLink(uri);
-      },
+      _handleLink,
       onError: (err) {
         debugPrint('⚠️ DeepLinkService: Link stream error: $err');
       },
@@ -48,14 +43,28 @@ class DeepLinkService {
   void _handleLink(Uri uri) {
     debugPrint('🔗 DeepLink received: $uri');
 
-    // Filter for activation links
-    // Expected path: /api/besahub/auth/activate
-    if (uri.path != '/api/besahub/auth/activate') return;
+    // URIs use triple-slash form (besahub:///api/besahub/auth/activate),
+    // so uri.host is empty and uri.path is the full logical path.
+    final String fullPath = uri.path;
 
-    final token = uri.queryParameters['token'];
+    final query = uri.queryParameters;
+
+    if (fullPath == '/api/besahub/auth/activate') {
+      _handleActivate(fullPath, query);
+    } else if (fullPath == '/api/besahub/auth/accept-invitation') {
+      _handleAcceptInvitation(fullPath, query);
+    } else if (fullPath == '/forget-password') {
+      _handleResetPassword(fullPath, query);
+    } else {
+      debugPrint('🔗 DeepLink: unhandled path $fullPath');
+    }
+  }
+
+  void _handleActivate(String path, Map<String, String> query) {
+    final token = query['token'];
     if (token == null || token.isEmpty) return;
 
-    // Debounce: prevent processing the same token multiple times in short succession
+    // Debounce identical token within 3 s to avoid double-processing.
     final now = DateTime.now();
     if (_lastProcessedToken == token &&
         _lastProcessedTime != null &&
@@ -63,25 +72,40 @@ class DeepLinkService {
       debugPrint('🔗 DeepLink ignored (debounce): $token');
       return;
     }
-
     _lastProcessedToken = token;
     _lastProcessedTime = now;
 
-    // Navigate to processing page
-    debugPrint('🔗 DeepLink navigating to activation page with token');
+    debugPrint('🔗 DeepLink: navigating to activation');
+    _navigate(path, query);
+  }
 
-    // We use the router provider to navigate.
-    // Note: This assumes the router is ready.
-    // try {
-    //   final router = ref.read(routerProvider);
-    //   router.push('/activation-processing?token=$token');
-    // } catch (e) {
-    //   debugPrint('⚠️ DeepLinkService: Navigation failed: $e');
-    // }
+  void _handleAcceptInvitation(String path, Map<String, String> query) {
+    final token = query['token'];
+    if (token == null || token.isEmpty) return;
 
-    // UPDATE: GoRouter now handles the path /api/beloyal/auth/activate directly in app_router.dart.
-    // We don't need to manually push here, or it might cause double navigation or conflicts.
-    // We keep this service running just for logging or other links.
+    debugPrint('🔗 DeepLink: navigating to accept-invitation');
+    _navigate(path, query);
+  }
+
+  void _handleResetPassword(String path, Map<String, String> query) {
+    final token = query['token'];
+    if (token == null || token.isEmpty) return;
+
+    debugPrint('🔗 DeepLink: navigating to reset-password');
+    _navigate(path, query);
+  }
+
+  void _navigate(String path, Map<String, String> query) {
+    try {
+      final router = ref.read(routerProvider);
+      final queryString = query.entries
+          .map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}')
+          .join('&');
+      final location = queryString.isEmpty ? path : '$path?$queryString';
+      router.go(location);
+    } catch (e) {
+      debugPrint('⚠️ DeepLinkService: Navigation failed: $e');
+    }
   }
 }
 

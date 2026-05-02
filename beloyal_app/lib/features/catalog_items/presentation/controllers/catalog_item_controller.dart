@@ -55,9 +55,11 @@ class CatalogItemListState {
     if (searchQuery.trim().isNotEmpty) {
       final query = searchQuery.toLowerCase();
       list = list
-          .where((i) =>
-              i.name.toLowerCase().contains(query) ||
-              (i.categoryName?.toLowerCase().contains(query) ?? false))
+          .where(
+            (i) =>
+                i.name.toLowerCase().contains(query) ||
+                (i.categoryName?.toLowerCase().contains(query) ?? false),
+          )
           .toList();
     }
 
@@ -81,8 +83,9 @@ class CatalogItemListState {
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
       searchQuery: searchQuery ?? this.searchQuery,
-      categoryIdFilter:
-          clearCategoryFilter ? null : (categoryIdFilter ?? this.categoryIdFilter),
+      categoryIdFilter: clearCategoryFilter
+          ? null
+          : (categoryIdFilter ?? this.categoryIdFilter),
       categoryNameFilter: clearCategoryFilter
           ? null
           : (categoryNameFilter ?? this.categoryNameFilter),
@@ -110,15 +113,15 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
   Future<void> fetchItems(int businessId, {int? categoryId}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final list = await _repo.getAll(businessId: businessId, categoryId: categoryId);
+      final list = await _repo.getAll(
+        businessId: businessId,
+        categoryId: categoryId,
+      );
       // Sort by orderIndex
       list.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       state = state.copyWith(items: list, isLoading: false);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: _extractMessage(e),
-      );
+      state = state.copyWith(isLoading: false, error: _extractMessage(e));
     }
   }
 
@@ -151,6 +154,7 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
         request: request,
       );
       await fetchItems(businessId, categoryId: categoryId);
+      state = state.copyWith(isSubmitting: false);
     } catch (e) {
       state = state.copyWith(isSubmitting: false, error: _extractMessage(e));
       rethrow;
@@ -169,10 +173,12 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
         itemId: itemId,
         request: request,
       );
-      // We can't easily refresh the whole list without categoryId, 
+      // We can't easily refresh the whole list without categoryId,
       // but we can update the item in the list if we find it.
       // For now, let's just invalidate the detail and let the caller handle it.
-      ref.invalidate(catalogItemDetailProvider((businessId: businessId, itemId: itemId)));
+      ref.invalidate(
+        catalogItemDetailProvider((businessId: businessId, itemId: itemId)),
+      );
       state = state.copyWith(isSubmitting: false);
     } catch (e) {
       state = state.copyWith(isSubmitting: false, error: _extractMessage(e));
@@ -225,10 +231,19 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
     }
   }
 
-  Future<void> moveCategory(int businessId, int itemId, int categoryId, String newCategoryName) async {
+  Future<void> moveCategory(
+    int businessId,
+    int itemId,
+    int categoryId,
+    String newCategoryName,
+  ) async {
     state = state.copyWith(isSubmitting: true);
     try {
-      await _repo.moveCategory(businessId: businessId, itemId: itemId, categoryId: categoryId);
+      await _repo.moveCategory(
+        businessId: businessId,
+        itemId: itemId,
+        categoryId: categoryId,
+      );
       final newList = state.items.map((i) {
         if (i.id == itemId) {
           return i.copyWith(categoryName: newCategoryName);
@@ -241,18 +256,28 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
     }
   }
 
-  Future<void> reorderItems(int businessId, int categoryId, List<int> orderedIds) async {
+  Future<void> reorderItems(
+    int businessId,
+    int categoryId,
+    List<int> orderedIds,
+  ) async {
     try {
       // Optimistic update locally
       final currentItems = List<CatalogItemShortResponse>.from(state.items);
       final reorderedItems = <CatalogItemShortResponse>[];
       for (int i = 0; i < orderedIds.length; i++) {
-        final item = currentItems.firstWhere((element) => element.id == orderedIds[i]);
+        final item = currentItems.firstWhere(
+          (element) => element.id == orderedIds[i],
+        );
         reorderedItems.add(item.copyWith(orderIndex: i));
       }
       state = state.copyWith(items: reorderedItems);
 
-      await _repo.reorder(businessId: businessId, categoryId: categoryId, orderedIds: orderedIds);
+      await _repo.reorder(
+        businessId: businessId,
+        categoryId: categoryId,
+        orderedIds: orderedIds,
+      );
     } catch (e) {
       state = state.copyWith(error: _extractMessage(e));
       await fetchItems(businessId, categoryId: categoryId); // Revert on failure
@@ -278,11 +303,11 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
         final message = data['message'];
         if (message is List) return message.join(', ');
         if (message is String) return message;
-        
+
         final err = data['error'];
         if (err is List) return err.join(', ');
         if (err is String) return err;
-        
+
         return 'Something went wrong';
       }
       return 'Network error. Check your connection.';
@@ -295,17 +320,22 @@ class CatalogItemController extends Notifier<CatalogItemListState> {
 
 final catalogItemControllerProvider =
     NotifierProvider<CatalogItemController, CatalogItemListState>(
-  CatalogItemController.new,
-);
+      CatalogItemController.new,
+    );
 
-final catalogItemDetailProvider = FutureProvider.family.autoDispose<CatalogItemDetailResponse, ({int businessId, int itemId})>(
-  (ref, args) {
-    return ref.read(catalogItemRepositoryProvider).getById(businessId: args.businessId, itemId: args.itemId);
-  },
-);
+final catalogItemDetailProvider = FutureProvider.family
+    .autoDispose<CatalogItemDetailResponse, ({int businessId, int itemId})>((
+      ref,
+      args,
+    ) {
+      return ref
+          .read(catalogItemRepositoryProvider)
+          .getById(businessId: args.businessId, itemId: args.itemId);
+    });
 
-final deletedCatalogItemsProvider = FutureProvider.family.autoDispose<List<CatalogItemShortResponse>, int>(
-  (ref, businessId) {
-    return ref.read(catalogItemRepositoryProvider).getDeleted(businessId: businessId);
-  },
-);
+final deletedCatalogItemsProvider = FutureProvider.family
+    .autoDispose<List<CatalogItemShortResponse>, int>((ref, businessId) {
+      return ref
+          .read(catalogItemRepositoryProvider)
+          .getDeleted(businessId: businessId);
+    });
