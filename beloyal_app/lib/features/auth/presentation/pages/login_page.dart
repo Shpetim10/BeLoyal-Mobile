@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -153,18 +155,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final errorMessage = loginState.value?.errorMessage;
 
     return AuthShell(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            _HeroHeader()
-                .animate()
-                .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                .slideY(begin: -0.15, end: 0, duration: 600.ms),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const _AmbientGlow(
+            top: -140,
+            left: -110,
+            size: 320,
+            color: Color(0xFF34D1BF),
+          ),
+          const _AmbientGlow(
+            top: 110,
+            right: -110,
+            size: 300,
+            color: Color(0xFFFFB347),
+          ),
+          const _AmbientGlow(
+            bottom: -150,
+            left: 10,
+            size: 300,
+            color: Color(0xFF8DD7FF),
+          ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                _HeroHeader()
+                    .animate()
+                    .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                    .slideY(begin: -0.15, end: 0, duration: 600.ms),
 
-            const SizedBox(height: 36),
-            GlassCard(
+                const SizedBox(height: 36),
+                GlassCard(
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -245,14 +268,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 .fadeIn(delay: 200.ms, duration: 500.ms)
                 .slideY(begin: 0.1, end: 0, duration: 500.ms),
 
-            const SizedBox(height: 28),
-            _FooterLinks().animate().fadeIn(delay: 400.ms, duration: 500.ms),
-          ],
-        ),
+                const SizedBox(height: 28),
+                _FooterLinks().animate().fadeIn(delay: 400.ms, duration: 500.ms),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
 class _HeroHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -363,6 +389,54 @@ class _FooterLinks extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _AmbientGlow extends StatelessWidget {
+  const _AmbientGlow({
+    this.top,
+    this.right,
+    this.bottom,
+    this.left,
+    required this.size,
+    required this.color,
+  });
+
+  final double? top;
+  final double? right;
+  final double? bottom;
+  final double? left;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: top,
+      right: right,
+      bottom: bottom,
+      left: left,
+      child: IgnorePointer(
+        child: Transform.rotate(
+          angle: math.pi / 5,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                stops: const [0.0, 0.45, 1.0],
+                colors: [
+                  color.withValues(alpha: 0.18),
+                  color.withValues(alpha: 0.06),
+                  color.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

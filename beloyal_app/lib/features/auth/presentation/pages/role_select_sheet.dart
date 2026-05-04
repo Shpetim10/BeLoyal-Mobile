@@ -107,6 +107,7 @@ class _RoleSelectSheetState extends State<RoleSelectSheet> {
                     businessName: profile.businessName,
                     role: profile.role,
                     active: profile.active,
+                    invitationAccepted: profile.invitationAccepted,
                     isStaffInactive: profile.isStaffInactive,
                     selected: _selectedBusinessId == profile.businessId,
                     onTap: () => setState(() {
@@ -157,6 +158,7 @@ class _BusinessChip extends StatelessWidget {
     required this.businessName,
     required this.role,
     required this.active,
+    required this.invitationAccepted,
     required this.isStaffInactive,
     required this.selected,
     required this.onTap,
@@ -166,6 +168,7 @@ class _BusinessChip extends StatelessWidget {
   final String businessName;
   final UserRole role;
   final bool active;
+  final bool invitationAccepted;
   final bool isStaffInactive;
   final bool selected;
   final VoidCallback onTap;
@@ -248,6 +251,26 @@ class _BusinessChip extends StatelessWidget {
                             ),
                           ),
                         ),
+                      ] else if (!invitationAccepted) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Invitation Pending',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ] else if (!active) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -282,6 +305,12 @@ class _BusinessChip extends StatelessWidget {
               ),
             if (isStaffInactive)
               const Icon(Icons.block_rounded, color: AppColors.error, size: 20)
+            else if (!invitationAccepted)
+              const Icon(
+                Icons.mark_email_unread_rounded,
+                color: AppColors.primary,
+                size: 20,
+              )
             else if (!active)
               const Icon(
                 Icons.hourglass_empty_rounded,

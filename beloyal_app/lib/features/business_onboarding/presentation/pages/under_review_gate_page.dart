@@ -66,131 +66,122 @@ class UnderReviewGatePage extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.hourglass_empty_rounded,
-                                color: AppColors.warning,
-                                size: 32,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.hourglass_empty_rounded,
+                              color: AppColors.warning,
+                              size: 32,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                'Under Review',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  'Under Review',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
 
+                        StatusBanner(
+                          message:
+                              'Your business application is currently under review',
+                          type: StatusBannerType.info,
+                        ),
+                        const SizedBox(height: 20),
+
+                        Text(
+                          'Your business registration has been submitted and is being reviewed by our team. '
+                          'This process may take a few days.',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 24),
+
+                        Text(
+                          'What you can expect:',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 12),
+
+                        _ExpectationItem(
+                          icon: Icons.rate_review_outlined,
+                          text: 'Our team reviews your business details',
+                        ),
+                        const SizedBox(height: 12),
+                        _ExpectationItem(
+                          icon: Icons.verified_outlined,
+                          text: 'You\'ll be notified once approved',
+                        ),
+                        const SizedBox(height: 12),
+                        _ExpectationItem(
+                          icon: Icons.lock_outline_rounded,
+                          text: 'Business features are locked until approval',
+                        ),
+                        const SizedBox(height: 32),
+
+                        PrimaryGradientButton(
+                          label: isLoading ? 'Refreshing...' : 'Refresh Status',
+                          icon: Icons.refresh_rounded,
+                          isLoading: isLoading,
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  final session = ref.read(
+                                    sessionControllerProvider,
+                                  );
+                                  final businessId = session?.activeBusinessId;
+                                  if (businessId != null) {
+                                    ref
+                                        .read(
+                                          refreshBusinessStatusNotifierProvider
+                                              .notifier,
+                                        )
+                                        .refresh(businessId);
+                                  }
+                                },
+                        ),
+                        const SizedBox(height: 16),
+
+                        if (refreshState.hasError) ...[
                           StatusBanner(
                             message:
-                                'Your business application is currently under review',
-                            type: StatusBannerType.info,
-                          ),
-                          const SizedBox(height: 20),
-
-                          Text(
-                            'Your business registration has been submitted and is being reviewed by our team. '
-                            'This process may take a few days.',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          const SizedBox(height: 24),
-
-                          Text(
-                            'What you can expect:',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 12),
-
-                          _ExpectationItem(
-                            icon: Icons.rate_review_outlined,
-                            text: 'Our team reviews your business details',
-                          ),
-                          const SizedBox(height: 12),
-                          _ExpectationItem(
-                            icon: Icons.verified_outlined,
-                            text: 'You\'ll be notified once approved',
-                          ),
-                          const SizedBox(height: 12),
-                          _ExpectationItem(
-                            icon: Icons.lock_outline_rounded,
-                            text: 'Business features are locked until approval',
-                          ),
-                          const SizedBox(height: 32),
-
-                          PrimaryGradientButton(
-                            label: isLoading
-                                ? 'Refreshing...'
-                                : 'Refresh Status',
-                            icon: Icons.refresh_rounded,
-                            isLoading: isLoading,
-                            onPressed: isLoading
-                                ? null
-                                : () {
-                                    final session = ref.read(
-                                      sessionControllerProvider,
-                                    );
-                                    final businessId =
-                                        session?.activeBusinessId;
-                                    if (businessId != null) {
-                                      ref
-                                          .read(
-                                            refreshBusinessStatusNotifierProvider
-                                                .notifier,
-                                          )
-                                          .refresh(businessId);
-                                    }
-                                  },
+                                'Failed to refresh status. Please try again.',
+                            type: StatusBannerType.error,
                           ),
                           const SizedBox(height: 16),
-
-                          if (refreshState.hasError) ...[
-                            StatusBanner(
-                              message:
-                                  'Failed to refresh status. Please try again.',
-                              type: StatusBannerType.error,
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Contact support feature coming soon',
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.support_agent_outlined),
-                            label: const Text('Contact Support'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                          ),
                         ],
-                      ),
+
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Contact support feature coming soon',
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.support_agent_outlined),
+                          label: const Text('Contact Support'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-
-              const Spacer(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: SizedBox(

@@ -15,6 +15,7 @@ class CouponCard extends StatelessWidget {
     required this.onVisibilityChange,
     required this.onDelete,
     required this.onArchive,
+    this.readOnly = false,
   });
 
   final CouponSummary coupon;
@@ -23,6 +24,7 @@ class CouponCard extends StatelessWidget {
   final void Function(CouponVisibility) onVisibilityChange;
   final VoidCallback onDelete;
   final VoidCallback onArchive;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -69,13 +71,14 @@ class CouponCard extends StatelessWidget {
                         const Icon(Icons.star, size: 14, color: AppColors.gold),
                       ],
                       const Spacer(),
-                      _ContextMenu(
-                        coupon: coupon,
-                        onStatusChange: onStatusChange,
-                        onVisibilityChange: onVisibilityChange,
-                        onDelete: onDelete,
-                        onArchive: onArchive,
-                      ),
+                      if (!readOnly)
+                        _ContextMenu(
+                          coupon: coupon,
+                          onStatusChange: onStatusChange,
+                          onVisibilityChange: onVisibilityChange,
+                          onDelete: onDelete,
+                          onArchive: onArchive,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),

@@ -174,6 +174,16 @@ class _DrawerContent extends ConsumerWidget {
                         },
                         delay: 4,
                       ),
+                      _SidebarItem(
+                        icon: Icons.card_giftcard_rounded,
+                        label: 'Coupons',
+                        color: const Color(0xFF16A34A),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/business/$businessId/coupons');
+                        },
+                        delay: 5,
+                      ),
 
                       // ── Admin-only sections ──────────────────────────────
                       if (isAdmin) ...[
@@ -198,16 +208,6 @@ class _DrawerContent extends ConsumerWidget {
                             );
                           },
                           delay: 5,
-                        ),
-                        _SidebarItem(
-                          icon: Icons.card_giftcard_rounded,
-                          label: 'Coupons',
-                          color: const Color(0xFF16A34A),
-                          onTap: () {
-                            Navigator.pop(context);
-                            context.push('/business/$businessId/coupons');
-                          },
-                          delay: 6,
                         ),
                         _SidebarItem(
                           icon: Icons.tune_rounded,

@@ -39,6 +39,7 @@ class BusinessProfileInfo {
     required this.businessName,
     required this.role,
     required this.active,
+    this.invitationAccepted = true,
     this.businessStatus,
     this.rejectionReason,
     this.memberStatus,
@@ -52,6 +53,7 @@ class BusinessProfileInfo {
   final String businessName;
   final UserRole role;
   final bool active;
+  final bool invitationAccepted;
   final String? businessStatus;
   final String? rejectionReason;
 
@@ -71,6 +73,7 @@ class BusinessProfileInfo {
   final bool loyaltySettingsConfigured;
 
   bool get isStaffInactive => memberStatus?.toUpperCase() == 'INACTIVE';
+  bool get hasPendingInvitation => !invitationAccepted;
 }
 
 /// Authenticated user returned after login.

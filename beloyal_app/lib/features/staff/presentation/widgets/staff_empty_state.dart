@@ -61,29 +61,7 @@ class StaffEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            if (_type == _EmptyStateType.empty)
-              ElevatedButton.icon(
-                onPressed: onInvite,
-                icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-                label: const Text(
-                  'Invite Staff',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              )
-            else if (_type == _EmptyStateType.noResults)
+            if (_type == _EmptyStateType.noResults)
               OutlinedButton.icon(
                 onPressed: onInvite, // Reused as Clear Filters action
                 icon: const Icon(

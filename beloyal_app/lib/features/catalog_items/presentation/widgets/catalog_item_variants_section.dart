@@ -11,12 +11,14 @@ class CatalogItemVariantsSection extends ConsumerStatefulWidget {
   final int businessId;
   final int itemId;
   final String? currencyCode;
+  final bool isReadOnly;
 
   const CatalogItemVariantsSection({
     super.key,
     required this.businessId,
     required this.itemId,
     this.currencyCode,
+    this.isReadOnly = false,
   });
 
   @override
@@ -86,35 +88,36 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
               ],
             ),
             // Explicitly using a more prominent button
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showVariantForm(context, ref),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add_rounded, color: AppColors.primary, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Add',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+            if (!widget.isReadOnly)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showVariantForm(context, ref),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.add_rounded, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Add',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -128,11 +131,13 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
         else if (variants.isEmpty)
           _buildEmptyState(context)
         else ...[
-          Text(
-            'Use the drag handle to reorder variants',
-            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 10),
+          if (!widget.isReadOnly) ...[
+            Text(
+              'Use the drag handle to reorder variants',
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 10),
+          ],
           if (variantState.isSubmitting) ...[
             const LinearProgressIndicator(minHeight: 2),
             const SizedBox(height: 10),
@@ -140,7 +145,7 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
           _buildVariantsList(
             context,
             variants,
-            canReorder: !variantState.isSubmitting && !variantState.isLoading,
+            canReorder: !widget.isReadOnly && !variantState.isSubmitting && !variantState.isLoading,
           ),
         ],
       ],
@@ -170,13 +175,15 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
           ),
-          const SizedBox(height: 16),
-          TextButton.icon(
-            onPressed: () => _showVariantForm(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('Add your first variant'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-          ),
+          if (!widget.isReadOnly) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => _showVariantForm(context, ref),
+              icon: const Icon(Icons.add),
+              label: const Text('Add your first variant'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            ),
+          ],
         ],
       ),
     );
@@ -319,21 +326,22 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
                           ),
                         ),
                       ),
-                    PopupMenuButton<String>(
-                      enabled: canReorder,
-                      icon: const Icon(Icons.more_vert_rounded, color: Colors.grey),
-                      onSelected: (value) => _handleMenuAction(context, ref, value, variant),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      itemBuilder: (context) => [
-                        _buildMenuItem('activate', isActive ? 'Deactivate' : 'Activate', 
-                          isActive ? Icons.pause_circle_outline : Icons.play_circle_outline,
-                          isActive ? Colors.orange : Colors.green),
-                        _buildMenuItem('edit', 'Edit', Icons.edit_outlined, Colors.blue),
-                        _buildMenuItem('delete', variant.status.toLowerCase() == 'deleted' ? 'Restore' : 'Delete', 
-                          variant.status.toLowerCase() == 'deleted' ? Icons.restore_from_trash : Icons.delete_outline,
-                          variant.status.toLowerCase() == 'deleted' ? Colors.green : Colors.red),
-                      ],
-                    ),
+                    if (!widget.isReadOnly)
+                      PopupMenuButton<String>(
+                        enabled: canReorder,
+                        icon: const Icon(Icons.more_vert_rounded, color: Colors.grey),
+                        onSelected: (value) => _handleMenuAction(context, ref, value, variant),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        itemBuilder: (context) => [
+                          _buildMenuItem('activate', isActive ? 'Deactivate' : 'Activate', 
+                            isActive ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                            isActive ? Colors.orange : Colors.green),
+                          _buildMenuItem('edit', 'Edit', Icons.edit_outlined, Colors.blue),
+                          _buildMenuItem('delete', variant.status.toLowerCase() == 'deleted' ? 'Restore' : 'Delete', 
+                            variant.status.toLowerCase() == 'deleted' ? Icons.restore_from_trash : Icons.delete_outline,
+                            variant.status.toLowerCase() == 'deleted' ? Colors.green : Colors.red),
+                        ],
+                      ),
                   ],
                 ),
               ),

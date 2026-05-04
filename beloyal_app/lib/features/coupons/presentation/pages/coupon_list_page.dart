@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../features/auth/domain/models/auth_user.dart';
+import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_summary.dart';
 import '../controllers/coupon_list_controller.dart';
@@ -28,11 +30,19 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
   final _scrollCtrl = ScrollController();
   bool _isSearchVisible = false;
   bool _isTopControlsExpanded = false;
+  bool _isStaff = false;
 
   @override
   void initState() {
     super.initState();
+    final session = ref.read(sessionControllerProvider);
+    _isStaff = session?.activeRole == UserRole.staff;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isStaff) {
+        ref.read(couponListControllerProvider.notifier).setStatusFilter(
+          CouponStatus.active,
+        );
+      }
       ref
           .read(couponListControllerProvider.notifier)
           .fetchCoupons(widget.businessId);
@@ -95,6 +105,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
   }
 
   void _openCreate() {
+    if (_isStaff) return;
     context.push('/business/${widget.businessId}/coupons/create');
   }
 
@@ -123,6 +134,9 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
 
     final state = ref.watch(couponListControllerProvider);
     final ctrl = ref.read(couponListControllerProvider.notifier);
+    final allowedStatuses = _isStaff
+        ? const [CouponStatus.active, CouponStatus.expired]
+        : CouponStatus.values;
 
     return Scaffold(
       backgroundColor: AppColors.bgDark,
@@ -201,7 +215,12 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                               color: AppColors.textOnDark,
                             ),
                             onPressed: () =>
-                                _showFilterSheet(context, state, ctrl),
+                                _showFilterSheet(
+                                  context,
+                                  state,
+                                  ctrl,
+                                  allowedStatuses,
+                                ),
                             style: IconButton.styleFrom(
                               backgroundColor: AppColors.elevDark,
                               shape: RoundedRectangleBorder(
@@ -212,65 +231,68 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            onPressed: _openCreate,
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                          if (!_isStaff) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              onPressed: _openCreate,
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _QuickAccessCard(
-                              label: 'Archived',
-                              icon: Icons.inventory_2_rounded,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                              ),
-                              onTap: () => context.push(
-                                '/business/${widget.businessId}/coupons/archived',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _QuickAccessCard(
-                              label: 'Expired',
-                              icon: Icons.timer_off_rounded,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
-                              ),
-                              onTap: () => context.push(
-                                '/business/${widget.businessId}/coupons/expired',
+                    if (!_isStaff)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _QuickAccessCard(
+                                label: 'Archived',
+                                icon: Icons.inventory_2_rounded,
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                                ),
+                                onTap: () => context.push(
+                                  '/business/${widget.businessId}/coupons/archived',
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _QuickAccessCard(
-                              label: 'Trash',
-                              icon: Icons.delete_sweep_rounded,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFDC2626), Color(0xFFB91C1C)],
-                              ),
-                              onTap: () => context.push(
-                                '/business/${widget.businessId}/coupons/trash',
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _QuickAccessCard(
+                                label: 'Expired',
+                                icon: Icons.timer_off_rounded,
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                                ),
+                                onTap: () => context.push(
+                                  '/business/${widget.businessId}/coupons/expired',
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _QuickAccessCard(
+                                label: 'Trash',
+                                icon: Icons.delete_sweep_rounded,
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFDC2626), Color(0xFFB91C1C)],
+                                ),
+                                onTap: () => context.push(
+                                  '/business/${widget.businessId}/coupons/trash',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     AnimatedSize(
                       duration: const Duration(milliseconds: 200),
                       child: _isSearchVisible
@@ -325,7 +347,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                         ),
                       )
                     : state.coupons.isEmpty
-                    ? _EmptyState(onCreate: _openCreate)
+                    ? _EmptyState(onCreate: _openCreate, readOnly: _isStaff)
                     : RefreshIndicator(
                         onRefresh: _refresh,
                         color: AppColors.primary,
@@ -349,6 +371,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                             final coupon = state.coupons[index];
                             return CouponCard(
                               coupon: coupon,
+                              readOnly: _isStaff,
                               onTap: () => _openDetail(coupon),
                               onStatusChange: (status) => ctrl.changeStatus(
                                 businessId: widget.businessId,
@@ -374,7 +397,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
               ),
             ],
           ),
-          if (widget.embedded)
+          if (widget.embedded && !_isStaff)
             Positioned(
               right: 16,
               bottom: MediaQuery.of(context).viewPadding.bottom + 70,
@@ -393,7 +416,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
             ),
         ],
       ),
-      floatingActionButton: widget.embedded
+      floatingActionButton: widget.embedded || _isStaff
           ? null
           : FloatingActionButton.extended(
               backgroundColor: AppColors.primary,
@@ -456,6 +479,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
     BuildContext context,
     CouponListState state,
     CouponListController ctrl,
+    List<CouponStatus> allowedStatuses,
   ) {
     showModalBottomSheet(
       context: context,
@@ -465,6 +489,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
       ),
       builder: (_) => _FilterSheet(
         state: state,
+        allowedStatuses: allowedStatuses,
         onStatusChanged: (s) {
           ctrl.setStatusFilter(s);
           ctrl.fetchCoupons(widget.businessId);
@@ -476,7 +501,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
           Navigator.pop(context);
         },
         onClear: () {
-          ctrl.setStatusFilter(null);
+          ctrl.setStatusFilter(_isStaff ? CouponStatus.active : null);
           ctrl.setTypeFilter(null);
           ctrl.fetchCoupons(widget.businessId);
           Navigator.pop(context);
@@ -770,9 +795,10 @@ class _SortBar extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onCreate});
+  const _EmptyState({required this.onCreate, required this.readOnly});
 
   final VoidCallback onCreate;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -789,7 +815,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'No coupons yet',
+              'No coupons found',
               style: TextStyle(
                 color: AppColors.textOnDark,
                 fontSize: 18,
@@ -797,21 +823,28 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Create your first coupon to start rewarding customers.',
+            Text(
+              readOnly
+                  ? 'No active or expired coupons are available right now.'
+                  : 'Create your first coupon to start rewarding customers.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMutedDark, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: onCreate,
-              icon: const Icon(Icons.add),
-              label: const Text('Create Coupon'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+              style: const TextStyle(
+                color: AppColors.textMutedDark,
+                fontSize: 14,
               ),
             ),
+            if (!readOnly) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: onCreate,
+                icon: const Icon(Icons.add),
+                label: const Text('Create Coupon'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -822,12 +855,14 @@ class _EmptyState extends StatelessWidget {
 class _FilterSheet extends StatelessWidget {
   const _FilterSheet({
     required this.state,
+    required this.allowedStatuses,
     required this.onStatusChanged,
     required this.onTypeChanged,
     required this.onClear,
   });
 
   final CouponListState state;
+  final List<CouponStatus> allowedStatuses;
   final void Function(CouponStatus?) onStatusChanged;
   final void Function(CouponType?) onTypeChanged;
   final VoidCallback onClear;
@@ -868,7 +903,7 @@ class _FilterSheet extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: CouponStatus.values.map((s) {
+              children: allowedStatuses.map((s) {
                 final isSelected = state.statusFilter == s;
                 return GestureDetector(
                   onTap: () => onStatusChanged(isSelected ? null : s),

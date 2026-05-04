@@ -36,24 +36,6 @@ class AuthShell extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned(
-              top: -80,
-              right: -60,
-              child: _Orb(
-                size: 260,
-                color: AppColors.primary.withValues(
-                  alpha: isDark ? 0.08 : 0.06,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -80,
-              child: _Orb(
-                size: 320,
-                color: AppColors.accent.withValues(alpha: isDark ? 0.06 : 0.04),
-              ),
-            ),
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
@@ -67,21 +49,6 @@ class AuthShell extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Orb extends StatelessWidget {
-  const _Orb({required this.size, required this.color});
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }

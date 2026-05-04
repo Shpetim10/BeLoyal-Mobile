@@ -318,6 +318,13 @@ class AuthRepositoryImpl implements AuthRepository {
               rawActive?.toString().toLowerCase() == 'true' ||
               rawActive == 1 ||
               rawActive?.toString() == '1';
+          final dynamic rawInvitationAccepted = item['invitationAccepted'];
+          final invitationAccepted =
+              rawInvitationAccepted == null ||
+              rawInvitationAccepted == true ||
+              rawInvitationAccepted?.toString().toLowerCase() == 'true' ||
+              rawInvitationAccepted == 1 ||
+              rawInvitationAccepted?.toString() == '1';
 
           if (id != null && roleStr != null) {
             businessProfiles.add(
@@ -326,6 +333,7 @@ class AuthRepositoryImpl implements AuthRepository {
                 businessName: businessName,
                 role: UserRole.fromBackend(roleStr),
                 active: active,
+                invitationAccepted: invitationAccepted,
                 businessStatus: item['businessStatus'] as String?,
                 rejectionReason: item['rejectionReason'] as String?,
                 memberStatus: item['memberStatus'] as String?,

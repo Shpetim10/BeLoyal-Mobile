@@ -29,6 +29,7 @@ import '../../features/business_onboarding/presentation/pages/new_account_for_bu
 import '../../features/business_onboarding/presentation/pages/business_details_form_page.dart';
 import '../../features/business_onboarding/presentation/pages/under_review_confirmation_page.dart';
 import '../../features/business_onboarding/presentation/pages/under_review_gate_page.dart';
+import '../../features/business_onboarding/presentation/pages/invitation_pending_gate_page.dart';
 import '../../features/business_onboarding/presentation/pages/rejected_gate_page.dart';
 import '../../features/business_onboarding/presentation/pages/update_registration_form_page.dart';
 
@@ -160,23 +161,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           isLoggedIn &&
           (session.activeRole == UserRole.businessAdmin ||
               session.activeRole == UserRole.staff)) {
-        final activeBusiness = session.user.businessProfiles.firstWhere(
-          (p) => p.businessId == session.activeBusinessId,
-          orElse: () => const BusinessProfileInfo(
-            businessId: -1,
-            businessName: '',
-            role: UserRole.customer,
-            active: false,
-          ),
-        );
+        BusinessProfileInfo? activeBusiness;
+        if (session.activeBusinessId != null) {
+          activeBusiness = session.user.businessProfiles
+              .where((p) => p.businessId == session.activeBusinessId)
+              .firstOrNull;
+        }
+        activeBusiness ??= session.user.businessProfiles
+            .where((p) => p.role == session.activeRole)
+            .firstOrNull;
+        activeBusiness ??= session.user.businessProfiles.firstOrNull;
 
         // 1. If staff member's account is deactivated, lock them to the inactive gate
         // This takes precedence over business status.
         debugPrint(
-          'ROUTER CHECK: role=${session.activeRole}, bizId=${activeBusiness.businessId}, memberStatus=${activeBusiness.memberStatus}, isStaffInactive=${activeBusiness.isStaffInactive}',
+          'ROUTER CHECK: role=${session.activeRole}, bizId=${activeBusiness?.businessId}, invitationAccepted=${activeBusiness?.invitationAccepted}, memberStatus=${activeBusiness?.memberStatus}, isStaffInactive=${activeBusiness?.isStaffInactive}',
         );
         if (session.activeRole == UserRole.staff &&
-            activeBusiness.isStaffInactive) {
+            (activeBusiness?.isStaffInactive ?? false)) {
           if (path != '/staff/inactive') {
             debugPrint(
               'Staff member is INACTIVE -> Redirecting to /staff/inactive',
@@ -187,8 +189,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           return null;
         }
 
-        // 2. Otherwise, if business is inactive (pending/rejected), lock to those gates
-        if (activeBusiness.businessId != -1 && !activeBusiness.active) {
+        // 2 + 3. Invitation pending and under-review/rejected must be mutually exclusive
+        // to avoid redirect loops.
+        if (activeBusiness != null &&
+            !activeBusiness.invitationAccepted &&
+            path != '/business/invitation-pending') {
+          debugPrint(
+            'Business invitation not accepted -> Redirecting to invitation pending gate',
+          );
+          return '/business/invitation-pending';
+        } else if (activeBusiness != null &&
+            activeBusiness.invitationAccepted &&
+            !activeBusiness.active) {
           if (activeBusiness.businessStatus == 'REJECTED') {
             // Allow the update form so the user can actually correct their data
             if (path != '/business/rejected' &&
@@ -206,11 +218,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
         }
 
-        // 3. For Business Admin with an ACTIVE business, if Earning Rule or
+        // 4. For Business Admin with an ACTIVE business, if Earning Rule or
         //    Loyalty Settings are not configured, redirect to the setup wizard.
         //    Rejected / pending businesses are already locked to their own gate
         //    pages above and must NOT be sent to the wizard.
-        if (activeBusiness.businessId != -1 &&
+        if (activeBusiness != null &&
             activeBusiness.active &&
             session.activeRole == UserRole.businessAdmin) {
           final needsSetup =
@@ -228,9 +240,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
         }
 
-        // 3b. For Staff on an ACTIVE business, if settings aren't configured,
+        // 4b. For Staff on an ACTIVE business, if settings aren't configured,
         //     show a read-only pending page (they can't fix it — only the admin can).
-        if (activeBusiness.businessId != -1 &&
+        if (activeBusiness != null &&
             activeBusiness.active &&
             session.activeRole == UserRole.staff) {
           final needsSetup =
@@ -453,6 +465,23 @@ final routerProvider = Provider<GoRouter>((ref) {
                 FadeTransition(opacity: anim, child: child),
           );
         },
+      ),
+      GoRoute(
+        path: '/business/invitation-pending',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const InvitationPendingGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/invitation_pending',
+        redirect: (_, __) => '/business/invitation-pending',
+      ),
+      GoRoute(
+        path: '/business/invitationPending',
+        redirect: (_, __) => '/business/invitation-pending',
       ),
       GoRoute(
         path: '/business/under-review',

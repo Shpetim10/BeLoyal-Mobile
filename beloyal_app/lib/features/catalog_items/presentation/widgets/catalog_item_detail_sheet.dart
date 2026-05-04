@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../features/auth/domain/models/auth_user.dart';
+import '../../../../features/auth/presentation/controllers/session_controller.dart';
 
 import '../controllers/catalog_item_controller.dart';
 import '../../data/models/catalog_item_status.dart';
@@ -46,6 +48,8 @@ class CatalogItemDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailAsync = ref.watch(catalogItemDetailProvider((businessId: businessId, itemId: itemId)));
+    final session = ref.read(sessionControllerProvider);
+    final isAdmin = session?.activeRole == UserRole.businessAdmin;
     final theme = Theme.of(context);
     final sheetBg = theme.colorScheme.surface;
 
@@ -182,10 +186,11 @@ class CatalogItemDetailSheet extends ConsumerWidget {
                         businessId: businessId,
                         itemId: itemId,
                         currencyCode: item.currencyCode,
+                        isReadOnly: !isAdmin,
                       ),
 
                       // Action Panel
-                      if (!isDeleted) ...[
+                      if (isAdmin && !isDeleted) ...[
                         const Divider(height: 48),
                         Text(
                           'Actions',
@@ -270,7 +275,7 @@ class CatalogItemDetailSheet extends ConsumerWidget {
                             ),
                           ],
                         ),
-                      ] else ...[
+                      ] else if (isAdmin && isDeleted) ...[
                         const Divider(height: 32),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -439,6 +444,5 @@ class _DetailFieldRow extends StatelessWidget {
     );
   }
 }
-
 
 

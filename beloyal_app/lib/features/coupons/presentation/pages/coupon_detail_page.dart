@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../features/auth/domain/models/auth_user.dart';
+import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../../data/coupon_repository.dart';
 import '../../data/models/coupon_detail.dart';
 import '../../data/models/coupon_enums.dart';
@@ -34,6 +36,8 @@ class CouponDetailPage extends ConsumerWidget {
     final couponAsync = ref.watch(
       couponDetailProvider((businessId: businessId, couponId: couponId)),
     );
+    final session = ref.read(sessionControllerProvider);
+    final isAdmin = session?.activeRole == UserRole.businessAdmin;
 
     return Scaffold(
       backgroundColor: AppColors.bgDark,
@@ -78,16 +82,18 @@ class CouponDetailPage extends ConsumerWidget {
             children: [
               _CouponHero(coupon: coupon),
               const SizedBox(height: 16),
-              _ActionPanel(
-                coupon: coupon,
-                onChanged: () => ref.invalidate(
-                  couponDetailProvider((
-                    businessId: businessId,
-                    couponId: couponId,
-                  )),
+              if (isAdmin) ...[
+                _ActionPanel(
+                  coupon: coupon,
+                  onChanged: () => ref.invalidate(
+                    couponDetailProvider((
+                      businessId: businessId,
+                      couponId: couponId,
+                    )),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
               _SectionCard(
                 title: 'Overview',
                 child: Column(
