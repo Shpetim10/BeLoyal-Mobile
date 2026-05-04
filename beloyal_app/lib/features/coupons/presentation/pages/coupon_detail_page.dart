@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/coupon_repository.dart';
 import '../../data/models/coupon_detail.dart';
 import '../../data/models/coupon_enums.dart';
+import '../widgets/coupon_update_sheet.dart';
 import '../widgets/coupon_status_chip.dart';
 
 final couponDetailProvider = FutureProvider.autoDispose
@@ -21,10 +22,12 @@ class CouponDetailPage extends ConsumerWidget {
     super.key,
     required this.businessId,
     required this.couponId,
+    this.inBottomSheet = false,
   });
 
   final int businessId;
   final int couponId;
+  final bool inBottomSheet;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,32 +40,21 @@ class CouponDetailPage extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppColors.bgDark,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
+          icon: Icon(
+            inBottomSheet
+                ? Icons.close_rounded
+                : Icons.arrow_back_ios_new_rounded,
             color: AppColors.textOnDark,
-            size: 20,
+            size: inBottomSheet ? 24 : 20,
           ),
-          onPressed: () => context.go('/business/$businessId/coupons'),
+          onPressed: () => inBottomSheet
+              ? Navigator.of(context).pop()
+              : context.go('/business/$businessId/coupons'),
         ),
         title: const Text(
           'Coupon Details',
           style: TextStyle(color: AppColors.textOnDark),
         ),
-        actions: [
-          couponAsync.when(
-            data: (coupon) => _DetailActions(
-              coupon: coupon,
-              onChanged: () => ref.invalidate(
-                couponDetailProvider((
-                  businessId: businessId,
-                  couponId: couponId,
-                )),
-              ),
-            ),
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-        ],
       ),
       body: couponAsync.when(
         data: (coupon) => RefreshIndicator(
@@ -85,6 +77,16 @@ class CouponDetailPage extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
               _CouponHero(coupon: coupon),
+              const SizedBox(height: 16),
+              _ActionPanel(
+                coupon: coupon,
+                onChanged: () => ref.invalidate(
+                  couponDetailProvider((
+                    businessId: businessId,
+                    couponId: couponId,
+                  )),
+                ),
+              ),
               const SizedBox(height: 16),
               _SectionCard(
                 title: 'Overview',
@@ -513,8 +515,8 @@ class _SmallChip extends StatelessWidget {
   }
 }
 
-class _DetailActions extends ConsumerWidget {
-  const _DetailActions({required this.coupon, required this.onChanged});
+class _ActionPanel extends ConsumerWidget {
+  const _ActionPanel({required this.coupon, required this.onChanged});
 
   final CouponDetail coupon;
   final VoidCallback onChanged;
@@ -557,93 +559,206 @@ class _DetailActions extends ConsumerWidget {
       }
     }
 
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: AppColors.textOnDark),
-      color: AppColors.elevDark,
-      onSelected: (value) async {
-        switch (value) {
-          case 'activate':
-            await runAction(
-              () => repo.changeCouponStatus(
-                businessId: coupon.businessId,
-                couponId: coupon.id,
-                status: CouponStatus.active,
-              ),
-              'Coupon activated.',
-            );
-            return;
-          case 'pause':
-            await runAction(
-              () => repo.changeCouponStatus(
-                businessId: coupon.businessId,
-                couponId: coupon.id,
-                status: CouponStatus.paused,
-              ),
-              'Coupon paused.',
-            );
-            return;
-          case 'restore':
-            await runAction(
-              () => repo.changeCouponStatus(
-                businessId: coupon.businessId,
-                couponId: coupon.id,
-                status: CouponStatus.draft,
-              ),
-              'Coupon restored to draft.',
-            );
-            return;
-          case 'archive':
-            await runAction(
-              () => repo.archiveCoupon(
-                businessId: coupon.businessId,
-                couponId: coupon.id,
-              ),
-              'Coupon archived.',
-            );
-            return;
-          case 'toggleVisibility':
-            await runAction(
-              () => repo.updateCoupon(
-                businessId: coupon.businessId,
-                couponId: coupon.id,
-                updates: {'visibility': nextVisibility.backendValue},
-              ),
-              nextVisibility == CouponVisibility.hidden
-                  ? 'Coupon hidden.'
-                  : 'Coupon is visible again.',
-            );
-            return;
-          case 'delete':
-            await runAction(
-              () => repo.deleteCoupon(
-                businessId: coupon.businessId,
-                couponId: coupon.id,
-              ),
-              'Coupon deleted.',
-            );
-            if (context.mounted) Navigator.of(context).pop();
-            return;
-        }
-      },
-      itemBuilder: (_) => [
-        if (transitions.contains(CouponStatus.active))
-          const PopupMenuItem(value: 'activate', child: Text('Activate')),
-        if (transitions.contains(CouponStatus.paused))
-          const PopupMenuItem(value: 'pause', child: Text('Pause')),
-        if (transitions.contains(CouponStatus.draft))
-          const PopupMenuItem(value: 'restore', child: Text('Restore to Draft')),
-        if (transitions.contains(CouponStatus.archived))
-          const PopupMenuItem(value: 'archive', child: Text('Archive')),
-        PopupMenuItem(
-          value: 'toggleVisibility',
-          child: Text(visibilityActionLabel),
+    final actions = <_PanelAction>[
+      if (transitions.contains(CouponStatus.active))
+        _PanelAction(
+          icon: Icons.play_circle_outline_rounded,
+          label: 'Activate',
+          color: AppColors.success,
+          onTap: () => runAction(
+            () => repo.changeCouponStatus(
+              businessId: coupon.businessId,
+              couponId: coupon.id,
+              status: CouponStatus.active,
+            ),
+            'Coupon activated.',
+          ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete', style: TextStyle(color: AppColors.error)),
+      if (transitions.contains(CouponStatus.paused))
+        _PanelAction(
+          icon: Icons.pause_circle_outline_rounded,
+          label: 'Pause',
+          color: AppColors.warning,
+          onTap: () => runAction(
+            () => repo.changeCouponStatus(
+              businessId: coupon.businessId,
+              couponId: coupon.id,
+              status: CouponStatus.paused,
+            ),
+            'Coupon paused.',
+          ),
         ),
-      ],
+      if (transitions.contains(CouponStatus.draft))
+        _PanelAction(
+          icon: Icons.restart_alt_rounded,
+          label: 'Draft',
+          color: AppColors.info,
+          onTap: () => runAction(
+            () => repo.changeCouponStatus(
+              businessId: coupon.businessId,
+              couponId: coupon.id,
+              status: CouponStatus.draft,
+            ),
+            'Coupon restored to draft.',
+          ),
+        ),
+      if (transitions.contains(CouponStatus.archived))
+        _PanelAction(
+          icon: Icons.archive_outlined,
+          label: 'Archive',
+          color: AppColors.textMutedDark,
+          onTap: () => runAction(
+            () => repo.archiveCoupon(
+              businessId: coupon.businessId,
+              couponId: coupon.id,
+            ),
+            'Coupon archived.',
+          ),
+        ),
+      _PanelAction(
+        icon: nextVisibility == CouponVisibility.hidden
+            ? Icons.visibility_off_outlined
+            : Icons.visibility_outlined,
+        label: visibilityActionLabel,
+        color: nextVisibility == CouponVisibility.hidden
+            ? AppColors.warning
+            : AppColors.success,
+        onTap: () => runAction(
+          () => repo.updateCoupon(
+            businessId: coupon.businessId,
+            couponId: coupon.id,
+            updates: {'visibility': nextVisibility.backendValue},
+          ),
+          nextVisibility == CouponVisibility.hidden
+              ? 'Coupon hidden.'
+              : 'Coupon is visible again.',
+        ),
+      ),
+      _PanelAction(
+        icon: Icons.edit_rounded,
+        label: 'Update',
+        color: AppColors.primary,
+        onTap: () async {
+          await showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => FractionallySizedBox(
+              heightFactor: 0.92,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+                child: CouponUpdateSheet(
+                  businessId: coupon.businessId,
+                  coupon: coupon,
+                  onUpdated: onChanged,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      _PanelAction(
+        icon: Icons.delete_outline_rounded,
+        label: 'Delete',
+        color: AppColors.error,
+        onTap: () async {
+          await runAction(
+            () => repo.deleteCoupon(
+              businessId: coupon.businessId,
+              couponId: coupon.id,
+            ),
+            'Coupon deleted.',
+          );
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
+    ];
+
+    return _SectionCard(
+      title: 'Actions',
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final action in actions)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _ActionIconButton(
+                  icon: action.icon,
+                  label: action.label,
+                  color: action.color,
+                  onTap: action.onTap,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _ActionIconButton extends StatelessWidget {
+  const _ActionIconButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: SizedBox(
+          width: 72,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 24, color: color),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textOnDark,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PanelAction {
+  const _PanelAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 }

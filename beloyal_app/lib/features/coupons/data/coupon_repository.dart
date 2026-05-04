@@ -32,7 +32,8 @@ class CouponRepository {
       options: Options(contentType: 'multipart/form-data'),
     );
     return CouponImageUploadResponse.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   // ── Lookups ───────────────────────────────────────────────────────────────
@@ -40,8 +41,7 @@ class CouponRepository {
   Future<List<CategoryLookup>> lookupCategories({
     required int businessId,
   }) async {
-    final response =
-        await _dio.get('${_base(businessId)}/lookups/categories');
+    final response = await _dio.get('${_base(businessId)}/lookups/categories');
     final data = response.data as Map<String, dynamic>;
     final list = data['data'] as List<dynamic>? ?? [];
     return list
@@ -123,8 +123,7 @@ class CouponRepository {
     required int businessId,
     required int couponId,
   }) async {
-    final response =
-        await _dio.get('${_base(businessId)}/coupons/$couponId');
+    final response = await _dio.get('${_base(businessId)}/coupons/$couponId');
     return CouponDetail.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -163,6 +162,117 @@ class CouponRepository {
     required int couponId,
   }) async {
     await _dio.delete('${_base(businessId)}/coupons/$couponId');
+  }
+
+  // ── Archived / Expired / Trash lists ─────────────────────────────────────
+
+  Future<CouponPage> listArchivedCoupons({
+    required int businessId,
+    CouponType? type,
+    String? search,
+    int page = 0,
+    int limit = 20,
+    String sortBy = 'archivedAt',
+    String sortDirection = 'DESC',
+  }) async {
+    final params = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+      'sortBy': sortBy,
+      'sortDirection': sortDirection,
+    };
+    if (type != null) params['type'] = type.backendValue;
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final response = await _dio.get(
+      '${_base(businessId)}/coupons/archived',
+      queryParameters: params,
+    );
+    return CouponPage.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CouponPage> listTrashedCoupons({
+    required int businessId,
+    CouponType? type,
+    String? search,
+    int page = 0,
+    int limit = 20,
+    String sortBy = 'createdAt',
+    String sortDirection = 'DESC',
+  }) async {
+    final params = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+      'sortBy': sortBy,
+      'sortDirection': sortDirection,
+    };
+    if (type != null) params['type'] = type.backendValue;
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final response = await _dio.get(
+      '${_base(businessId)}/coupons/trash',
+      queryParameters: params,
+    );
+    return CouponPage.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CouponPage> listExpiredCoupons({
+    required int businessId,
+    CouponType? type,
+    String? search,
+    int page = 0,
+    int limit = 20,
+    String sortBy = 'endDate',
+    String sortDirection = 'DESC',
+  }) async {
+    final params = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+      'sortBy': sortBy,
+      'sortDirection': sortDirection,
+    };
+    if (type != null) params['type'] = type.backendValue;
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final response = await _dio.get(
+      '${_base(businessId)}/coupons/expired',
+      queryParameters: params,
+    );
+    return CouponPage.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  // ── Lifecycle actions ─────────────────────────────────────────────────────
+
+  Future<void> restoreFromArchive({
+    required int businessId,
+    required int couponId,
+  }) async {
+    await _dio.patch('${_base(businessId)}/coupons/$couponId/restore-archive');
+  }
+
+  Future<void> reviveCoupon({
+    required int businessId,
+    required int couponId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    await _dio.patch(
+      '${_base(businessId)}/coupons/$couponId/revive',
+      data: {
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+      },
+    );
+  }
+
+  Future<void> restoreFromTrash({
+    required int businessId,
+    required int couponId,
+  }) async {
+    await _dio.patch('${_base(businessId)}/coupons/trash/$couponId/restore');
   }
 }
 

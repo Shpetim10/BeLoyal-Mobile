@@ -6,12 +6,18 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_summary.dart';
 import '../controllers/coupon_list_controller.dart';
+import 'coupon_detail_page.dart';
 import '../widgets/coupon_card.dart';
 
 class CouponListPage extends ConsumerStatefulWidget {
-  const CouponListPage({super.key, required this.businessId});
+  const CouponListPage({
+    super.key,
+    required this.businessId,
+    this.embedded = false,
+  });
 
   final int businessId;
+  final bool embedded;
 
   @override
   ConsumerState<CouponListPage> createState() => _CouponListPageState();
@@ -21,6 +27,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _isSearchVisible = false;
+  bool _isTopControlsExpanded = false;
 
   @override
   void initState() {
@@ -64,8 +71,27 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
         .fetchCoupons(widget.businessId);
   }
 
-  void _openDetail(CouponSummary coupon) {
-    context.push('/business/${widget.businessId}/coupons/${coupon.id}');
+  Future<void> _openDetail(CouponSummary coupon) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.92,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: CouponDetailPage(
+            businessId: widget.businessId,
+            couponId: coupon.id,
+            inBottomSheet: true,
+          ),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    ref
+        .read(couponListControllerProvider.notifier)
+        .fetchCoupons(widget.businessId);
   }
 
   void _openCreate() {
@@ -100,142 +126,289 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
 
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgDark,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textOnDark),
-          tooltip: 'Back to dashboard',
-          onPressed: () => context.go('/business/dashboard'),
-        ),
-        title: const Text(
-          'Coupons',
-          style: TextStyle(color: AppColors.textOnDark),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isSearchVisible ? Icons.search_off : Icons.search,
-              color: AppColors.textOnDark,
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              backgroundColor: AppColors.bgDark,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppColors.textOnDark),
+                tooltip: 'Back to dashboard',
+                onPressed: () => context.go('/business/dashboard'),
+              ),
+              title: const Text(
+                'Rewards',
+                style: TextStyle(color: AppColors.textOnDark),
+              ),
             ),
-            onPressed: () =>
-                setState(() => _isSearchVisible = !_isSearchVisible),
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list, color: AppColors.textOnDark),
-            onPressed: () => _showFilterSheet(context, state, ctrl),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add, color: AppColors.primary),
-            onPressed: _openCreate,
-          ),
-        ],
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          // Search bar
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            child: _isSearchVisible
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      style: const TextStyle(color: AppColors.textOnDark),
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search coupons...',
-                        hintStyle: const TextStyle(
-                          color: AppColors.textMutedDark,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: AppColors.textMutedDark,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.elevDark,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-
-          // Active filters row
-          if (state.statusFilter != null || state.typeFilter != null)
-            _ActiveFiltersRow(state: state, ctrl: ctrl),
-
-          // Sort bar
-          _SortBar(state: state, ctrl: ctrl, businessId: widget.businessId),
-
-          // List
-          Expanded(
-            child: state.isLoading && state.coupons.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : state.coupons.isEmpty
-                ? _EmptyState(onCreate: _openCreate)
-                : RefreshIndicator(
-                    onRefresh: _refresh,
-                    color: AppColors.primary,
-                    child: ListView.builder(
-                      controller: _scrollCtrl,
-                      padding: const EdgeInsets.only(bottom: 100, top: 8),
-                      itemCount:
-                          state.coupons.length + (state.isLoadingMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == state.coupons.length) {
-                          return const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.primary,
+          Column(
+            children: [
+              _FilterSection(
+                isExpanded: _isTopControlsExpanded,
+                hasActiveFilters:
+                    state.statusFilter != null || state.typeFilter != null,
+                onToggle: () => setState(
+                  () => _isTopControlsExpanded = !_isTopControlsExpanded,
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(
+                                () => _isSearchVisible = !_isSearchVisible,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.elevDark,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppColors.glassBorder,
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search,
+                                      size: 16,
+                                      color: AppColors.textMutedDark,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Search rewards...',
+                                      style: TextStyle(
+                                        color: AppColors.textMutedDark,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          );
-                        }
-                        final coupon = state.coupons[index];
-                        return CouponCard(
-                          coupon: coupon,
-                          onTap: () => _openDetail(coupon),
-                          onStatusChange: (status) => ctrl.changeStatus(
-                            businessId: widget.businessId,
-                            couponId: coupon.id,
-                            status: status,
                           ),
-                          onVisibilityChange: (visibility) =>
-                              ctrl.changeVisibility(
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.filter_list,
+                              color: AppColors.textOnDark,
+                            ),
+                            onPressed: () =>
+                                _showFilterSheet(context, state, ctrl),
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.elevDark,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(
+                                  color: AppColors.glassBorder,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            onPressed: _openCreate,
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _QuickAccessCard(
+                              label: 'Archived',
+                              icon: Icons.inventory_2_rounded,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              ),
+                              onTap: () => context.push(
+                                '/business/${widget.businessId}/coupons/archived',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _QuickAccessCard(
+                              label: 'Expired',
+                              icon: Icons.timer_off_rounded,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                              ),
+                              onTap: () => context.push(
+                                '/business/${widget.businessId}/coupons/expired',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _QuickAccessCard(
+                              label: 'Trash',
+                              icon: Icons.delete_sweep_rounded,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFDC2626), Color(0xFFB91C1C)],
+                              ),
+                              onTap: () => context.push(
+                                '/business/${widget.businessId}/coupons/trash',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      child: _isSearchVisible
+                          ? Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              child: TextField(
+                                controller: _searchCtrl,
+                                style: const TextStyle(
+                                  color: AppColors.textOnDark,
+                                ),
+                                onChanged: _onSearchChanged,
+                                decoration: InputDecoration(
+                                  hintText: 'Search coupons...',
+                                  hintStyle: const TextStyle(
+                                    color: AppColors.textMutedDark,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    color: AppColors.textMutedDark,
+                                  ),
+                                  filled: true,
+                                  fillColor: AppColors.elevDark,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    if (state.statusFilter != null || state.typeFilter != null)
+                      _ActiveFiltersRow(state: state, ctrl: ctrl),
+                    _SortBar(
+                      state: state,
+                      ctrl: ctrl,
+                      businessId: widget.businessId,
+                    ),
+                  ],
+                ),
+              ),
+
+              // List
+              Expanded(
+                child: state.isLoading && state.coupons.isEmpty
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : state.coupons.isEmpty
+                    ? _EmptyState(onCreate: _openCreate)
+                    : RefreshIndicator(
+                        onRefresh: _refresh,
+                        color: AppColors.primary,
+                        child: ListView.builder(
+                          controller: _scrollCtrl,
+                          padding: const EdgeInsets.only(bottom: 100, top: 8),
+                          itemCount:
+                              state.coupons.length +
+                              (state.isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == state.coupons.length) {
+                              return const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              );
+                            }
+                            final coupon = state.coupons[index];
+                            return CouponCard(
+                              coupon: coupon,
+                              onTap: () => _openDetail(coupon),
+                              onStatusChange: (status) => ctrl.changeStatus(
                                 businessId: widget.businessId,
                                 couponId: coupon.id,
-                                visibility: visibility,
+                                status: status,
                               ),
-                          onDelete: () => _confirmDelete(context, coupon, ctrl),
-                          onArchive: () => ctrl.archiveCoupon(
-                            businessId: widget.businessId,
-                            couponId: coupon.id,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                              onVisibilityChange: (visibility) =>
+                                  ctrl.changeVisibility(
+                                    businessId: widget.businessId,
+                                    couponId: coupon.id,
+                                    visibility: visibility,
+                                  ),
+                              onDelete: () =>
+                                  _confirmDelete(context, coupon, ctrl),
+                              onArchive: () => ctrl.archiveCoupon(
+                                businessId: widget.businessId,
+                                couponId: coupon.id,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
           ),
+          if (widget.embedded)
+            Positioned(
+              right: 16,
+              bottom: MediaQuery.of(context).viewPadding.bottom + 70,
+              child: FloatingActionButton.extended(
+                backgroundColor: AppColors.primary,
+                onPressed: _openCreate,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'New Coupon',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        onPressed: _openCreate,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'New Coupon',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-      ),
+      floatingActionButton: widget.embedded
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: AppColors.primary,
+              onPressed: _openCreate,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'New Coupon',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
     );
   }
 
@@ -313,6 +486,89 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
   }
 }
 
+class _QuickAccessCard extends StatelessWidget {
+  const _QuickAccessCard({
+    required this.label,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final LinearGradient gradient;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTight = constraints.maxWidth < 120;
+          return Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isTight ? 10 : 14,
+              vertical: 10,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: gradient.colors
+                    .map((c) => c.withValues(alpha: 0.15))
+                    .toList(),
+              ),
+              border: Border.all(
+                color: gradient.colors.first.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => gradient.createShader(bounds),
+                  child: Icon(
+                    icon,
+                    size: isTight ? 14 : 16,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(width: isTight ? 6 : 8),
+                Flexible(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => gradient.createShader(bounds),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isTight ? 12 : 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                if (!isTight) ...[
+                  const SizedBox(width: 4),
+                  ShaderMask(
+                    shaderCallback: (bounds) => gradient.createShader(bounds),
+                    child: const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _ActiveFiltersRow extends StatelessWidget {
   const _ActiveFiltersRow({required this.state, required this.ctrl});
 
@@ -352,6 +608,78 @@ class _ActiveFiltersRow extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _FilterSection extends StatelessWidget {
+  const _FilterSection({
+    required this.isExpanded,
+    required this.hasActiveFilters,
+    required this.onToggle,
+    required this.child,
+  });
+
+  final bool isExpanded;
+  final bool hasActiveFilters;
+  final VoidCallback onToggle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.elevDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.glassBorder),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.tune_rounded,
+                    size: 16,
+                    color: AppColors.textMutedDark,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    hasActiveFilters
+                        ? 'Controls (Search, Quick Links, Filters) Active'
+                        : 'Controls (Search, Quick Links, Filters)',
+                    style: const TextStyle(
+                      color: AppColors.textSubDark,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    isExpanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: AppColors.textMutedDark,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState: isExpanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: child,
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }

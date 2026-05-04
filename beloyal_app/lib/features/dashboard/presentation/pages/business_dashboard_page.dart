@@ -11,6 +11,7 @@ import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_na
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_header.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/stat_card.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/app_sidebar_drawer.dart';
+import 'package:besahub_app/features/coupons/presentation/pages/coupon_list_page.dart';
 import 'package:besahub_app/features/staff/presentation/pages/staff_management_page.dart';
 import 'package:besahub_app/features/point_transactions/presentation/pages/point_transactions_page.dart';
 
@@ -88,9 +89,9 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
                       icon: Icons.qr_code_scanner_rounded,
                       label: 'Scan QR',
                     ),
-                    const _PlaceholderTab(
-                      icon: Icons.card_giftcard_rounded,
-                      label: 'Manage Rewards',
+                    CouponListPage(
+                      businessId: session?.activeBusinessId ?? 0,
+                      embedded: true,
                     ),
                     const PointTransactionsPage(),
                   ],
@@ -129,7 +130,7 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
       0 => 'Management Hub 🏪',
       1 => 'Staff',
       2 => 'Scan QR Code',
-      3 => 'Manage Rewards',
+      3 => 'Rewards',
       4 => 'Transaction Logs',
       _ => '',
     };

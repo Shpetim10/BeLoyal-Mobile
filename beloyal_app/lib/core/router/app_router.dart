@@ -58,9 +58,12 @@ import '../../features/catalog_categories/presentation/pages/catalog_category_li
 import '../../features/catalog_items/presentation/pages/catalog_item_list_page.dart';
 
 // Coupons imports
+import '../../features/coupons/presentation/pages/coupon_archived_page.dart';
 import '../../features/coupons/presentation/pages/coupon_create_page.dart';
 import '../../features/coupons/presentation/pages/coupon_detail_page.dart';
+import '../../features/coupons/presentation/pages/coupon_expired_page.dart';
 import '../../features/coupons/presentation/pages/coupon_list_page.dart';
+import '../../features/coupons/presentation/pages/coupon_trash_page.dart';
 
 // Customer onboarding imports
 import '../../features/auth/presentation/pages/loyalty_card_reveal_page.dart';
@@ -642,6 +645,46 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+        path: '/business/:businessId/coupons/archived',
+        pageBuilder: (context, state) {
+          final businessId =
+              int.tryParse(state.pathParameters['businessId'] ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CouponArchivedPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/business/:businessId/coupons/expired',
+        pageBuilder: (context, state) {
+          final businessId =
+              int.tryParse(state.pathParameters['businessId'] ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CouponExpiredPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/business/:businessId/coupons/trash',
+        pageBuilder: (context, state) {
+          final businessId =
+              int.tryParse(state.pathParameters['businessId'] ?? '') ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CouponTrashPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+
       GoRoute(
         path: '/business/:businessId/coupons/:couponId',
         pageBuilder: (context, state) {

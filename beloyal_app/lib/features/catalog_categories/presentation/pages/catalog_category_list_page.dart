@@ -453,10 +453,14 @@ class _AppBar extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      isTrashView ? 'Category Trash' : 'Catalog Categories',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: Text(
+                        isTrashView ? 'Category Trash' : 'Catalog Categories',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     if (categoryCount > 0) ...[
@@ -484,6 +488,8 @@ class _AppBar extends StatelessWidget {
                 ),
                 Text(
                   businessName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textMuted,
                   ),
