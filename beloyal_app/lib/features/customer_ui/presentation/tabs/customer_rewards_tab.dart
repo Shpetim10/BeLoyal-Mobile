@@ -1,0 +1,559 @@
+import 'package:flutter/material.dart';
+import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/features/customer_ui/mock/customer_mock_data.dart';
+
+enum _RewardTab { all, available, coupons, used }
+
+class CustomerRewardsTab extends StatefulWidget {
+  const CustomerRewardsTab({super.key});
+
+  @override
+  State<CustomerRewardsTab> createState() => _CustomerRewardsTabState();
+}
+
+class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
+  _RewardTab _selectedTab = _RewardTab.all;
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<MockCoupon> get _filteredCoupons {
+    var coupons = CustomerMockData.coupons;
+    if (_searchQuery.isNotEmpty) {
+      coupons = coupons.where((c) =>
+        c.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        c.businessName.toLowerCase().contains(_searchQuery.toLowerCase())
+      ).toList();
+    }
+    return switch (_selectedTab) {
+      _RewardTab.all => coupons,
+      _RewardTab.available => coupons.where((c) => c.status == 'active' || c.status == 'expiring').toList(),
+      _RewardTab.coupons => coupons.where((c) => c.status == 'expiring' || c.status == 'expired').toList(),
+      _RewardTab.used => coupons.where((c) => c.isUsed).toList(),
+    };
+  }
+
+  List<MockReward> get _filteredRewards {
+    if (_selectedTab != _RewardTab.all && _selectedTab != _RewardTab.available) return [];
+    return CustomerMockData.rewards;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildSearchBar(),
+        _buildFilterTabs(),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 120),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              if (_selectedTab == _RewardTab.available || _selectedTab == _RewardTab.all) ...[
+                _buildExpiringBanner(),
+                _buildRewardsSection(),
+              ],
+              _buildCouponsSection(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      child: TextField(
+        controller: _searchCtrl,
+        onChanged: (v) => setState(() => _searchQuery = v),
+        style: AppTypography.dmSans(fontSize: 14, color: AppColors.textOnDark),
+        decoration: InputDecoration(
+          hintText: 'Search rewards & coupons...',
+          hintStyle: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark),
+          prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textMutedDark, size: 20),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? GestureDetector(
+                  onTap: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); },
+                  child: const Icon(Icons.clear_rounded, color: AppColors.textMutedDark, size: 18),
+                )
+              : null,
+          filled: true,
+          fillColor: AppColors.cardDark,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppColors.glassBorder),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppColors.glassBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    final tabs = [
+      (_RewardTab.all, 'All'),
+      (_RewardTab.available, 'Available'),
+      (_RewardTab.coupons, 'Near Expiry'),
+      (_RewardTab.used, 'Used'),
+    ];
+
+    return SizedBox(
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: tabs.map((entry) {
+          final isSelected = _selectedTab == entry.$1;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedTab = entry.$1),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : AppColors.cardDark,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.glassBorder,
+                ),
+              ),
+              child: Text(
+                entry.$2,
+                style: AppTypography.dmSans(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? Colors.white : AppColors.textMutedDark,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildExpiringBanner() {
+    final expiring = CustomerMockData.coupons.where((c) => c.status == 'expiring').length;
+    if (expiring == 0) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer_rounded, color: AppColors.error, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$expiring coupon${expiring > 1 ? 's' : ''} expiring soon! Use them before they\'re gone.',
+              style: AppTypography.dmSans(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.error),
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.error, size: 14),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRewardsSection() {
+    final rewards = _filteredRewards;
+    if (rewards.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Text(
+            'Rewards',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        SizedBox(
+          height: 190,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemCount: rewards.length,
+            itemBuilder: (_, i) => _RewardCard(reward: rewards[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCouponsSection() {
+    final coupons = _filteredCoupons;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Text(
+            'Coupons',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        if (coupons.isEmpty)
+          _EmptyCoupons(tab: _selectedTab)
+        else
+          ...coupons.map((c) => Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: _CouponCard(coupon: c),
+              )),
+      ],
+    );
+  }
+}
+
+// ─── Reward Card ──────────────────────────────────────────────────────────────
+
+class _RewardCard extends StatelessWidget {
+  const _RewardCard({required this.reward});
+  final MockReward reward;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (reward.currentPoints / reward.pointCost).clamp(0.0, 1.0);
+    final canRedeem = reward.currentPoints >= reward.pointCost;
+    final remaining = (reward.pointCost - reward.currentPoints).clamp(0, reward.pointCost);
+
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        width: 175,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: reward.gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: reward.gradientColors.last.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -15,
+              top: -15,
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 20),
+                      const Spacer(),
+                      if (canRedeem)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                          ),
+                          child: Text('Redeem!', style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.success)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    reward.title,
+                    style: AppTypography.outfit(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    reward.businessName,
+                    style: AppTypography.dmSans(fontSize: 10, color: Colors.white.withValues(alpha: 0.65)),
+                  ),
+                  const Spacer(),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.15),
+                      color: canRedeem ? AppColors.gold : Colors.white,
+                      minHeight: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    canRedeem ? '${reward.pointCost} pts — Ready!' : '$remaining pts to go',
+                    style: AppTypography.dmSans(
+                      fontSize: 9,
+                      color: canRedeem ? AppColors.gold : Colors.white.withValues(alpha: 0.65),
+                      fontWeight: canRedeem ? FontWeight.w700 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Coupon Card ──────────────────────────────────────────────────────────────
+
+class _CouponCard extends StatelessWidget {
+  const _CouponCard({required this.coupon});
+  final MockCoupon coupon;
+
+  Color get _statusColor => switch (coupon.status) {
+    'active' => AppColors.success,
+    'expiring' => AppColors.error,
+    'used' => AppColors.textMutedDark,
+    'expired' => AppColors.textMutedDark,
+    _ => AppColors.textMutedDark,
+  };
+
+  String get _statusLabel => switch (coupon.status) {
+    'active' => 'ACTIVE',
+    'expiring' => 'EXPIRING',
+    'used' => 'USED',
+    'expired' => 'EXPIRED',
+    _ => coupon.status.toUpperCase(),
+  };
+
+  IconData get _statusIcon => switch (coupon.status) {
+    'active' => Icons.check_circle_outline_rounded,
+    'expiring' => Icons.timer_rounded,
+    'used' => Icons.done_all_rounded,
+    'expired' => Icons.cancel_outlined,
+    _ => Icons.info_outline_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = coupon.status == 'active' || coupon.status == 'expiring';
+    final hoursLeft = coupon.expiresAt.difference(DateTime.now()).inHours;
+    final daysLeft = coupon.expiresAt.difference(DateTime.now()).inDays;
+    final isExpired = coupon.expiresAt.isBefore(DateTime.now());
+    final timeLabel = isExpired
+        ? 'Expired ${-daysLeft}d ago'
+        : hoursLeft < 24
+            ? 'Expires in ${hoursLeft}h'
+            : 'Expires in ${daysLeft}d';
+
+    return Opacity(
+      opacity: coupon.isUsed || coupon.status == 'expired' ? 0.55 : 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: coupon.status == 'expiring'
+                ? AppColors.error.withValues(alpha: 0.35)
+                : AppColors.glassBorder,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Left gradient strip
+            Container(
+              width: 72,
+              height: 100,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: coupon.isUsed || coupon.status == 'expired'
+                      ? [const Color(0xFF374151), const Color(0xFF6B7280)]
+                      : coupon.gradientColors,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    coupon.discountDisplay,
+                    style: AppTypography.outfit(
+                      fontSize: coupon.discountDisplay.length > 6 ? 13 : 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Icon(
+                    coupon.type == 'FREE_PRODUCT'
+                        ? Icons.card_giftcard_rounded
+                        : coupon.type == 'PERCENTAGE_DISCOUNT'
+                            ? Icons.percent_rounded
+                            : Icons.discount_rounded,
+                    color: Colors.white.withValues(alpha: 0.7),
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+            // Dashed divider
+            CustomPaint(
+              size: const Size(1, 100),
+              painter: _DashedLinePainter(),
+            ),
+            // Right content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            coupon.title,
+                            style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(_statusIcon, size: 10, color: _statusColor),
+                              const SizedBox(width: 3),
+                              Text(_statusLabel, style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: _statusColor)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(coupon.businessName, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today_rounded, size: 11, color: AppColors.textMutedDark),
+                        const SizedBox(width: 4),
+                        Text(timeLabel, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                        const Spacer(),
+                        if (isActive)
+                          GestureDetector(
+                            onTap: () {},
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text('Use Now', style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.glassBorder
+      ..strokeWidth = 1;
+    const dashHeight = 5.0;
+    const dashSpace = 4.0;
+    double startY = 0;
+    while (startY < size.height) {
+      canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _EmptyCoupons extends StatelessWidget {
+  const _EmptyCoupons({required this.tab});
+  final _RewardTab tab;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = switch (tab) {
+      _RewardTab.used => 'No used coupons yet.\nStart redeeming your rewards!',
+      _RewardTab.coupons => 'No coupons near expiry.\nYou\'re all caught up!',
+      _ => 'No coupons found.\nExplore businesses to earn rewards!',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Icon(
+            tab == _RewardTab.used ? Icons.done_all_rounded : Icons.confirmation_number_outlined,
+            size: 52,
+            color: AppColors.textMutedDark.withValues(alpha: 0.4),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark, height: 1.6),
+          ),
+        ],
+      ),
+    );
+  }
+}

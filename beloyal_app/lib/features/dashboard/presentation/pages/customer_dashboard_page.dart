@@ -4,15 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
 import 'package:besahub_app/features/auth/presentation/pages/role_select_sheet.dart';
 import 'package:besahub_app/features/auth/domain/models/session.dart';
 import 'package:besahub_app/features/auth/domain/models/auth_user.dart';
 import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_navbar.dart';
-import 'package:besahub_app/features/dashboard/presentation/widgets/dashboard_header.dart';
-import 'package:besahub_app/features/dashboard/presentation/widgets/stat_card.dart';
 import 'package:besahub_app/features/auth/presentation/widgets/premium_loyalty_card.dart';
 import 'package:besahub_app/features/customer_loyalty/presentation/controllers/loyalty_card_provider.dart';
+import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_home_tab.dart';
+import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_rewards_tab.dart';
+import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_orders_tab.dart';
+import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_profile_tab.dart';
+import 'package:besahub_app/features/customer_ui/mock/customer_mock_data.dart';
 
 class CustomerDashboardPage extends ConsumerStatefulWidget {
   const CustomerDashboardPage({super.key});
@@ -28,6 +32,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionControllerProvider);
+    final customer = CustomerMockData.customer;
 
     return Scaffold(
       extendBody: true,
@@ -38,55 +43,24 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: DashboardHeader(
-                  canSwitchRoles: session?.user.canSwitchRoles ?? false,
-                  activeRoleName: session?.activeRole.displayName ?? '',
-                  onRoleSwitchTap: () => _switchRole(context, ref, session!),
-                  onLogoutTap: () => _logout(context, ref),
-                  actions: [
-                    IconButton(
-                        icon: const Icon(
-                          Icons.receipt_long_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        onPressed: () => context.push('/customer/transactions'),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
+              // ── Top Header ───────────────────────────────────────────────
+              _CustomerTopBar(
+                customer: customer,
+                session: session,
+                selectedIndex: _selectedIndex,
+                onRoleSwitchTap: () => _switchRole(context, ref, session!),
+                onLogoutTap: () => _logout(context, ref),
               ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  _pageTitle(_selectedIndex),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
+              // ── Page Content ─────────────────────────────────────────────
               Expanded(
                 child: IndexedStack(
                   index: _selectedIndex,
-                  children: [
-                    _CustomerHomeTab(),
-                    _PlaceholderTab(
-                      icon: Icons.card_giftcard_rounded,
-                      label: 'Rewards',
-                    ),
-                    const SizedBox.shrink(),
-                    _PlaceholderTab(
-                      icon: Icons.search_rounded,
-                      label: 'Search',
-                    ),
-                    _PlaceholderTab(
-                      icon: Icons.receipt_long_rounded,
-                      label: 'My Coupons',
-                    ),
+                  children: const [
+                    CustomerHomeTab(),
+                    CustomerRewardsTab(),
+                    SizedBox.shrink(), // center card slot — handled via bottom sheet
+                    CustomerOrdersTab(),
+                    CustomerProfileTab(),
                   ],
                 ),
               ),
@@ -108,26 +82,14 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
           DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
         ],
         rightItems: const [
-          DashboardNavItem(icon: Icons.search_rounded, label: 'Search'),
-          DashboardNavItem(icon: Icons.receipt_long_rounded, label: 'Coupons'),
+          DashboardNavItem(icon: Icons.receipt_long_rounded, label: 'Transactions'),
+          DashboardNavItem(icon: Icons.person_rounded, label: 'Profile'),
         ],
         centerIcon: Icons.credit_card_rounded,
         centerLabel: 'My Card',
-        // Gold accent gradient for customer (loyalty card theme)
         centerGradient: AppColors.coinGradient,
       ),
     );
-  }
-
-  String _pageTitle(int index) {
-    return switch (index) {
-      0 => 'Welcome Back 👋',
-      1 => 'Rewards',
-      2 => 'Loyalty Card',
-      3 => 'Search',
-      4 => 'My Coupons',
-      _ => '',
-    };
   }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
@@ -150,20 +112,17 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
       final role = result['role'] as UserRole;
       final businessId = result['businessId'] as int?;
 
-      // Preserve: if switching to CUSTOMER and profile is incomplete
       if (role == UserRole.customer && !session.user.customerProfileComplete) {
         ref.read(sessionControllerProvider.notifier).switchRole(role);
         context.go('/create-profile');
         return;
       }
 
-      ref
-          .read(sessionControllerProvider.notifier)
-          .switchRole(
-            role,
-            businessId: businessId,
-            businessName: result['businessName'] as String?,
-          );
+      ref.read(sessionControllerProvider.notifier).switchRole(
+        role,
+        businessId: businessId,
+        businessName: result['businessName'] as String?,
+      );
 
       final path = switch (role) {
         UserRole.customer => '/customer/dashboard',
@@ -205,10 +164,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
             },
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Consumer(
                   builder: (context, ref, child) {
                     final cardAsync = ref.watch(loyaltyCardProvider);
@@ -217,6 +173,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Handle
                           Container(
                             margin: const EdgeInsets.only(bottom: 24),
                             height: 5,
@@ -226,11 +183,28 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
+                          // Title
+                          Text(
+                            'Your Loyalty Card',
+                            style: AppTypography.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textOnDark,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Show this QR code at any participating business',
+                            style: AppTypography.dmSans(
+                              fontSize: 12,
+                              color: AppColors.textMutedDark,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                           cardAsync.when(
                             loading: () => const _CardLoadingSkeleton(),
                             error: (err, _) => _CardErrorView(
-                              onRetry: () =>
-                                  ref.invalidate(loyaltyCardProvider),
+                              onRetry: () => ref.invalidate(loyaltyCardProvider),
                             ),
                             data: (card) => PremiumLoyaltyCard(
                               firstName: card.firstName,
@@ -240,17 +214,15 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                               shimmer: true,
                             ),
                           ),
-
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
+                          // Info banner
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
                               color: AppColors.primary.withValues(alpha: 0.08),
                               border: Border.all(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.18,
-                                ),
+                                color: AppColors.primary.withValues(alpha: 0.18),
                               ),
                             ),
                             child: Row(
@@ -262,11 +234,11 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: const Text(
+                                  child: Text(
                                     'Show your QR code at any participating location to earn points.',
-                                    style: TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 13,
+                                    style: AppTypography.dmSans(
+                                      fontSize: 12,
+                                      color: AppColors.textMutedDark,
                                       height: 1.5,
                                     ),
                                   ),
@@ -299,83 +271,108 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
   }
 }
 
-class _CustomerHomeTab extends StatelessWidget {
-  const _CustomerHomeTab();
+// ─── Customer Top Bar ─────────────────────────────────────────────────────────
+
+class _CustomerTopBar extends ConsumerWidget {
+  const _CustomerTopBar({
+    required this.customer,
+    required this.session,
+    required this.selectedIndex,
+    required this.onRoleSwitchTap,
+    required this.onLogoutTap,
+  });
+
+  final dynamic customer;
+  final Session? session;
+  final int selectedIndex;
+  final VoidCallback onRoleSwitchTap;
+  final VoidCallback onLogoutTap;
+
+  String _pageTitle(int index) => switch (index) {
+    0 => 'Good ${_greeting()}, ${customer.firstName} 👋',
+    1 => 'Rewards',
+    2 => 'Loyalty Card',
+    3 => 'Transactions',
+    4 => 'Profile',
+    _ => '',
+  };
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    return 'evening';
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canSwitch = session?.user.canSwitchRoles ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.05,
-            children: const [
-              StatCard(
-                icon: Icons.stars_rounded,
-                label: 'Points Balance',
-                value: '—',
-                iconColor: AppColors.accent,
-                subtitle: 'Earn on every visit',
+          Row(
+            children: [
+              // BesaHub logo
+              ShaderMask(
+                shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                blendMode: BlendMode.srcIn,
+                child: const Text(
+                  'BesaHub',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                  ),
+                ),
               ),
-              StatCard(
-                icon: Icons.local_offer_rounded,
-                label: 'Active Offers',
-                value: '—',
-                iconColor: AppColors.secondary,
-                subtitle: 'Available now',
-              ),
-              StatCard(
-                icon: Icons.card_giftcard_rounded,
-                label: 'Upcoming Rewards',
-                value: '—',
-                iconColor: AppColors.primary,
-              ),
-              StatCard(
-                icon: Icons.confirmation_number_rounded,
-                label: 'My Coupons',
-                value: '—',
-                iconColor: AppColors.error,
-                subtitle: 'Tap to view',
+              const Spacer(),
+              // Role toggle
+              if (canSwitch) ...[
+                GestureDetector(
+                  onTap: onRoleSwitchTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.30)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          session?.activeRole.displayName ?? '',
+                          style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              // Avatar menu
+              _AvatarMenu(
+                initials: customer.initials as String,
+                onLogoutTap: onLogoutTap,
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: AppColors.textMuted.withValues(alpha: 0.35),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '$label\nComing Soon',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 16,
-              height: 1.5,
+          const SizedBox(height: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _pageTitle(selectedIndex),
+                key: ValueKey(selectedIndex),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ],
@@ -384,7 +381,68 @@ class _PlaceholderTab extends StatelessWidget {
   }
 }
 
-// Removed _CustomerLoyaltyCardTab
+class _AvatarMenu extends ConsumerWidget {
+  const _AvatarMenu({required this.initials, required this.onLogoutTap});
+  final String initials;
+  final VoidCallback onLogoutTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PopupMenuButton<String>(
+      tooltip: 'Profile Options',
+      onSelected: (value) {
+        if (value == 'profile') {
+          context.push('/profile');
+        } else if (value == 'logout') {
+          onLogoutTap();
+        }
+      },
+      offset: const Offset(0, 50),
+      color: AppColors.surfaceDark,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: AppColors.primaryGradient,
+          border: Border.all(color: AppColors.glassBorder, width: 2),
+        ),
+        child: Center(
+          child: Text(
+            initials,
+            style: AppTypography.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+        ),
+      ),
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'profile',
+          child: Row(
+            children: [
+              const Icon(Icons.person_outline_rounded, size: 20, color: Colors.white),
+              const SizedBox(width: 12),
+              Text('My Profile', style: AppTypography.dmSans(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              const Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
+              const SizedBox(width: 12),
+              Text('Log Out', style: AppTypography.dmSans(fontSize: 14, color: AppColors.error, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Card Loading / Error States ─────────────────────────────────────────────
 
 class _CardLoadingSkeleton extends StatefulWidget {
   const _CardLoadingSkeleton();
@@ -437,18 +495,11 @@ class _CardLoadingSkeletonState extends State<_CardLoadingSkeleton>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.credit_card_rounded,
-                      size: 48,
-                      color: AppColors.accent.withValues(alpha: opacity),
-                    ),
+                    Icon(Icons.credit_card_rounded, size: 48, color: AppColors.accent.withValues(alpha: opacity)),
                     const SizedBox(height: 16),
                     Text(
                       'Loading your card…',
-                      style: TextStyle(
-                        color: AppColors.textMuted.withValues(alpha: opacity),
-                        fontSize: 14,
-                      ),
+                      style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark.withValues(alpha: opacity)),
                     ),
                   ],
                 ),
@@ -477,34 +528,16 @@ class _CardErrorView extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: AppColors.error.withValues(alpha: 0.05),
-            border: Border.all(
-              color: AppColors.error.withValues(alpha: 0.25),
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.25), width: 1),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.wifi_off_rounded,
-                size: 48,
-                color: AppColors.error.withValues(alpha: 0.7),
-              ),
+              Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.error.withValues(alpha: 0.7)),
               const SizedBox(height: 16),
-              const Text(
-                'Could not load your card',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text('Could not load your card', style: AppTypography.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textMutedDark)),
               const SizedBox(height: 8),
-              const Text(
-                'Check your connection and try again.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
+              Text('Check your connection and try again.', style: AppTypography.dmSans(fontSize: 13, color: AppColors.textMutedDark), textAlign: TextAlign.center),
               const SizedBox(height: 24),
               TextButton.icon(
                 onPressed: onRetry,
