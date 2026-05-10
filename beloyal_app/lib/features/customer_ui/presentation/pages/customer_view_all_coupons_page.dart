@@ -3,6 +3,7 @@ import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_detail_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -317,11 +318,12 @@ class _CustomerViewAllCouponsPageState
                         physics: const BouncingScrollPhysics(),
                         itemCount: coupons.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) => _CouponListCard(
+                        itemBuilder: (context, i) => _CouponListCard(
                           coupon: coupons[i],
                           typeIcon: _typeIcon(coupons[i].type),
                           statusColor: _statusColor(coupons[i].status),
                           statusLabel: _statusLabel(coupons[i].status),
+                          onTap: () => CustomerCouponDetailSheet.show(context, coupons[i]),
                         ),
                       ),
               ),
@@ -484,12 +486,14 @@ class _CouponListCard extends StatelessWidget {
     required this.typeIcon,
     required this.statusColor,
     required this.statusLabel,
+    this.onTap,
   });
 
   final CustomerCoupon coupon;
   final IconData typeIcon;
   final Color statusColor;
   final String statusLabel;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +507,9 @@ class _CouponListCard extends StatelessWidget {
         ? 'Expires in ${hoursLeft}h'
         : 'Expires in ${daysLeft}d';
 
-    return Opacity(
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
       opacity: coupon.isUsed || coupon.status == 'expired' ? 0.55 : 1.0,
       child: Container(
         decoration: BoxDecoration(
@@ -653,6 +659,7 @@ class _CouponListCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

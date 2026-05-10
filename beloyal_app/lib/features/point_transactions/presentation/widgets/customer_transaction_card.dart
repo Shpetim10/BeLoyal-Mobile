@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_transaction_detail_sheet.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/point_transaction_customer_list_dto.dart';
-import 'transaction_detail_sheet.dart';
 
 class CustomerTransactionCard extends StatelessWidget {
   const CustomerTransactionCard({
@@ -17,6 +18,20 @@ class CustomerTransactionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(symbol: 'L ', decimalDigits: 2);
     final isEarn = transaction.points > 0 || transaction.type.toUpperCase() == 'EARN_BILL';
+    final customerTransaction = CustomerTransaction(
+      id: transaction.id,
+      businessId: 0,
+      businessName: transaction.businessName,
+      type: _mapCustomerType(transaction.type),
+      points: transaction.points,
+      date: transaction.createdAt,
+      description: _descriptionForCustomerTransaction(transaction),
+      netAmount: transaction.netAmount,
+      billAmount: transaction.billAmount,
+      logoEmoji: '🏪',
+      referenceId: transaction.billTransactionReferenceId,
+      discountAmount: transaction.discountAmount,
+    );
     
     // Determine Type Colors
     Color typeColor;
@@ -70,16 +85,10 @@ class CustomerTransactionCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-        onTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => TransactionDetailSheet(
-              transactionId: transaction.id,
-            ),
-          );
-        },
+        onTap: () => CustomerTransactionDetailSheet.show(
+          context,
+          customerTransaction,
+        ),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -202,5 +211,50 @@ class CustomerTransactionCard extends StatelessWidget {
       ),
     ),
   );
+  }
+}
+
+String _mapCustomerType(String type) {
+  switch (type.toUpperCase()) {
+    case 'EARN_BILL':
+      return 'EARN';
+    case 'REDEEM_DISCOUNT':
+    case 'REDEEM_OFFER':
+      return 'REDEEM';
+    case 'EXPIRE':
+      return 'EXPIRED';
+    case 'ADJUSTMENT_PLUS':
+    case 'ADJUSTMENT_MINUS':
+      return 'ADJUSTMENT';
+    case 'REVERSAL':
+      return 'REFUND';
+    default:
+      return type.toUpperCase();
+  }
+}
+
+String _descriptionForCustomerTransaction(
+  PointTransactionCustomerAllListViewDto transaction,
+) {
+  final location = transaction.businessLocation.trim();
+  switch (transaction.type.toUpperCase()) {
+    case 'EARN_BILL':
+      return location.isEmpty
+          ? 'Points earned from purchase'
+          : 'Points earned from purchase at $location';
+    case 'REDEEM_DISCOUNT':
+      return 'Points redeemed for discount';
+    case 'REDEEM_OFFER':
+      return 'Points redeemed for offer';
+    case 'EXPIRE':
+      return 'Points expired';
+    case 'ADJUSTMENT_PLUS':
+      return 'Points adjustment added';
+    case 'ADJUSTMENT_MINUS':
+      return 'Points adjustment removed';
+    case 'REVERSAL':
+      return 'Transaction reversed';
+    default:
+      return transaction.type;
   }
 }

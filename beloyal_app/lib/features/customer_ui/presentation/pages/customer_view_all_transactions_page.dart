@@ -6,6 +6,7 @@ import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_transaction_detail_sheet.dart';
 
 class CustomerViewAllTransactionsPage extends ConsumerStatefulWidget {
   const CustomerViewAllTransactionsPage({
@@ -386,7 +387,11 @@ class _CustomerViewAllTransactionsPageState
                         ),
                       ),
                       ...entry.value.map(
-                        (tx) => _TxCard(tx: tx, timeFmt: dateFmt),
+                        (tx) => _TxCard(
+                          tx: tx,
+                          timeFmt: dateFmt,
+                          onTap: () => CustomerTransactionDetailSheet.show(context, tx),
+                        ),
                       ),
                     ],
                   );
@@ -446,9 +451,10 @@ class _SummaryPill extends StatelessWidget {
 }
 
 class _TxCard extends StatelessWidget {
-  const _TxCard({required this.tx, required this.timeFmt});
+  const _TxCard({required this.tx, required this.timeFmt, this.onTap});
   final CustomerTransaction tx;
   final DateFormat timeFmt;
+  final VoidCallback? onTap;
 
   Color get _color => switch (tx.type) {
     'EARN' => AppColors.success,
@@ -482,123 +488,132 @@ class _TxCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPositive = tx.points > 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: _color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.glassBorder),
             ),
-            child: Center(
-              child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 20)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  tx.businessName,
-                  style: AppTypography.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textOnDark,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 20)),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  tx.description,
-                  style: AppTypography.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textMutedDark,
-                    height: 1.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tx.businessName,
+                        style: AppTypography.dmSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textOnDark,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: _color.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(6),
+                      const SizedBox(height: 2),
+                      Text(
+                        tx.description,
+                        style: AppTypography.dmSans(
+                          fontSize: 11,
+                          color: AppColors.textMutedDark,
+                          height: 1.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      const SizedBox(height: 5),
+                      Row(
                         children: [
-                          Icon(_icon, size: 9, color: _color),
-                          const SizedBox(width: 3),
-                          Text(
-                            _typeLabel,
-                            style: AppTypography.dmSans(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: _color,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _color.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(_icon, size: 9, color: _color),
+                                const SizedBox(width: 3),
+                                Text(
+                                  _typeLabel,
+                                  style: AppTypography.dmSans(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: _color,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            timeFmt.format(tx.date),
+                            style: AppTypography.dmSans(
+                              fontSize: 10,
+                              color: AppColors.textMutedDark,
+                            ),
+                          ),
+                          if (tx.billAmount > 0) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '· L ${tx.billAmount.toStringAsFixed(0)}',
+                              style: AppTypography.dmMono(
+                                fontSize: 10,
+                                color: AppColors.textMutedDark,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Text(
-                      timeFmt.format(tx.date),
+                      '${isPositive ? '+' : ''}${tx.points}',
+                      style: AppTypography.dmMono(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: _color,
+                      ),
+                    ),
+                    Text(
+                      'pts',
                       style: AppTypography.dmSans(
                         fontSize: 10,
                         color: AppColors.textMutedDark,
                       ),
                     ),
-                    if (tx.billAmount > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '· L ${tx.billAmount.toStringAsFixed(0)}',
-                        style: AppTypography.dmMono(
-                          fontSize: 10,
-                          color: AppColors.textMutedDark,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${isPositive ? '+' : ''}${tx.points}',
-                style: AppTypography.dmMono(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: _color,
-                ),
-              ),
-              Text(
-                'pts',
-                style: AppTypography.dmSans(
-                  fontSize: 10,
-                  color: AppColors.textMutedDark,
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

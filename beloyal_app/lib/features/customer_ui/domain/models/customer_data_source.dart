@@ -2,8 +2,145 @@ import 'package:flutter/material.dart';
 import '../../data/models/customer_home_dto.dart';
 import 'customer_ui_models.dart';
 
+// ─── Business detail mapper ───────────────────────────────────────────────────
+
+CustomerBusinessDetail mapBusinessDetailDto(CustomerBusinessDetailDto dto) {
+  // Build variant lookup by itemId.
+  final variantsByItem = <int, List<CustomerMenuVariant>>{};
+  for (final v in dto.catalog.variants) {
+    variantsByItem
+        .putIfAbsent(v.itemId, () => [])
+        .add(
+          CustomerMenuVariant(
+            id: v.id,
+            itemId: v.itemId,
+            name: v.name,
+            price: v.price,
+            currency: v.currency,
+            isDefault: v.isDefault,
+            isAvailable: v.isAvailable,
+            description: v.description,
+            sku: v.sku,
+            earnedPoints: v.earnedPoints,
+          ),
+        );
+  }
+
+  final menuCategories = dto.catalog.categories
+      .map(
+        (c) => CustomerMenuCategory(
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          sortOrder: c.sortOrder,
+        ),
+      )
+      .toList();
+
+  final catNameById = <int, String>{
+    for (final c in menuCategories) c.id: c.name,
+  };
+
+  // Include all items; filtering by isAvailable is intentional for the menu tab.
+  final menuItems = dto.catalog.items
+      .where((i) => i.isAvailable)
+      .map(
+        (i) => CustomerMenuItem(
+          id: i.id,
+          name: i.name,
+          description: i.description,
+          categoryId: i.categoryId,
+          menuCategory: catNameById[i.categoryId] ?? '',
+          emoji: i.emoji ?? _emojiFromKey(dto.business.categoryKey),
+          variants: variantsByItem[i.id] ?? [],
+          imageUrl: i.imageUrl,
+          pointsLabel: i.pointsLabel ?? '',
+          isPopular: i.isPopular,
+          isAvailable: i.isAvailable,
+          basePrice: i.basePrice,
+          baseCurrency: i.currency,
+          unit: i.unit,
+        ),
+      )
+      .toList();
+
+  final loc = dto.business.location;
+  final location = CustomerBusinessLocation(
+    addressLine1: loc.addressLine1,
+    addressLine2: loc.addressLine2,
+    city: loc.city,
+    country: loc.country,
+    postalCode: loc.postalCode,
+    mapLabel: loc.mapLabel,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+  );
+
+  final categoryKey = dto.business.categoryKey;
+  final bizMap = {dto.business.id: categoryKey};
+
+  final coupons = dto.coupons.map((p) => _mapPromotion(p, bizMap)).toList();
+
+  final transactions = dto.transactions
+      .map((t) => _mapTransaction(t, bizMap))
+      .toList();
+
+  final loyalty = dto.loyalty;
+  final details = dto.details;
+
+  // Prefer websiteUrl from business info, fall back to details
+  final websiteUrl = dto.business.websiteUrl?.isNotEmpty == true
+      ? dto.business.websiteUrl
+      : details.websiteUrl?.isNotEmpty == true
+      ? details.websiteUrl
+      : null;
+
+  // Prefer phone/email from details (more complete), fall back to business info
+  final phone = details.phone.isNotEmpty
+      ? details.phone
+      : dto.business.phone ?? '';
+  final email = details.email.isNotEmpty
+      ? details.email
+      : dto.business.email ?? '';
+  final categoryLabel = details.categoryLabel.isNotEmpty
+      ? details.categoryLabel
+      : dto.business.categoryLabel;
+
+  return CustomerBusinessDetail(
+    businessId: dto.business.id,
+    loyaltyPolicy: loyalty.loyaltyPolicy,
+    currentPoints: loyalty.currentPoints,
+    nextRewardPoints: loyalty.nextRewardPoints,
+    pointsToNextReward: loyalty.pointsToNextReward,
+    memberCode: loyalty.memberCode,
+    menuCategories: menuCategories,
+    menuItems: menuItems,
+    location: location,
+    about: details.about,
+    coupons: coupons,
+    transactions: transactions,
+    phone: phone,
+    email: email,
+    categoryLabel: categoryLabel,
+    websiteUrl: websiteUrl,
+    minPointsToRedeem: loyalty.minPointsToRedeem,
+    maxPointsToRedeem: loyalty.maxPointsToRedeem,
+    pointsPerUnitDiscount: loyalty.pointsPerUnitDiscount,
+    maxPointsPerTransaction: loyalty.maxPointsPerTransaction,
+    expiryType: loyalty.expiryType,
+    monthsToExpire: loyalty.monthsToExpire,
+    pointsPer: loyalty.pointsPer,
+    amountPer: loyalty.amountPer,
+    lifetimeEarned: loyalty.lifetimeEarned,
+    lifetimeRedeemed: loyalty.lifetimeRedeemed,
+    lifetimeExpired: loyalty.lifetimeExpired,
+    lastActivityAt: loyalty.lastActivityAt != null
+        ? DateTime.tryParse(loyalty.lastActivityAt!)
+        : null,
+  );
+}
+
 // ─── CustomerProfile ──────────────────────────────────────────────────────────
-// Mirrors the customer profile fields expected by existing widgets.
 
 class CustomerProfile {
   const CustomerProfile({
@@ -72,8 +209,6 @@ class CustomerProfile {
   }
 
   factory CustomerProfile.fromSummaryDto(CustomerSummaryDto dto) {
-    // The current /home payload does not include identity/contact fields yet,
-    // so profile UI falls back until a dedicated profile endpoint is wired in.
     return CustomerProfile(
       firstName: '',
       lastName: '',
@@ -93,7 +228,6 @@ class CustomerProfile {
 }
 
 // ─── CustomerDataSource ───────────────────────────────────────────────────────
-// Runtime data source backed by API data.
 
 class CustomerDataSource {
   const CustomerDataSource({
@@ -111,8 +245,6 @@ class CustomerDataSource {
   final List<CustomerCoupon> coupons;
   final List<CustomerReward> rewards;
   final List<CustomerTransaction> transactions;
-
-  // ── Computed accessors used by the customer UI ────────────────────────────
 
   List<CustomerBusiness> get businessesWithPoints =>
       businesses.where((b) => b.points > 0).toList();
@@ -141,8 +273,6 @@ class CustomerDataSource {
   List<CustomerTransaction> transactionsForBusiness(int businessId) =>
       transactions.where((t) => t.businessId == businessId).toList();
 
-  // ── Factories ─────────────────────────────────────────────────────────────
-
   factory CustomerDataSource.empty() {
     return CustomerDataSource(
       summary: CustomerProfile.empty(),
@@ -155,7 +285,6 @@ class CustomerDataSource {
   }
 
   factory CustomerDataSource.fromDto(CustomerHomeDto dto) {
-    // Build businessId → categoryKey lookup for coupon/transaction mapping.
     final bizCategoryMap = <int, String>{
       for (final b in dto.businesses) b.id: b.categoryKey,
     };
@@ -192,6 +321,22 @@ class CustomerDataSource {
                   isHot: coupon.isHot,
                   multiplierLabel: coupon.multiplierLabel,
                   isOwned: true,
+                  imageUrl: coupon.imageUrl,
+                  currency: coupon.currency,
+                  isFeatured: coupon.isFeatured,
+                  totalRedemptions: coupon.totalRedemptions,
+                  totalRedemptionLimit: coupon.totalRedemptionLimit,
+                  startDate: coupon.startDate,
+                  customerCouponId: coupon.customerCouponId,
+                  minimumOrderAmount: coupon.minimumOrderAmount,
+                  maximumDiscountAmount: coupon.maximumDiscountAmount,
+                  freeProductCategory: coupon.freeProductCategory,
+                  freeProductName: coupon.freeProductName,
+                  freeProductVariant: coupon.freeProductVariant,
+                  freeProductQuantity: coupon.freeProductQuantity,
+                  redeemedAt: coupon.redeemedAt,
+                  usedAt: coupon.usedAt,
+                  orderId: coupon.orderId,
                 ),
               )
               .toList();
@@ -222,27 +367,51 @@ CustomerCategory _mapCategory(CustomerCategoryDto dto) {
 }
 
 CustomerBusiness _mapBusiness(CustomerBusinessDto dto) {
+  final gradientColors = _gradientFromBusiness(dto);
   return CustomerBusiness(
     id: dto.id,
     name: dto.name,
     category: dto.categoryLabel,
     categoryId: dto.categoryId,
-    gradientColors: _gradientFromKey(dto.categoryKey),
+    gradientColors: gradientColors,
     points: dto.points,
     nextRewardPoints: dto.nextRewardPoints,
-    distance: 'Unavailable',
     isOpen: dto.isOpen ?? false,
     rating: dto.rating ?? 0.0,
     logoEmoji: _emojiFromKey(dto.categoryKey),
     address: dto.address ?? '',
     phone: dto.phone ?? '',
     email: dto.email ?? '',
-    openingHours: 'Unavailable',
     hasOffer: dto.hasOffer,
     offerLabel: dto.offerLabel,
     description: dto.description ?? '',
     hasLogo: dto.hasLogo,
+    logoUrl: dto.logoUrl,
+    brandColorHex: dto.brandColorHex,
+    gradientHex: dto.gradientHex,
   );
+}
+
+List<Color> _gradientFromBusiness(CustomerBusinessDto dto) {
+  final fallback = _gradientFromKey(dto.categoryKey);
+  final brand = _colorFromHex(dto.brandColorHex);
+  final gradient = _colorFromHex(dto.gradientHex);
+  if (brand == null && gradient == null) return fallback;
+  if (brand != null && gradient != null && brand != gradient) {
+    return [brand.withValues(alpha: 0.7), gradient];
+  }
+  final base = brand ?? gradient!;
+  return [base.withValues(alpha: 0.65), base];
+}
+
+Color? _colorFromHex(String? hex) {
+  if (hex == null) return null;
+  final cleaned = hex.trim().replaceAll('#', '');
+  if (cleaned.length != 6 && cleaned.length != 8) return null;
+  final normalized = cleaned.length == 6 ? 'FF$cleaned' : cleaned;
+  final value = int.tryParse(normalized, radix: 16);
+  if (value == null) return null;
+  return Color(value);
 }
 
 CustomerReward _mapRewardFromBusiness(CustomerBusiness business) {
@@ -282,7 +451,7 @@ CustomerCoupon _mapPromotion(
     businessId: dto.businessId,
     businessName: dto.businessName,
     title: dto.title,
-    discountValue: 0,
+    discountValue: dto.discountValue ?? 0,
     discountDisplay: dto.discountDisplay,
     status: dto.status.toLowerCase(),
     expiresAt: expires,
@@ -296,6 +465,24 @@ CustomerCoupon _mapPromotion(
     usageCount: dto.usageCount,
     isHot: dto.isHot,
     isOwned: dto.isOwned,
+    imageUrl: dto.imageUrl,
+    currency: dto.currency,
+    isFeatured: dto.isFeatured,
+    totalRedemptions: dto.totalRedemptions,
+    totalRedemptionLimit: dto.totalRedemptionLimit,
+    startDate: DateTime.tryParse(dto.startDate ?? ''),
+    customerCouponId: dto.customerCouponId,
+    minimumOrderAmount: dto.minimumOrderAmount,
+    maximumDiscountAmount: dto.maximumDiscountAmount,
+    freeProductCategory: dto.freeProductCategory,
+    freeProductName: dto.freeProductName,
+    freeProductVariant: dto.freeProductVariant,
+    freeProductQuantity: dto.freeProductQuantity,
+    redeemedAt: dto.redeemedAt != null
+        ? DateTime.tryParse(dto.redeemedAt!)
+        : null,
+    usedAt: dto.usedAt != null ? DateTime.tryParse(dto.usedAt!) : null,
+    orderId: dto.orderId,
   );
 }
 
@@ -318,6 +505,14 @@ CustomerTransaction _mapTransaction(
     billAmount: dto.billAmount ?? 0.0,
     logoEmoji: _emojiFromKey(categoryKey),
     referenceId: dto.referenceId,
+    discountAmount: dto.discountAmount,
+    invoiceReference: dto.invoiceReference,
+    note: dto.note,
+    reason: dto.reason,
+    scanMethod: dto.scanMethod,
+    moneyAmount: dto.moneyAmount,
+    ruleAmountPer: dto.ruleAmountPer,
+    rulePointsPer: dto.rulePointsPer,
   );
 }
 

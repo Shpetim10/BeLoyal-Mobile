@@ -9,6 +9,7 @@ import 'package:besahub_app/features/customer_ui/presentation/pages/customer_vie
 import 'package:besahub_app/features/customer_ui/presentation/pages/customer_view_all_coupons_page.dart';
 import 'package:besahub_app/features/customer_ui/presentation/pages/customer_view_all_transactions_page.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_transaction_detail_sheet.dart';
 
 void _push(BuildContext context, Widget page) {
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
@@ -497,18 +498,6 @@ class _QuickShortcuts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shortcuts = [
-      _Shortcut(
-        icon: Icons.qr_code_scanner_rounded,
-        label: 'Scan Card',
-        color: AppColors.primary,
-        onTap: () {},
-      ),
-      _Shortcut(
-        icon: Icons.card_giftcard_rounded,
-        label: 'Rewards',
-        color: AppColors.secondary,
-        onTap: () => _push(context, const CustomerViewAllBusinessesPage()),
-      ),
       _Shortcut(
         icon: Icons.receipt_long_rounded,
         label: 'Transactions',
@@ -1807,68 +1796,71 @@ class _RecentTxRow extends StatelessWidget {
         ? Icons.arrow_upward_rounded
         : Icons.arrow_downward_rounded;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: typeColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: () => CustomerTransactionDetailSheet.show(context, tx),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: typeColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 16)),
+              ),
             ),
-            child: Center(
-              child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tx.businessName,
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textOnDark,
+                    ),
+                  ),
+                  Text(
+                    tx.description,
+                    style: AppTypography.dmSans(
+                      fontSize: 11,
+                      color: AppColors.textMutedDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Icon(typeIcon, color: typeColor, size: 12),
+                const SizedBox(width: 3),
                 Text(
-                  tx.businessName,
-                  style: AppTypography.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textOnDark,
+                  '${isPositive ? '+' : ''}${tx.points}',
+                  style: AppTypography.dmMono(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: typeColor,
                   ),
-                ),
-                Text(
-                  tx.description,
-                  style: AppTypography.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textMutedDark,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(typeIcon, color: typeColor, size: 12),
-              const SizedBox(width: 3),
-              Text(
-                '${isPositive ? '+' : ''}${tx.points}',
-                style: AppTypography.dmMono(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: typeColor,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

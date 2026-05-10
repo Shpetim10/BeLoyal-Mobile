@@ -11,6 +11,13 @@ class CustomerRepository {
     final response = await _dio.get('/customer/home');
     return CustomerHomeDto.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<CustomerBusinessDetailDto> fetchBusinessDetail(int businessId) async {
+    final response = await _dio.get('/customer/businesses/$businessId');
+    return CustomerBusinessDetailDto.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }
 
 final customerRepositoryProvider = Provider<CustomerRepository>((ref) {

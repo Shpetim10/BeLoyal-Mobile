@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:besahub_app/features/customer_loyalty/presentation/controllers/loyalty_card_provider.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
@@ -103,14 +104,12 @@ class CustomerProfileTab extends ConsumerWidget {
                     icon: Icons.notifications_outlined,
                     label: 'Notifications',
                     subtitle: 'Push, email, SMS',
-                    trailing: _ToggleChip(isOn: true),
                     onTap: () {},
                   ),
                   _SettingsItem(
                     icon: Icons.location_on_outlined,
                     label: 'Location Services',
                     subtitle: 'For nearby deals',
-                    trailing: _ToggleChip(isOn: true),
                     onTap: () {},
                   ),
                   _SettingsItem(
@@ -123,7 +122,6 @@ class CustomerProfileTab extends ConsumerWidget {
                     icon: Icons.dark_mode_outlined,
                     label: 'Appearance',
                     subtitle: 'Dark mode',
-                    trailing: _ToggleChip(isOn: true),
                     onTap: () {},
                   ),
                 ],
@@ -135,19 +133,19 @@ class CustomerProfileTab extends ConsumerWidget {
                   _SettingsItem(
                     icon: Icons.home_outlined,
                     label: 'Saved Addresses',
-                    subtitle: '2 addresses saved',
+                    subtitle: 'Coming soon',
                     onTap: () {},
                   ),
                   _SettingsItem(
                     icon: Icons.credit_card_outlined,
                     label: 'Payment Methods',
-                    subtitle: '•••• 4291',
+                    subtitle: 'Coming soon',
                     onTap: () {},
                   ),
                   _SettingsItem(
                     icon: Icons.favorite_outline_rounded,
                     label: 'Favourite Businesses',
-                    subtitle: '5 favourites',
+                    subtitle: 'Coming soon',
                     onTap: () {},
                   ),
                 ],
@@ -177,7 +175,7 @@ class CustomerProfileTab extends ConsumerWidget {
                   _SettingsItem(
                     icon: Icons.info_outline_rounded,
                     label: 'App Version',
-                    subtitle: 'v2.4.1 (build 241)',
+                    subtitle: 'BeLoyal',
                     onTap: null,
                   ),
                 ],
@@ -698,19 +696,16 @@ class _SettingsItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.subtitle,
-    this.trailing,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String subtitle;
-  final Widget? trailing;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final trailingWidget = trailing;
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -749,9 +744,7 @@ class _SettingsItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailingWidget != null)
-              trailingWidget
-            else if (onTap != null)
+            if (onTap != null)
               const Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
@@ -764,41 +757,16 @@ class _SettingsItem extends StatelessWidget {
   }
 }
 
-class _ToggleChip extends StatelessWidget {
-  const _ToggleChip({required this.isOn});
-  final bool isOn;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: (isOn ? AppColors.success : AppColors.textMutedDark).withValues(
-          alpha: 0.12,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        isOn ? 'On' : 'Off',
-        style: AppTypography.dmSans(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: isOn ? AppColors.success : AppColors.textMutedDark,
-        ),
-      ),
-    );
-  }
-}
-
-class _LogoutButton extends StatelessWidget {
+class _LogoutButton extends ConsumerWidget {
   const _LogoutButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () => ref.read(authControllerProvider).logout(),
         child: Container(
           height: 52,
           decoration: BoxDecoration(
