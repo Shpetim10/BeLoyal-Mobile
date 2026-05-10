@@ -11,8 +11,7 @@ import './auth_interceptor.dart';
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl:
-          'https://urgent-finishing-lectures-mission.trycloudflare.com/api/besahub',
+      baseUrl: 'https://gene-wide-bit-further.trycloudflare.com/api/besahub',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {

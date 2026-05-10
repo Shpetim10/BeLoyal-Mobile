@@ -1,61 +1,194 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
-import 'package:besahub_app/features/customer_ui/mock/customer_mock_data.dart';
+import 'package:besahub_app/features/customer_loyalty/presentation/controllers/loyalty_card_provider.dart';
+import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 
-class CustomerProfileTab extends StatelessWidget {
+class CustomerProfileTab extends ConsumerWidget {
   const CustomerProfileTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final customer = CustomerMockData.customer;
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 120),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ProfileHero(customer: customer),
-          const SizedBox(height: 20),
-          _FancyStatsCard(customer: customer),
-          const SizedBox(height: 20),
-          _SectionLabel(label: 'Account'),
-          _SettingsGroup(items: [
-            _SettingsItem(icon: Icons.person_outline_rounded, label: 'Personal Info', subtitle: 'Name, gender, birthday', onTap: () {}),
-            _SettingsItem(icon: Icons.phone_outlined, label: 'Phone Number', subtitle: customer.phone, onTap: () {}),
-            _SettingsItem(icon: Icons.email_outlined, label: 'Email Address', subtitle: customer.email, onTap: () {}),
-            _SettingsItem(icon: Icons.lock_outline_rounded, label: 'Change Password', subtitle: 'Update your password', onTap: () {}),
-          ]),
-          const SizedBox(height: 16),
-          _SectionLabel(label: 'Preferences'),
-          _SettingsGroup(items: [
-            _SettingsItem(icon: Icons.notifications_outlined, label: 'Notifications', subtitle: 'Push, email, SMS', trailing: _ToggleChip(isOn: true), onTap: () {}),
-            _SettingsItem(icon: Icons.location_on_outlined, label: 'Location Services', subtitle: 'For nearby deals', trailing: _ToggleChip(isOn: true), onTap: () {}),
-            _SettingsItem(icon: Icons.language_rounded, label: 'Language', subtitle: 'English', onTap: () {}),
-            _SettingsItem(icon: Icons.dark_mode_outlined, label: 'Appearance', subtitle: 'Dark mode', trailing: _ToggleChip(isOn: true), onTap: () {}),
-          ]),
-          const SizedBox(height: 16),
-          _SectionLabel(label: 'Saved'),
-          _SettingsGroup(items: [
-            _SettingsItem(icon: Icons.home_outlined, label: 'Saved Addresses', subtitle: '2 addresses saved', onTap: () {}),
-            _SettingsItem(icon: Icons.credit_card_outlined, label: 'Payment Methods', subtitle: '•••• 4291', onTap: () {}),
-            _SettingsItem(icon: Icons.favorite_outline_rounded, label: 'Favourite Businesses', subtitle: '5 favourites', onTap: () {}),
-          ]),
-          const SizedBox(height: 16),
-          _SectionLabel(label: 'Support'),
-          _SettingsGroup(items: [
-            _SettingsItem(icon: Icons.help_outline_rounded, label: 'Help Centre', subtitle: 'FAQs and support', onTap: () {}),
-            _SettingsItem(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', subtitle: 'How we use your data', onTap: () {}),
-            _SettingsItem(icon: Icons.description_outlined, label: 'Terms of Service', subtitle: 'Usage agreement', onTap: () {}),
-            _SettingsItem(icon: Icons.info_outline_rounded, label: 'App Version', subtitle: 'v2.4.1 (build 241)', onTap: null),
-          ]),
-          const SizedBox(height: 16),
-          _LogoutButton(),
-          const SizedBox(height: 32),
-        ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customerData = ref.watch(customerDataProvider);
+    final loyaltyCard = ref.watch(loyaltyCardProvider).asData?.value;
+    return customerData.when(
+      loading: () => const CustomerLoadingState(),
+      error: (_, __) => CustomerErrorState(
+        onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
       ),
+      data: (data) {
+        final customer = data.summary;
+        final displayName =
+            [
+                  loyaltyCard?.firstName ?? customer.firstName,
+                  loyaltyCard?.lastName ?? customer.lastName,
+                ]
+                .whereType<String>()
+                .where((part) => part.trim().isNotEmpty)
+                .join(' ')
+                .trim();
+        final displayInitials = displayName.isNotEmpty
+            ? displayName
+                  .split(' ')
+                  .where((part) => part.isNotEmpty)
+                  .take(2)
+                  .map((part) => part[0].toUpperCase())
+                  .join()
+            : customer.initials;
+        final displayMemberCode = loyaltyCard?.manualCode.isNotEmpty == true
+            ? loyaltyCard!.manualCode
+            : customer.memberCode;
+        final displayEmail = customer.email.isNotEmpty
+            ? customer.email
+            : 'Not available';
+        final displayPhone = customer.phone.isNotEmpty
+            ? customer.phone
+            : 'Not available';
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ProfileHero(
+                customer: customer,
+                displayName: displayName.isNotEmpty ? displayName : 'Customer',
+                displayInitials: displayInitials,
+                displayEmail: displayEmail,
+                displayMemberCode: displayMemberCode.isNotEmpty
+                    ? displayMemberCode
+                    : 'Unavailable',
+              ),
+              const SizedBox(height: 20),
+              _FancyStatsCard(customer: customer),
+              const SizedBox(height: 20),
+              _SectionLabel(label: 'Account'),
+              _SettingsGroup(
+                items: [
+                  _SettingsItem(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Personal Info',
+                    subtitle: 'Name, gender, birthday',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.phone_outlined,
+                    label: 'Phone Number',
+                    subtitle: displayPhone,
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.email_outlined,
+                    label: 'Email Address',
+                    subtitle: displayEmail,
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.lock_outline_rounded,
+                    label: 'Change Password',
+                    subtitle: 'Update your password',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _SectionLabel(label: 'Preferences'),
+              _SettingsGroup(
+                items: [
+                  _SettingsItem(
+                    icon: Icons.notifications_outlined,
+                    label: 'Notifications',
+                    subtitle: 'Push, email, SMS',
+                    trailing: _ToggleChip(isOn: true),
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.location_on_outlined,
+                    label: 'Location Services',
+                    subtitle: 'For nearby deals',
+                    trailing: _ToggleChip(isOn: true),
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.language_rounded,
+                    label: 'Language',
+                    subtitle: 'English',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.dark_mode_outlined,
+                    label: 'Appearance',
+                    subtitle: 'Dark mode',
+                    trailing: _ToggleChip(isOn: true),
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _SectionLabel(label: 'Saved'),
+              _SettingsGroup(
+                items: [
+                  _SettingsItem(
+                    icon: Icons.home_outlined,
+                    label: 'Saved Addresses',
+                    subtitle: '2 addresses saved',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.credit_card_outlined,
+                    label: 'Payment Methods',
+                    subtitle: '•••• 4291',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.favorite_outline_rounded,
+                    label: 'Favourite Businesses',
+                    subtitle: '5 favourites',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _SectionLabel(label: 'Support'),
+              _SettingsGroup(
+                items: [
+                  _SettingsItem(
+                    icon: Icons.help_outline_rounded,
+                    label: 'Help Centre',
+                    subtitle: 'FAQs and support',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.privacy_tip_outlined,
+                    label: 'Privacy Policy',
+                    subtitle: 'How we use your data',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.description_outlined,
+                    label: 'Terms of Service',
+                    subtitle: 'Usage agreement',
+                    onTap: () {},
+                  ),
+                  _SettingsItem(
+                    icon: Icons.info_outline_rounded,
+                    label: 'App Version',
+                    subtitle: 'v2.4.1 (build 241)',
+                    onTap: null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _LogoutButton(),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -63,8 +196,18 @@ class CustomerProfileTab extends StatelessWidget {
 // ─── Profile Hero ─────────────────────────────────────────────────────────────
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.customer});
+  const _ProfileHero({
+    required this.customer,
+    required this.displayName,
+    required this.displayInitials,
+    required this.displayEmail,
+    required this.displayMemberCode,
+  });
   final dynamic customer;
+  final String displayName;
+  final String displayInitials;
+  final String displayEmail;
+  final String displayMemberCode;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +230,11 @@ class _ProfileHero extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [AppColors.primaryDark, AppColors.primary, AppColors.secondary],
+                    colors: [
+                      AppColors.primaryDark,
+                      AppColors.primary,
+                      AppColors.secondary,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -101,8 +248,12 @@ class _ProfileHero extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    customer.initials,
-                    style: AppTypography.outfit(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.white),
+                    displayInitials,
+                    style: AppTypography.outfit(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -112,27 +263,55 @@ class _ProfileHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      customer.fullName,
-                      style: AppTypography.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textOnDark),
+                      displayName,
+                      style: AppTypography.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textOnDark,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(customer.email, style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark)),
+                    Text(
+                      displayEmail,
+                      style: AppTypography.dmSans(
+                        fontSize: 12,
+                        color: AppColors.textMutedDark,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.loyalty_rounded, color: AppColors.primary, size: 11),
+                              const Icon(
+                                Icons.loyalty_rounded,
+                                color: AppColors.primary,
+                                size: 11,
+                              ),
                               const SizedBox(width: 4),
-                              Text('Member since ${customer.memberSince}', style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                              Text(
+                                customer.memberSince.isNotEmpty
+                                    ? 'Member since ${customer.memberSince}'
+                                    : 'Loyalty member',
+                                style: AppTypography.dmSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -149,9 +328,15 @@ class _ProfileHero extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                    ),
                   ),
-                  child: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 18),
+                  child: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
@@ -160,14 +345,23 @@ class _ProfileHero extends StatelessWidget {
           // Member code row
           GestureDetector(
             onTap: () {
-              Clipboard.setData(ClipboardData(text: customer.memberCode));
+              final memberCode = displayMemberCode;
+              Clipboard.setData(ClipboardData(text: memberCode));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Member code copied!', style: AppTypography.dmSans(fontSize: 13, color: Colors.white)),
+                  content: Text(
+                    'Member code copied!',
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      color: Colors.white,
+                    ),
+                  ),
                   backgroundColor: AppColors.surfaceDark,
                   duration: const Duration(seconds: 2),
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               );
             },
@@ -180,16 +374,34 @@ class _ProfileHero extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.badge_outlined, color: AppColors.textMutedDark, size: 16),
+                  const Icon(
+                    Icons.badge_outlined,
+                    color: AppColors.textMutedDark,
+                    size: 16,
+                  ),
                   const SizedBox(width: 10),
-                  Text('Member Code', style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark)),
+                  Text(
+                    'Member Code',
+                    style: AppTypography.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textMutedDark,
+                    ),
+                  ),
                   const Spacer(),
                   Text(
-                    customer.memberCode,
-                    style: AppTypography.dmMono(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    displayMemberCode,
+                    style: AppTypography.dmMono(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.copy_rounded, color: AppColors.primary, size: 14),
+                  const Icon(
+                    Icons.copy_rounded,
+                    color: AppColors.primary,
+                    size: 14,
+                  ),
                 ],
               ),
             ),
@@ -199,18 +411,38 @@ class _ProfileHero extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('Roles:', style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark)),
-                const SizedBox(width: 8),
-                ...(customer.roles as List<String>).map((r) => Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                Text(
+                  'Roles:',
+                  style: AppTypography.dmSans(
+                    fontSize: 12,
+                    color: AppColors.textMutedDark,
                   ),
-                  child: Text(r, style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                )),
+                ),
+                const SizedBox(width: 8),
+                ...(customer.roles as List<String>).map(
+                  (r) => Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      r,
+                      style: AppTypography.dmSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -270,21 +502,53 @@ class _FancyStatsCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.auto_graph_rounded, color: AppColors.primary, size: 18),
+                        const Icon(
+                          Icons.auto_graph_rounded,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
-                        Text('Loyalty Stats', style: AppTypography.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textOnDark)),
+                        Text(
+                          'Loyalty Stats',
+                          style: AppTypography.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textOnDark,
+                          ),
+                        ),
                         const Spacer(),
-                        Text('Since ${customer.memberSince}', style: AppTypography.dmSans(fontSize: 10, color: AppColors.textMutedDark)),
+                        Text(
+                          'Since ${customer.memberSince}',
+                          style: AppTypography.dmSans(
+                            fontSize: 10,
+                            color: AppColors.textMutedDark,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 18),
                     Row(
                       children: [
-                        _StatBlock(label: 'Lifetime\nPoints', value: '${customer.lifetimePoints}', color: AppColors.gold, icon: Icons.stars_rounded),
+                        _StatBlock(
+                          label: 'Lifetime\nPoints',
+                          value: '${customer.lifetimePoints}',
+                          color: AppColors.gold,
+                          icon: Icons.stars_rounded,
+                        ),
                         _StatDivider(),
-                        _StatBlock(label: 'Current\nBalance', value: '${customer.currentPoints}', color: AppColors.primary, icon: Icons.account_balance_wallet_outlined),
+                        _StatBlock(
+                          label: 'Current\nBalance',
+                          value: '${customer.currentPoints}',
+                          color: AppColors.primary,
+                          icon: Icons.account_balance_wallet_outlined,
+                        ),
                         _StatDivider(),
-                        _StatBlock(label: 'Points\nSpent', value: '${customer.spentPoints}', color: AppColors.accent, icon: Icons.redeem_rounded),
+                        _StatBlock(
+                          label: 'Points\nSpent',
+                          value: '${customer.spentPoints}',
+                          color: AppColors.accent,
+                          icon: Icons.redeem_rounded,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 18),
@@ -292,11 +556,26 @@ class _FancyStatsCard extends StatelessWidget {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _StatBlock(label: 'Businesses\nVisited', value: '${customer.businessesVisited}', color: AppColors.secondary, icon: Icons.storefront_rounded),
+                        _StatBlock(
+                          label: 'Businesses\nVisited',
+                          value: '${customer.businessesVisited}',
+                          color: AppColors.secondary,
+                          icon: Icons.storefront_rounded,
+                        ),
                         _StatDivider(),
-                        _StatBlock(label: 'Active\nCoupons', value: '${customer.activeCoupons}', color: AppColors.success, icon: Icons.confirmation_number_rounded),
+                        _StatBlock(
+                          label: 'Active\nCoupons',
+                          value: '${customer.activeCoupons}',
+                          color: AppColors.success,
+                          icon: Icons.confirmation_number_rounded,
+                        ),
                         _StatDivider(),
-                        _StatBlock(label: 'Active\nRewards', value: '${customer.activeRewards}', color: AppColors.gold, icon: Icons.card_giftcard_rounded),
+                        _StatBlock(
+                          label: 'Active\nRewards',
+                          value: '${customer.activeRewards}',
+                          color: AppColors.gold,
+                          icon: Icons.card_giftcard_rounded,
+                        ),
                       ],
                     ),
                   ],
@@ -311,7 +590,12 @@ class _FancyStatsCard extends StatelessWidget {
 }
 
 class _StatBlock extends StatelessWidget {
-  const _StatBlock({required this.label, required this.value, required this.color, required this.icon});
+  const _StatBlock({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
   final String label;
   final String value;
   final Color color;
@@ -332,9 +616,24 @@ class _StatBlock extends StatelessWidget {
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 8),
-          Text(value, style: AppTypography.dmMono(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textOnDark)),
+          Text(
+            value,
+            style: AppTypography.dmMono(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textOnDark,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(label, style: AppTypography.dmSans(fontSize: 10, color: AppColors.textMutedDark, height: 1.4), textAlign: TextAlign.center),
+          Text(
+            label,
+            style: AppTypography.dmSans(
+              fontSize: 10,
+              color: AppColors.textMutedDark,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -384,7 +683,8 @@ class _SettingsGroup extends StatelessWidget {
       child: Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[
-            if (i > 0) Divider(height: 1, indent: 56, color: AppColors.glassBorder),
+            if (i > 0)
+              Divider(height: 1, indent: 56, color: AppColors.glassBorder),
             items[i],
           ],
         ],
@@ -410,6 +710,7 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trailingWidget = trailing;
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -430,14 +731,32 @@ class _SettingsItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark)),
-                  Text(subtitle, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                  Text(
+                    label,
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textOnDark,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: AppTypography.dmSans(
+                      fontSize: 11,
+                      color: AppColors.textMutedDark,
+                    ),
+                  ),
                 ],
               ),
             ),
-            if (trailing != null) trailing!
+            if (trailingWidget != null)
+              trailingWidget
             else if (onTap != null)
-              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMutedDark),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: AppColors.textMutedDark,
+              ),
           ],
         ),
       ),
@@ -454,12 +773,18 @@ class _ToggleChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: (isOn ? AppColors.success : AppColors.textMutedDark).withValues(alpha: 0.12),
+        color: (isOn ? AppColors.success : AppColors.textMutedDark).withValues(
+          alpha: 0.12,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         isOn ? 'On' : 'Off',
-        style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: isOn ? AppColors.success : AppColors.textMutedDark),
+        style: AppTypography.dmSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isOn ? AppColors.success : AppColors.textMutedDark,
+        ),
       ),
     );
   }
@@ -484,9 +809,20 @@ class _LogoutButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+              const Icon(
+                Icons.logout_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
               const SizedBox(width: 10),
-              Text('Log Out', style: AppTypography.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.error)),
+              Text(
+                'Log Out',
+                style: AppTypography.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.error,
+                ),
+              ),
             ],
           ),
         ),

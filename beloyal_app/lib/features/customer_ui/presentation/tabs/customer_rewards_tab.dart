@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
-import 'package:besahub_app/features/customer_ui/mock/customer_mock_data.dart';
+import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
+import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 
 enum _RewardTab { all, available, coupons, used }
 
-class CustomerRewardsTab extends StatefulWidget {
+class CustomerRewardsTab extends ConsumerStatefulWidget {
   const CustomerRewardsTab({super.key});
 
   @override
-  State<CustomerRewardsTab> createState() => _CustomerRewardsTabState();
+  ConsumerState<CustomerRewardsTab> createState() => _CustomerRewardsTabState();
 }
 
-class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
+class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
   _RewardTab _selectedTab = _RewardTab.all;
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
@@ -23,47 +26,78 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
     super.dispose();
   }
 
-  List<MockCoupon> get _filteredCoupons {
-    var coupons = CustomerMockData.coupons;
+  List<CustomerCoupon> _filteredCoupons(List<CustomerCoupon> source) {
+    var coupons = source;
     if (_searchQuery.isNotEmpty) {
-      coupons = coupons.where((c) =>
-        c.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        c.businessName.toLowerCase().contains(_searchQuery.toLowerCase())
-      ).toList();
+      coupons = coupons
+          .where(
+            (c) =>
+                c.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                c.businessName.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ),
+          )
+          .toList();
     }
     return switch (_selectedTab) {
       _RewardTab.all => coupons,
-      _RewardTab.available => coupons.where((c) => c.status == 'active' || c.status == 'expiring').toList(),
-      _RewardTab.coupons => coupons.where((c) => c.status == 'expiring' || c.status == 'expired').toList(),
+      _RewardTab.available =>
+        coupons
+            .where((c) => c.status == 'active' || c.status == 'expiring')
+            .toList(),
+      _RewardTab.coupons =>
+        coupons
+            .where((c) => c.status == 'expiring' || c.status == 'expired')
+            .toList(),
       _RewardTab.used => coupons.where((c) => c.isUsed).toList(),
     };
   }
 
-  List<MockReward> get _filteredRewards {
-    if (_selectedTab != _RewardTab.all && _selectedTab != _RewardTab.available) return [];
-    return CustomerMockData.rewards;
+  List<CustomerReward> _filteredRewards(List<CustomerReward> rewards) {
+    if (_selectedTab != _RewardTab.all &&
+        _selectedTab != _RewardTab.available) {
+      return [];
+    }
+    return rewards;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildSearchBar(),
-        _buildFilterTabs(),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 120),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              if (_selectedTab == _RewardTab.available || _selectedTab == _RewardTab.all) ...[
-                _buildExpiringBanner(),
-                _buildRewardsSection(),
-              ],
-              _buildCouponsSection(),
-            ],
-          ),
-        ),
-      ],
+    final customerData = ref.watch(customerDataProvider);
+
+    return customerData.when(
+      loading: () => const CustomerLoadingState(),
+      error: (_, __) => CustomerErrorState(
+        onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
+      ),
+      data: (data) {
+        final filteredCoupons = _filteredCoupons(data.coupons);
+        final filteredRewards = _filteredRewards(data.rewards);
+        final expiringCount = data.coupons
+            .where((c) => c.status == 'expiring')
+            .length;
+
+        return Column(
+          children: [
+            _buildSearchBar(),
+            _buildFilterTabs(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 120),
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  if (_selectedTab == _RewardTab.available ||
+                      _selectedTab == _RewardTab.all) ...[
+                    _buildExpiringBanner(expiringCount),
+                    _buildRewardsSection(filteredRewards),
+                  ],
+                  _buildCouponsSection(filteredCoupons),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -76,12 +110,26 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
         style: AppTypography.dmSans(fontSize: 14, color: AppColors.textOnDark),
         decoration: InputDecoration(
           hintText: 'Search rewards & coupons...',
-          hintStyle: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark),
-          prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textMutedDark, size: 20),
+          hintStyle: AppTypography.dmSans(
+            fontSize: 14,
+            color: AppColors.textMutedDark,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.textMutedDark,
+            size: 20,
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? GestureDetector(
-                  onTap: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); },
-                  child: const Icon(Icons.clear_rounded, color: AppColors.textMutedDark, size: 18),
+                  onTap: () {
+                    _searchCtrl.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                  child: const Icon(
+                    Icons.clear_rounded,
+                    color: AppColors.textMutedDark,
+                    size: 18,
+                  ),
                 )
               : null,
           filled: true,
@@ -147,8 +195,7 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
     );
   }
 
-  Widget _buildExpiringBanner() {
-    final expiring = CustomerMockData.coupons.where((c) => c.status == 'expiring').length;
+  Widget _buildExpiringBanner(int expiring) {
     if (expiring == 0) return const SizedBox.shrink();
 
     return Container(
@@ -166,17 +213,24 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
           Expanded(
             child: Text(
               '$expiring coupon${expiring > 1 ? 's' : ''} expiring soon! Use them before they\'re gone.',
-              style: AppTypography.dmSans(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.error),
+              style: AppTypography.dmSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.error,
+              ),
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.error, size: 14),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: AppColors.error,
+            size: 14,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRewardsSection() {
-    final rewards = _filteredRewards;
+  Widget _buildRewardsSection(List<CustomerReward> rewards) {
     if (rewards.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -186,7 +240,9 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
           child: Text(
             'Rewards',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         SizedBox(
@@ -203,9 +259,7 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
     );
   }
 
-  Widget _buildCouponsSection() {
-    final coupons = _filteredCoupons;
-
+  Widget _buildCouponsSection(List<CustomerCoupon> coupons) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -213,16 +267,20 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
           child: Text(
             'Coupons',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         if (coupons.isEmpty)
           _EmptyCoupons(tab: _selectedTab)
         else
-          ...coupons.map((c) => Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: _CouponCard(coupon: c),
-              )),
+          ...coupons.map(
+            (c) => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: _CouponCard(coupon: c),
+            ),
+          ),
       ],
     );
   }
@@ -232,13 +290,16 @@ class _CustomerRewardsTabState extends State<CustomerRewardsTab> {
 
 class _RewardCard extends StatelessWidget {
   const _RewardCard({required this.reward});
-  final MockReward reward;
+  final CustomerReward reward;
 
   @override
   Widget build(BuildContext context) {
     final progress = (reward.currentPoints / reward.pointCost).clamp(0.0, 1.0);
     final canRedeem = reward.currentPoints >= reward.pointCost;
-    final remaining = (reward.pointCost - reward.currentPoints).clamp(0, reward.pointCost);
+    final remaining = (reward.pointCost - reward.currentPoints).clamp(
+      0,
+      reward.pointCost,
+    );
 
     return GestureDetector(
       onTap: () {},
@@ -280,31 +341,54 @@ class _RewardCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 20),
+                      const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       const Spacer(),
                       if (canRedeem)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                            border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.4),
+                            ),
                           ),
-                          child: Text('Redeem!', style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.success)),
+                          child: Text(
+                            'Redeem!',
+                            style: AppTypography.dmSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.success,
+                            ),
+                          ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
                     reward.title,
-                    style: AppTypography.outfit(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                    style: AppTypography.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     reward.businessName,
-                    style: AppTypography.dmSans(fontSize: 10, color: Colors.white.withValues(alpha: 0.65)),
+                    style: AppTypography.dmSans(
+                      fontSize: 10,
+                      color: Colors.white.withValues(alpha: 0.65),
+                    ),
                   ),
                   const Spacer(),
                   ClipRRect(
@@ -318,10 +402,14 @@ class _RewardCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    canRedeem ? '${reward.pointCost} pts — Ready!' : '$remaining pts to go',
+                    canRedeem
+                        ? '${reward.pointCost} pts — Ready!'
+                        : '$remaining pts to go',
                     style: AppTypography.dmSans(
                       fontSize: 9,
-                      color: canRedeem ? AppColors.gold : Colors.white.withValues(alpha: 0.65),
+                      color: canRedeem
+                          ? AppColors.gold
+                          : Colors.white.withValues(alpha: 0.65),
                       fontWeight: canRedeem ? FontWeight.w700 : FontWeight.w400,
                     ),
                   ),
@@ -339,7 +427,7 @@ class _RewardCard extends StatelessWidget {
 
 class _CouponCard extends StatelessWidget {
   const _CouponCard({required this.coupon});
-  final MockCoupon coupon;
+  final CustomerCoupon coupon;
 
   Color get _statusColor => switch (coupon.status) {
     'active' => AppColors.success,
@@ -374,8 +462,8 @@ class _CouponCard extends StatelessWidget {
     final timeLabel = isExpired
         ? 'Expired ${-daysLeft}d ago'
         : hoursLeft < 24
-            ? 'Expires in ${hoursLeft}h'
-            : 'Expires in ${daysLeft}d';
+        ? 'Expires in ${hoursLeft}h'
+        : 'Expires in ${daysLeft}d';
 
     return Opacity(
       opacity: coupon.isUsed || coupon.status == 'expired' ? 0.55 : 1.0,
@@ -425,8 +513,8 @@ class _CouponCard extends StatelessWidget {
                     coupon.type == 'FREE_PRODUCT'
                         ? Icons.card_giftcard_rounded
                         : coupon.type == 'PERCENTAGE_DISCOUNT'
-                            ? Icons.percent_rounded
-                            : Icons.discount_rounded,
+                        ? Icons.percent_rounded
+                        : Icons.discount_rounded,
                     color: Colors.white.withValues(alpha: 0.7),
                     size: 16,
                   ),
@@ -450,13 +538,20 @@ class _CouponCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             coupon.title,
-                            style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                            style: AppTypography.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textOnDark,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: _statusColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
@@ -466,31 +561,69 @@ class _CouponCard extends StatelessWidget {
                             children: [
                               Icon(_statusIcon, size: 10, color: _statusColor),
                               const SizedBox(width: 3),
-                              Text(_statusLabel, style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: _statusColor)),
+                              Text(
+                                _statusLabel,
+                                style: AppTypography.dmSans(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: _statusColor,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(coupon.businessName, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                    Text(
+                      coupon.businessName,
+                      style: AppTypography.dmSans(
+                        fontSize: 11,
+                        color: AppColors.textMutedDark,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 11, color: AppColors.textMutedDark),
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 11,
+                          color: AppColors.textMutedDark,
+                        ),
                         const SizedBox(width: 4),
-                        Text(timeLabel, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                        Text(
+                          timeLabel,
+                          style: AppTypography.dmSans(
+                            fontSize: 11,
+                            color: AppColors.textMutedDark,
+                          ),
+                        ),
                         const Spacer(),
                         if (isActive)
                           GestureDetector(
                             onTap: () {},
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    AppColors.primaryDark,
+                                    AppColors.primary,
+                                  ],
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text('Use Now', style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                              child: Text(
+                                'Use Now',
+                                style: AppTypography.dmSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ),
                       ],
@@ -542,7 +675,9 @@ class _EmptyCoupons extends StatelessWidget {
       child: Column(
         children: [
           Icon(
-            tab == _RewardTab.used ? Icons.done_all_rounded : Icons.confirmation_number_outlined,
+            tab == _RewardTab.used
+                ? Icons.done_all_rounded
+                : Icons.confirmation_number_outlined,
             size: 52,
             color: AppColors.textMutedDark.withValues(alpha: 0.4),
           ),
@@ -550,7 +685,11 @@ class _EmptyCoupons extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark, height: 1.6),
+            style: AppTypography.dmSans(
+              fontSize: 14,
+              color: AppColors.textMutedDark,
+              height: 1.6,
+            ),
           ),
         ],
       ),

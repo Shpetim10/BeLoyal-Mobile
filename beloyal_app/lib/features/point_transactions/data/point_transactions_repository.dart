@@ -47,7 +47,7 @@ class PointTransactionsRepository {
   /// Fetches all points transactions for the logged-in customer.
   Future<List<PointTransactionCustomerAllListViewDto>> fetchCustomerTransactions() async {
     try {
-      final response = await _dio.get('/customer/transactions');
+      final response = await _dio.get('/customer/points-transactions');
       final data = response.data;
       if (data is List) {
         return data

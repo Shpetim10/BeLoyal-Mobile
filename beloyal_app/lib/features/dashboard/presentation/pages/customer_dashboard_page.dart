@@ -16,7 +16,8 @@ import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_home
 import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_rewards_tab.dart';
 import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_orders_tab.dart';
 import 'package:besahub_app/features/customer_ui/presentation/tabs/customer_profile_tab.dart';
-import 'package:besahub_app/features/customer_ui/mock/customer_mock_data.dart';
+import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 
 class CustomerDashboardPage extends ConsumerStatefulWidget {
   const CustomerDashboardPage({super.key});
@@ -32,7 +33,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionControllerProvider);
-    final customer = CustomerMockData.customer;
+    final customerData = ref.watch(customerDataProvider);
 
     return Scaffold(
       extendBody: true,
@@ -40,31 +41,35 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
         decoration: const BoxDecoration(gradient: AppColors.bgDarkGradient),
         child: SafeArea(
           bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Top Header ───────────────────────────────────────────────
-              _CustomerTopBar(
-                customer: customer,
-                session: session,
-                selectedIndex: _selectedIndex,
-                onRoleSwitchTap: () => _switchRole(context, ref, session!),
-                onLogoutTap: () => _logout(context, ref),
-              ),
-              // ── Page Content ─────────────────────────────────────────────
-              Expanded(
-                child: IndexedStack(
-                  index: _selectedIndex,
-                  children: const [
-                    CustomerHomeTab(),
-                    CustomerRewardsTab(),
-                    SizedBox.shrink(), // center card slot — handled via bottom sheet
-                    CustomerOrdersTab(),
-                    CustomerProfileTab(),
-                  ],
+          child: customerData.when(
+            loading: () => const CustomerLoadingState(),
+            error: (_, __) => CustomerErrorState(
+              onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
+            ),
+            data: (data) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CustomerTopBar(
+                  customer: data.summary,
+                  session: session,
+                  selectedIndex: _selectedIndex,
+                  onRoleSwitchTap: () => _switchRole(context, ref, session!),
+                  onLogoutTap: () => _logout(context, ref),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: const [
+                      CustomerHomeTab(),
+                      CustomerRewardsTab(),
+                      SizedBox.shrink(),
+                      CustomerOrdersTab(),
+                      CustomerProfileTab(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -82,7 +87,10 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
           DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
         ],
         rightItems: const [
-          DashboardNavItem(icon: Icons.receipt_long_rounded, label: 'Transactions'),
+          DashboardNavItem(
+            icon: Icons.receipt_long_rounded,
+            label: 'Transactions',
+          ),
           DashboardNavItem(icon: Icons.person_rounded, label: 'Profile'),
         ],
         centerIcon: Icons.credit_card_rounded,
@@ -118,11 +126,13 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
         return;
       }
 
-      ref.read(sessionControllerProvider.notifier).switchRole(
-        role,
-        businessId: businessId,
-        businessName: result['businessName'] as String?,
-      );
+      ref
+          .read(sessionControllerProvider.notifier)
+          .switchRole(
+            role,
+            businessId: businessId,
+            businessName: result['businessName'] as String?,
+          );
 
       final path = switch (role) {
         UserRole.customer => '/customer/dashboard',
@@ -164,7 +174,10 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
             },
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 child: Consumer(
                   builder: (context, ref, child) {
                     final cardAsync = ref.watch(loyaltyCardProvider);
@@ -204,7 +217,8 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                           cardAsync.when(
                             loading: () => const _CardLoadingSkeleton(),
                             error: (err, _) => _CardErrorView(
-                              onRetry: () => ref.invalidate(loyaltyCardProvider),
+                              onRetry: () =>
+                                  ref.invalidate(loyaltyCardProvider),
                             ),
                             data: (card) => PremiumLoyaltyCard(
                               firstName: card.firstName,
@@ -222,7 +236,9 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                               borderRadius: BorderRadius.circular(14),
                               color: AppColors.primary.withValues(alpha: 0.08),
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.18),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.18,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -288,8 +304,8 @@ class _CustomerTopBar extends ConsumerWidget {
   final VoidCallback onRoleSwitchTap;
   final VoidCallback onLogoutTap;
 
-  String _pageTitle(int index) => switch (index) {
-    0 => 'Good ${_greeting()}, ${customer.firstName} 👋',
+  String _pageTitle(int index, String firstName) => switch (index) {
+    0 => 'Good ${_greeting()}, $firstName 👋',
     1 => 'Rewards',
     2 => 'Loyalty Card',
     3 => 'Transactions',
@@ -307,6 +323,16 @@ class _CustomerTopBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canSwitch = session?.user.canSwitchRoles ?? false;
+    final loyaltyCard = ref.watch(loyaltyCardProvider).asData?.value;
+    final displayFirstName = loyaltyCard?.firstName.isNotEmpty == true
+        ? loyaltyCard!.firstName
+        : customer.firstNameOrFallback;
+    final displayInitials =
+        '${(loyaltyCard?.firstName.isNotEmpty == true ? loyaltyCard!.firstName[0] : customer.initials)}'
+        '${(loyaltyCard?.lastName.isNotEmpty == true ? loyaltyCard!.lastName[0] : '').toUpperCase()}';
+    final avatarInitials = displayInitials.trim().isEmpty
+        ? customer.initials
+        : displayInitials.trim();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -317,7 +343,8 @@ class _CustomerTopBar extends ConsumerWidget {
             children: [
               // BesaHub logo
               ShaderMask(
-                shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                shaderCallback: (bounds) =>
+                    AppColors.primaryGradient.createShader(bounds),
                 blendMode: BlendMode.srcIn,
                 child: const Text(
                   'BesaHub',
@@ -335,20 +362,33 @@ class _CustomerTopBar extends ConsumerWidget {
                 GestureDetector(
                   onTap: onRoleSwitchTap,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.30)),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.30),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 14),
+                        const Icon(
+                          Icons.swap_horiz_rounded,
+                          color: AppColors.primary,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           session?.activeRole.displayName ?? '',
-                          style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                          style: AppTypography.dmSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -357,10 +397,7 @@ class _CustomerTopBar extends ConsumerWidget {
                 const SizedBox(width: 8),
               ],
               // Avatar menu
-              _AvatarMenu(
-                initials: customer.initials as String,
-                onLogoutTap: onLogoutTap,
-              ),
+              _AvatarMenu(initials: avatarInitials, onLogoutTap: onLogoutTap),
             ],
           ),
           const SizedBox(height: 12),
@@ -369,9 +406,11 @@ class _CustomerTopBar extends ConsumerWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                _pageTitle(selectedIndex),
+                _pageTitle(selectedIndex, displayFirstName),
                 key: ValueKey(selectedIndex),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
@@ -411,7 +450,11 @@ class _AvatarMenu extends ConsumerWidget {
         child: Center(
           child: Text(
             initials,
-            style: AppTypography.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+            style: AppTypography.outfit(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -420,9 +463,20 @@ class _AvatarMenu extends ConsumerWidget {
           value: 'profile',
           child: Row(
             children: [
-              const Icon(Icons.person_outline_rounded, size: 20, color: Colors.white),
+              const Icon(
+                Icons.person_outline_rounded,
+                size: 20,
+                color: Colors.white,
+              ),
               const SizedBox(width: 12),
-              Text('My Profile', style: AppTypography.dmSans(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+              Text(
+                'My Profile',
+                style: AppTypography.dmSans(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -431,9 +485,20 @@ class _AvatarMenu extends ConsumerWidget {
           value: 'logout',
           child: Row(
             children: [
-              const Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
+              const Icon(
+                Icons.logout_rounded,
+                size: 20,
+                color: AppColors.error,
+              ),
               const SizedBox(width: 12),
-              Text('Log Out', style: AppTypography.dmSans(fontSize: 14, color: AppColors.error, fontWeight: FontWeight.w500)),
+              Text(
+                'Log Out',
+                style: AppTypography.dmSans(
+                  fontSize: 14,
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -495,11 +560,20 @@ class _CardLoadingSkeletonState extends State<_CardLoadingSkeleton>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.credit_card_rounded, size: 48, color: AppColors.accent.withValues(alpha: opacity)),
+                    Icon(
+                      Icons.credit_card_rounded,
+                      size: 48,
+                      color: AppColors.accent.withValues(alpha: opacity),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Loading your card…',
-                      style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark.withValues(alpha: opacity)),
+                      style: AppTypography.dmSans(
+                        fontSize: 14,
+                        color: AppColors.textMutedDark.withValues(
+                          alpha: opacity,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -528,16 +602,37 @@ class _CardErrorView extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: AppColors.error.withValues(alpha: 0.05),
-            border: Border.all(color: AppColors.error.withValues(alpha: 0.25), width: 1),
+            border: Border.all(
+              color: AppColors.error.withValues(alpha: 0.25),
+              width: 1,
+            ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.error.withValues(alpha: 0.7)),
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 48,
+                color: AppColors.error.withValues(alpha: 0.7),
+              ),
               const SizedBox(height: 16),
-              Text('Could not load your card', style: AppTypography.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textMutedDark)),
+              Text(
+                'Could not load your card',
+                style: AppTypography.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMutedDark,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Check your connection and try again.', style: AppTypography.dmSans(fontSize: 13, color: AppColors.textMutedDark), textAlign: TextAlign.center),
+              Text(
+                'Check your connection and try again.',
+                style: AppTypography.dmSans(
+                  fontSize: 13,
+                  color: AppColors.textMutedDark,
+                ),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 24),
               TextButton.icon(
                 onPressed: onRetry,

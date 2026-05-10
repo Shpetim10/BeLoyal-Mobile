@@ -1,58 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
-import 'package:besahub_app/features/customer_ui/mock/customer_mock_data.dart';
+import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
+import 'package:besahub_app/features/customer_ui/domain/models/customer_data_source.dart';
+import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 
-class CustomerBusinessDetailPage extends StatefulWidget {
+class CustomerBusinessDetailPage extends ConsumerStatefulWidget {
   const CustomerBusinessDetailPage({super.key, required this.business});
-  final MockBusiness business;
+  final CustomerBusiness business;
 
   @override
-  State<CustomerBusinessDetailPage> createState() => _CustomerBusinessDetailPageState();
+  ConsumerState<CustomerBusinessDetailPage> createState() =>
+      _CustomerBusinessDetailPageState();
 }
 
-class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage> {
+class _CustomerBusinessDetailPageState
+    extends ConsumerState<CustomerBusinessDetailPage> {
   int _selectedTab = 0;
 
   static const _tabs = [
     _TabItem(icon: Icons.home_rounded, label: 'Overview'),
     _TabItem(icon: Icons.restaurant_menu_rounded, label: 'Menu'),
-    _TabItem(icon: Icons.confirmation_number_rounded, label: 'Coupons'),
-    _TabItem(icon: Icons.local_offer_rounded, label: 'Offers'),
+    _TabItem(
+      icon: Icons.confirmation_number_rounded,
+      label: 'Coupons & Offers',
+    ),
     _TabItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
     _TabItem(icon: Icons.receipt_long_rounded, label: 'Transactions'),
     _TabItem(icon: Icons.location_on_rounded, label: 'Location'),
     _TabItem(icon: Icons.info_outline_rounded, label: 'Info'),
   ];
 
-  MockBusiness get _b => widget.business;
+  CustomerBusiness get _b => widget.business;
 
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final customerData = ref.watch(customerDataProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0812),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildSliverAppBar(topPad),
-          SliverToBoxAdapter(child: _buildBusinessInfo()),
-          SliverToBoxAdapter(child: _buildPointsCard()),
-          SliverToBoxAdapter(child: _buildTabBar()),
-          SliverToBoxAdapter(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              switchInCurve: Curves.easeOut,
-              child: KeyedSubtree(
-                key: ValueKey(_selectedTab),
-                child: _buildTabContent(),
+      body: customerData.when(
+        loading: () => const CustomerLoadingState(),
+        error: (_, __) => CustomerErrorState(
+          onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
+        ),
+        data: (data) => CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildSliverAppBar(topPad),
+            SliverToBoxAdapter(child: _buildBusinessInfo()),
+            SliverToBoxAdapter(child: _buildPointsCard()),
+            SliverToBoxAdapter(child: _buildTabBar()),
+            SliverToBoxAdapter(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                switchInCurve: Curves.easeOut,
+                child: KeyedSubtree(
+                  key: ValueKey(_selectedTab),
+                  child: _buildTabContent(data),
+                ),
               ),
             ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 60)),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 60)),
+          ],
+        ),
       ),
     );
   }
@@ -71,7 +86,11 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
         ),
       ),
       actions: [
@@ -83,7 +102,11 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
             border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
           child: IconButton(
-            icon: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
+            icon: const Icon(
+              Icons.share_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
             onPressed: () {},
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             padding: EdgeInsets.zero,
@@ -139,7 +162,10 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white.withValues(alpha: 0.12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: _b.gradientColors.last.withValues(alpha: 0.4),
@@ -149,7 +175,10 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
                       ],
                     ),
                     child: Center(
-                      child: Text(_b.logoEmoji, style: const TextStyle(fontSize: 36)),
+                      child: Text(
+                        _b.logoEmoji,
+                        style: const TextStyle(fontSize: 36),
+                      ),
                     ),
                   ),
                 ],
@@ -160,12 +189,17 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
               top: topPad + 16,
               right: 72,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                  color: (_b.isOpen ? AppColors.success : AppColors.error).withValues(alpha: 0.2),
+                  color: (_b.isOpen ? AppColors.success : AppColors.error)
+                      .withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: (_b.isOpen ? AppColors.success : AppColors.error).withValues(alpha: 0.4),
+                    color: (_b.isOpen ? AppColors.success : AppColors.error)
+                        .withValues(alpha: 0.4),
                   ),
                 ),
                 child: Row(
@@ -218,11 +252,19 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
               ),
               Row(
                 children: [
-                  const Icon(Icons.star_rounded, color: AppColors.gold, size: 16),
+                  const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.gold,
+                    size: 16,
+                  ),
                   const SizedBox(width: 4),
                   Text(
-                    '${_b.rating}',
-                    style: AppTypography.dmMono(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.gold),
+                    _b.rating.toStringAsFixed(2),
+                    style: AppTypography.dmMono(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold,
+                    ),
                   ),
                 ],
               ),
@@ -232,27 +274,50 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Text(
                   _b.category,
-                  style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
-              const Icon(Icons.near_me_rounded, size: 13, color: AppColors.textMutedDark),
+              const Icon(
+                Icons.near_me_rounded,
+                size: 13,
+                color: AppColors.textMutedDark,
+              ),
               const SizedBox(width: 4),
-              Text(_b.distance, style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark)),
+              Text(
+                _b.distance,
+                style: AppTypography.dmSans(
+                  fontSize: 12,
+                  color: AppColors.textMutedDark,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
             _b.description,
-            style: AppTypography.dmSans(fontSize: 13, color: AppColors.textMutedDark, height: 1.5),
+            style: AppTypography.dmSans(
+              fontSize: 13,
+              color: AppColors.textMutedDark,
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -276,7 +341,9 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _b.gradientColors.last.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: _b.gradientColors.last.withValues(alpha: 0.3),
+        ),
         boxShadow: [
           BoxShadow(
             color: _b.gradientColors.last.withValues(alpha: 0.2),
@@ -293,12 +360,19 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
               children: [
                 Text(
                   'Your Points',
-                  style: AppTypography.dmSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.7)),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${_b.points} pts',
-                  style: AppTypography.dmMono(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
+                  style: AppTypography.dmMono(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 ClipRRect(
@@ -313,7 +387,10 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
                 const SizedBox(height: 6),
                 Text(
                   '$remaining pts until next reward',
-                  style: AppTypography.dmSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.7)),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
                 ),
               ],
             ),
@@ -324,17 +401,33 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
               GestureDetector(
                 onTap: () => setState(() => _selectedTab = 4), // Rewards tab
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 22),
+                      const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                       const SizedBox(height: 4),
-                      Text('Rewards', style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+                      Text(
+                        'Rewards',
+                        style: AppTypography.dmSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -403,8 +496,12 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
                     tab.label,
                     style: AppTypography.dmSans(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textMutedDark,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textMutedDark,
                     ),
                   ),
                 ],
@@ -416,16 +513,15 @@ class _CustomerBusinessDetailPageState extends State<CustomerBusinessDetailPage>
     );
   }
 
-  Widget _buildTabContent() {
+  Widget _buildTabContent(CustomerDataSource data) {
     return switch (_selectedTab) {
-      0 => _OverviewTab(business: _b),
+      0 => _OverviewTab(business: _b, data: data),
       1 => _MenuTab(business: _b),
-      2 => _CouponsTab(business: _b),
-      3 => _OffersTab(business: _b),
-      4 => _RewardsTab(business: _b),
-      5 => _TransactionsTab(business: _b),
-      6 => _LocationTab(business: _b),
-      7 => _InfoTab(business: _b),
+      2 => _CouponsTab(coupons: data.couponsForBusiness(_b.id)),
+      3 => _RewardsTab(rewards: data.rewardsForBusiness(_b.id)),
+      4 => _TransactionsTab(txs: data.transactionsForBusiness(_b.id)),
+      5 => _LocationTab(business: _b),
+      6 => _InfoTab(business: _b),
       _ => const SizedBox.shrink(),
     };
   }
@@ -440,17 +536,19 @@ class _TabItem {
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 
 class _OverviewTab extends StatelessWidget {
-  const _OverviewTab({required this.business});
-  final MockBusiness business;
+  const _OverviewTab({required this.business, required this.data});
+  final CustomerBusiness business;
+  final CustomerDataSource data;
 
   @override
   Widget build(BuildContext context) {
-    final coupons = CustomerMockData.couponsForBusiness(business.id)
+    final coupons = data
+        .couponsForBusiness(business.id)
         .where((c) => c.status == 'active' || c.status == 'expiring')
         .take(3)
         .toList();
-    final offers = CustomerMockData.offersForBusiness(business.id);
-    final rewards = CustomerMockData.rewardsForBusiness(business.id).take(3).toList();
+    final offers = data.offersForBusiness(business.id);
+    final rewards = data.rewardsForBusiness(business.id).take(3).toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -496,7 +594,10 @@ class _OverviewTab extends StatelessWidget {
           ],
           if (rewards.isNotEmpty) ...[
             const SizedBox(height: 22),
-            _SubSectionHeader(title: 'Available Rewards', count: rewards.length),
+            _SubSectionHeader(
+              title: 'Available Rewards',
+              count: rewards.length,
+            ),
             const SizedBox(height: 10),
             ...rewards.map((r) => _OverviewRewardRow(reward: r)),
           ],
@@ -514,7 +615,12 @@ class _OverviewTab extends StatelessWidget {
 }
 
 class _QuickActionBtn extends StatelessWidget {
-  const _QuickActionBtn({required this.icon, required this.label, required this.color, required this.onTap});
+  const _QuickActionBtn({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final Color color;
@@ -539,7 +645,11 @@ class _QuickActionBtn extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 label,
-                style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+                style: AppTypography.dmSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -559,7 +669,14 @@ class _SubSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(title, style: AppTypography.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textOnDark)),
+        Text(
+          title,
+          style: AppTypography.outfit(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textOnDark,
+          ),
+        ),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -567,7 +684,14 @@ class _SubSectionHeader extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Text('$count', style: AppTypography.dmMono(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+          child: Text(
+            '$count',
+            style: AppTypography.dmMono(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
         ),
       ],
     );
@@ -576,18 +700,24 @@ class _SubSectionHeader extends StatelessWidget {
 
 class _OverviewCouponRow extends StatelessWidget {
   const _OverviewCouponRow({required this.coupon});
-  final MockCoupon coupon;
+  final CustomerCoupon coupon;
 
   @override
   Widget build(BuildContext context) {
-    final color = coupon.status == 'expiring' ? AppColors.error : AppColors.success;
+    final color = coupon.status == 'expiring'
+        ? AppColors.error
+        : AppColors.success;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: coupon.status == 'expiring' ? AppColors.error.withValues(alpha: 0.3) : AppColors.glassBorder),
+        border: Border.all(
+          color: coupon.status == 'expiring'
+              ? AppColors.error.withValues(alpha: 0.3)
+              : AppColors.glassBorder,
+        ),
       ),
       child: Row(
         children: [
@@ -595,13 +725,25 @@ class _OverviewCouponRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: coupon.gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: LinearGradient(
+                colors: coupon.gradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
               child: Text(
-                coupon.discountDisplay.length <= 4 ? coupon.discountDisplay : coupon.type == 'FREE_PRODUCT' ? '🎁' : '%',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                coupon.discountDisplay.length <= 4
+                    ? coupon.discountDisplay
+                    : coupon.type == 'FREE_PRODUCT'
+                    ? '🎁'
+                    : '%',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -610,8 +752,21 @@ class _OverviewCouponRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(coupon.title, style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark)),
-                Text('${coupon.pointCost} pts', style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                Text(
+                  coupon.title,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                Text(
+                  '${coupon.pointCost} pts',
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
               ],
             ),
           ),
@@ -623,7 +778,11 @@ class _OverviewCouponRow extends StatelessWidget {
             ),
             child: Text(
               coupon.status == 'expiring' ? 'Expiring' : 'Active',
-              style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+              style: AppTypography.dmSans(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -634,7 +793,7 @@ class _OverviewCouponRow extends StatelessWidget {
 
 class _OverviewOfferRow extends StatelessWidget {
   const _OverviewOfferRow({required this.offer});
-  final MockOffer offer;
+  final CustomerCoupon offer;
 
   @override
   Widget build(BuildContext context) {
@@ -643,12 +802,16 @@ class _OverviewOfferRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: offer.gradientColors.map((c) => c.withValues(alpha: 0.15)).toList(),
+          colors: offer.gradientColors
+              .map((c) => c.withValues(alpha: 0.15))
+              .toList(),
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: offer.gradientColors.last.withValues(alpha: 0.25)),
+        border: Border.all(
+          color: offer.gradientColors.last.withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         children: [
@@ -656,11 +819,22 @@ class _OverviewOfferRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: offer.gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: LinearGradient(
+                colors: offer.gradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
-              child: Text(offer.multiplier, style: AppTypography.dmMono(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+              child: Text(
+                offer.multiplierLabel ?? offer.discountDisplay,
+                style: AppTypography.dmMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -668,8 +842,23 @@ class _OverviewOfferRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(offer.title, style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark)),
-                Text(offer.description, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  offer.title,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                Text(
+                  offer.description,
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -683,9 +872,20 @@ class _OverviewOfferRow extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.local_fire_department_rounded, size: 10, color: AppColors.error),
+                  const Icon(
+                    Icons.local_fire_department_rounded,
+                    size: 10,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(width: 3),
-                  Text('HOT', style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.error)),
+                  Text(
+                    'HOT',
+                    style: AppTypography.dmSans(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.error,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -697,7 +897,7 @@ class _OverviewOfferRow extends StatelessWidget {
 
 class _OverviewRewardRow extends StatelessWidget {
   const _OverviewRewardRow({required this.reward});
-  final MockReward reward;
+  final CustomerReward reward;
 
   @override
   Widget build(BuildContext context) {
@@ -709,7 +909,9 @@ class _OverviewRewardRow extends StatelessWidget {
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: canRedeem ? AppColors.gold.withValues(alpha: 0.3) : AppColors.glassBorder,
+          color: canRedeem
+              ? AppColors.gold.withValues(alpha: 0.3)
+              : AppColors.glassBorder,
         ),
       ),
       child: Row(
@@ -718,18 +920,39 @@ class _OverviewRewardRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: reward.gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: LinearGradient(
+                colors: reward.gradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 18),
+            child: const Icon(
+              Icons.card_giftcard_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(reward.title, style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark)),
-                Text('${reward.pointCost} pts required', style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                Text(
+                  reward.title,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                Text(
+                  '${reward.pointCost} pts required',
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
               ],
             ),
           ),
@@ -737,15 +960,27 @@ class _OverviewRewardRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryDark, AppColors.primary],
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text('Redeem', style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+              child: Text(
+                'Redeem',
+                style: AppTypography.dmSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             )
           else
             Text(
               '${reward.pointCost - reward.currentPoints} pts away',
-              style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+              style: AppTypography.dmSans(
+                fontSize: 11,
+                color: AppColors.textMutedDark,
+              ),
             ),
         ],
       ),
@@ -757,7 +992,7 @@ class _OverviewRewardRow extends StatelessWidget {
 
 class _MenuTab extends StatefulWidget {
   const _MenuTab({required this.business});
-  final MockBusiness business;
+  final CustomerBusiness business;
 
   @override
   State<_MenuTab> createState() => _MenuTabState();
@@ -768,7 +1003,7 @@ class _MenuTabState extends State<_MenuTab> {
 
   @override
   Widget build(BuildContext context) {
-    final items = CustomerMockData.menuItemsByBusinessId[widget.business.id] ?? [];
+    const items = <CustomerMenuItem>[];
     final cats = items.map((i) => i.menuCategory).toSet().toList();
 
     final filtered = _selectedCategory == null
@@ -778,7 +1013,10 @@ class _MenuTabState extends State<_MenuTab> {
     if (items.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.restaurant_menu_outlined, message: 'No menu available yet.'),
+        child: _EmptyState(
+          icon: Icons.restaurant_menu_outlined,
+          message: 'No menu available yet.',
+        ),
       );
     }
 
@@ -798,11 +1036,16 @@ class _MenuTabState extends State<_MenuTab> {
                   isSelected: _selectedCategory == null,
                   onTap: () => setState(() => _selectedCategory = null),
                 ),
-                ...cats.map((c) => _MenuCategoryChip(
-                  label: c,
-                  isSelected: _selectedCategory == c,
-                  onTap: () => setState(() => _selectedCategory = _selectedCategory == c ? null : c),
-                )),
+                ...cats.map(
+                  (c) => _MenuCategoryChip(
+                    label: c,
+                    isSelected: _selectedCategory == c,
+                    onTap: () => setState(
+                      () =>
+                          _selectedCategory = _selectedCategory == c ? null : c,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -815,7 +1058,11 @@ class _MenuTabState extends State<_MenuTab> {
 }
 
 class _MenuCategoryChip extends StatelessWidget {
-  const _MenuCategoryChip({required this.label, required this.isSelected, required this.onTap});
+  const _MenuCategoryChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -831,7 +1078,9 @@ class _MenuCategoryChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.cardDark,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppColors.primary : AppColors.glassBorder),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.glassBorder,
+          ),
         ),
         child: Text(
           label,
@@ -848,7 +1097,7 @@ class _MenuCategoryChip extends StatelessWidget {
 
 class _MenuItemCard extends StatelessWidget {
   const _MenuItemCard({required this.item});
-  final MockMenuItem item;
+  final CustomerMenuItem item;
 
   @override
   Widget build(BuildContext context) {
@@ -859,7 +1108,9 @@ class _MenuItemCard extends StatelessWidget {
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: item.isPopular ? AppColors.gold.withValues(alpha: 0.2) : AppColors.glassBorder,
+          color: item.isPopular
+              ? AppColors.gold.withValues(alpha: 0.2)
+              : AppColors.glassBorder,
         ),
       ),
       child: Row(
@@ -871,7 +1122,9 @@ class _MenuItemCard extends StatelessWidget {
               color: AppColors.elevDark,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Center(child: Text(item.emoji, style: const TextStyle(fontSize: 26))),
+            child: Center(
+              child: Text(item.emoji, style: const TextStyle(fontSize: 26)),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -883,38 +1136,75 @@ class _MenuItemCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item.name,
-                        style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                        style: AppTypography.dmSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textOnDark,
+                        ),
                       ),
                     ),
                     if (item.isPopular)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('Popular', style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.gold)),
+                        child: Text(
+                          'Popular',
+                          style: AppTypography.dmSans(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.gold,
+                          ),
+                        ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 3),
-                Text(item.description, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(
+                  item.description,
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Text(
                       'L ${item.price.toStringAsFixed(0)}',
-                      style: AppTypography.dmMono(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textOnDark),
+                      style: AppTypography.dmMono(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textOnDark,
+                      ),
                     ),
                     const Spacer(),
                     if (item.pointsLabel.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(item.pointsLabel, style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success)),
+                        child: Text(
+                          item.pointsLabel,
+                          style: AppTypography.dmSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.success,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -930,16 +1220,18 @@ class _MenuItemCard extends StatelessWidget {
 // ─── Coupons Tab ──────────────────────────────────────────────────────────────
 
 class _CouponsTab extends StatelessWidget {
-  const _CouponsTab({required this.business});
-  final MockBusiness business;
+  const _CouponsTab({required this.coupons});
+  final List<CustomerCoupon> coupons;
 
   @override
   Widget build(BuildContext context) {
-    final coupons = CustomerMockData.couponsForBusiness(business.id);
     if (coupons.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.confirmation_number_outlined, message: 'No coupons for this business yet.'),
+        child: _EmptyState(
+          icon: Icons.confirmation_number_outlined,
+          message: 'No coupons for this business yet.',
+        ),
       );
     }
 
@@ -954,7 +1246,7 @@ class _CouponsTab extends StatelessWidget {
 
 class _DetailCouponCard extends StatelessWidget {
   const _DetailCouponCard({required this.coupon});
-  final MockCoupon coupon;
+  final CustomerCoupon coupon;
 
   Color get _statusColor => switch (coupon.status) {
     'active' => AppColors.success,
@@ -988,8 +1280,8 @@ class _DetailCouponCard extends StatelessWidget {
     final timeLabel = isExpired
         ? 'Expired ${-daysLeft}d ago'
         : hoursLeft < 24
-            ? 'Expires in ${hoursLeft}h'
-            : 'Expires in ${daysLeft}d';
+        ? 'Expires in ${hoursLeft}h'
+        : 'Expires in ${daysLeft}d';
 
     return Opacity(
       opacity: coupon.isUsed || coupon.status == 'expired' ? 0.55 : 1.0,
@@ -1037,11 +1329,18 @@ class _DetailCouponCard extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 6),
-                      Icon(_typeIcon, color: Colors.white.withValues(alpha: 0.7), size: 16),
+                      Icon(
+                        _typeIcon,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 16,
+                      ),
                     ],
                   ),
                 ),
-                CustomPaint(size: const Size(1, 110), painter: _DashedPainter()),
+                CustomPaint(
+                  size: const Size(1, 110),
+                  painter: _DashedPainter(),
+                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(14),
@@ -1053,39 +1352,87 @@ class _DetailCouponCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 coupon.title,
-                                style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                                style: AppTypography.dmSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textOnDark,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: _statusColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text(_statusLabel, style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: _statusColor)),
+                              child: Text(
+                                _statusLabel,
+                                style: AppTypography.dmSans(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: _statusColor,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
                         if (coupon.description.isNotEmpty)
-                          Text(coupon.description, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          Text(
+                            coupon.description,
+                            style: AppTypography.dmSans(
+                              fontSize: 11,
+                              color: AppColors.textMutedDark,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.calendar_today_rounded, size: 11, color: AppColors.textMutedDark),
+                            const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 11,
+                              color: AppColors.textMutedDark,
+                            ),
                             const SizedBox(width: 4),
-                            Text(timeLabel, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                            Text(
+                              timeLabel,
+                              style: AppTypography.dmSans(
+                                fontSize: 11,
+                                color: AppColors.textMutedDark,
+                              ),
+                            ),
                             const Spacer(),
                             if (isActive)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      AppColors.primaryDark,
+                                      AppColors.primary,
+                                    ],
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Text('Use Now', style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                                child: Text(
+                                  'Use Now',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -1093,12 +1440,29 @@ class _DetailCouponCard extends StatelessWidget {
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              const Icon(Icons.stars_rounded, size: 12, color: AppColors.gold),
+                              const Icon(
+                                Icons.stars_rounded,
+                                size: 12,
+                                color: AppColors.gold,
+                              ),
                               const SizedBox(width: 4),
-                              Text('${coupon.pointCost} pts', style: AppTypography.dmSans(fontSize: 11, color: AppColors.gold, fontWeight: FontWeight.w600)),
+                              Text(
+                                '${coupon.pointCost} pts',
+                                style: AppTypography.dmSans(
+                                  fontSize: 11,
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               if (coupon.usageLimit != null) ...[
                                 const SizedBox(width: 10),
-                                Text('${coupon.usageCount}/${coupon.usageLimit} used', style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                                Text(
+                                  '${coupon.usageCount}/${coupon.usageLimit} used',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 11,
+                                    color: AppColors.textMutedDark,
+                                  ),
+                                ),
                               ],
                             ],
                           ),
@@ -1114,7 +1478,11 @@ class _DetailCouponCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                 child: Text(
                   '* ${coupon.termsAndConditions}',
-                  style: AppTypography.dmSans(fontSize: 10, color: AppColors.textMutedDark.withValues(alpha: 0.6), height: 1.4),
+                  style: AppTypography.dmSans(
+                    fontSize: 10,
+                    color: AppColors.textMutedDark.withValues(alpha: 0.6),
+                    height: 1.4,
+                  ),
                 ),
               ),
           ],
@@ -1127,7 +1495,9 @@ class _DetailCouponCard extends StatelessWidget {
 class _DashedPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.glassBorder..strokeWidth = 1;
+    final paint = Paint()
+      ..color = AppColors.glassBorder
+      ..strokeWidth = 1;
     const dashH = 5.0, dashSpace = 4.0;
     double y = 0;
     while (y < size.height) {
@@ -1140,128 +1510,21 @@ class _DashedPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-// ─── Offers Tab ───────────────────────────────────────────────────────────────
-
-class _OffersTab extends StatelessWidget {
-  const _OffersTab({required this.business});
-  final MockBusiness business;
-
-  @override
-  Widget build(BuildContext context) {
-    final offers = CustomerMockData.offersForBusiness(business.id);
-    if (offers.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.local_offer_outlined, message: 'No active offers right now.\nCheck back soon!'),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        children: offers.map((o) => _DetailOfferCard(offer: o)).toList(),
-      ),
-    );
-  }
-}
-
-class _DetailOfferCard extends StatelessWidget {
-  const _DetailOfferCard({required this.offer});
-  final MockOffer offer;
-
-  @override
-  Widget build(BuildContext context) {
-    final daysLeft = offer.validUntil.difference(DateTime.now()).inDays;
-    final hoursLeft = offer.validUntil.difference(DateTime.now()).inHours;
-    final urgency = daysLeft <= 0 ? '${hoursLeft}h left' : daysLeft == 1 ? 'Ends tomorrow' : '$daysLeft days left';
-    final isUrgent = daysLeft <= 1;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: offer.gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: offer.gradientColors.last.withValues(alpha: 0.25),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (offer.isHot)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.local_fire_department_rounded, size: 11, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text('HOT DEAL', style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (isUrgent ? Colors.red : Colors.white).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    urgency,
-                    style: AppTypography.dmSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isUrgent ? const Color(0xFFFF8080) : Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              offer.multiplier,
-              style: AppTypography.dmMono(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.white),
-            ),
-            Text(offer.title, style: AppTypography.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 6),
-            Text(offer.description, style: AppTypography.dmSans(fontSize: 12, color: Colors.white.withValues(alpha: 0.8), height: 1.5)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Rewards Tab ──────────────────────────────────────────────────────────────
 
 class _RewardsTab extends StatelessWidget {
-  const _RewardsTab({required this.business});
-  final MockBusiness business;
+  const _RewardsTab({required this.rewards});
+  final List<CustomerReward> rewards;
 
   @override
   Widget build(BuildContext context) {
-    final rewards = CustomerMockData.rewardsForBusiness(business.id);
     if (rewards.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.card_giftcard_outlined, message: 'No rewards available yet.'),
+      return const Padding(
+        padding: EdgeInsets.only(top: 40),
+        child: _EmptyState(
+          icon: Icons.card_giftcard_outlined,
+          message: 'No reward threshold available for this business yet.',
+        ),
       );
     }
 
@@ -1276,13 +1539,16 @@ class _RewardsTab extends StatelessWidget {
 
 class _DetailRewardCard extends StatelessWidget {
   const _DetailRewardCard({required this.reward});
-  final MockReward reward;
+  final CustomerReward reward;
 
   @override
   Widget build(BuildContext context) {
     final progress = (reward.currentPoints / reward.pointCost).clamp(0.0, 1.0);
     final canRedeem = reward.currentPoints >= reward.pointCost;
-    final remaining = (reward.pointCost - reward.currentPoints).clamp(0, reward.pointCost);
+    final remaining = (reward.pointCost - reward.currentPoints).clamp(
+      0,
+      reward.pointCost,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1308,28 +1574,55 @@ class _DetailRewardCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 22),
+                const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     reward.title,
-                    style: AppTypography.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                    style: AppTypography.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 if (canRedeem)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.gold.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: AppColors.gold.withValues(alpha: 0.5),
+                      ),
                     ),
-                    child: Text('Redeem!', style: AppTypography.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.gold)),
+                    child: Text(
+                      'Redeem!',
+                      style: AppTypography.dmSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                      ),
+                    ),
                   ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(reward.description, style: AppTypography.dmSans(fontSize: 13, color: Colors.white.withValues(alpha: 0.8), height: 1.4)),
+            Text(
+              reward.description,
+              style: AppTypography.dmSans(
+                fontSize: 13,
+                color: Colors.white.withValues(alpha: 0.8),
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 14),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -1349,7 +1642,9 @@ class _DetailRewardCard extends StatelessWidget {
                       : '$remaining pts to go · ${reward.pointCost} pts total',
                   style: AppTypography.dmSans(
                     fontSize: 11,
-                    color: canRedeem ? AppColors.gold : Colors.white.withValues(alpha: 0.7),
+                    color: canRedeem
+                        ? AppColors.gold
+                        : Colors.white.withValues(alpha: 0.7),
                     fontWeight: canRedeem ? FontWeight.w700 : FontWeight.w400,
                   ),
                 ),
@@ -1365,16 +1660,18 @@ class _DetailRewardCard extends StatelessWidget {
 // ─── Transactions Tab ─────────────────────────────────────────────────────────
 
 class _TransactionsTab extends StatelessWidget {
-  const _TransactionsTab({required this.business});
-  final MockBusiness business;
+  const _TransactionsTab({required this.txs});
+  final List<CustomerTransaction> txs;
 
   @override
   Widget build(BuildContext context) {
-    final txs = CustomerMockData.transactionsForBusiness(business.id);
     if (txs.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.receipt_long_outlined, message: 'No transactions at this business yet.'),
+        child: _EmptyState(
+          icon: Icons.receipt_long_outlined,
+          message: 'No transactions at this business yet.',
+        ),
       );
     }
 
@@ -1424,9 +1721,24 @@ class _TransactionsTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(tx.description, style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        tx.description,
+                        style: AppTypography.dmSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textOnDark,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 3),
-                      Text(dateFmt.format(tx.date), style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                      Text(
+                        dateFmt.format(tx.date),
+                        style: AppTypography.dmSans(
+                          fontSize: 11,
+                          color: AppColors.textMutedDark,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1435,9 +1747,19 @@ class _TransactionsTab extends StatelessWidget {
                   children: [
                     Text(
                       '${isPositive ? '+' : ''}${tx.points}',
-                      style: AppTypography.dmMono(fontSize: 16, fontWeight: FontWeight.w700, color: color),
+                      style: AppTypography.dmMono(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
                     ),
-                    Text('pts', style: AppTypography.dmSans(fontSize: 10, color: AppColors.textMutedDark)),
+                    Text(
+                      'pts',
+                      style: AppTypography.dmSans(
+                        fontSize: 10,
+                        color: AppColors.textMutedDark,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -1453,7 +1775,7 @@ class _TransactionsTab extends StatelessWidget {
 
 class _LocationTab extends StatelessWidget {
   const _LocationTab({required this.business});
-  final MockBusiness business;
+  final CustomerBusiness business;
 
   @override
   Widget build(BuildContext context) {
@@ -1481,20 +1803,49 @@ class _LocationTab extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.map_outlined, size: 48, color: AppColors.textMutedDark.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.map_outlined,
+                    size: 48,
+                    color: AppColors.textMutedDark.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(height: 8),
-                  Text('Map Preview', style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark)),
+                  Text(
+                    'Map Preview',
+                    style: AppTypography.dmSans(
+                      fontSize: 14,
+                      color: AppColors.textMutedDark,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(business.address, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark.withValues(alpha: 0.7)), textAlign: TextAlign.center),
+                  Text(
+                    business.address,
+                    style: AppTypography.dmSans(
+                      fontSize: 11,
+                      color: AppColors.textMutedDark.withValues(alpha: 0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
           // Info rows
-          _LocationRow(icon: Icons.location_on_rounded, label: 'Address', value: business.address),
-          _LocationRow(icon: Icons.access_time_rounded, label: 'Hours', value: business.openingHours),
-          _LocationRow(icon: Icons.near_me_rounded, label: 'Distance', value: '${business.distance} away'),
+          _LocationRow(
+            icon: Icons.location_on_rounded,
+            label: 'Address',
+            value: business.address,
+          ),
+          _LocationRow(
+            icon: Icons.access_time_rounded,
+            label: 'Hours',
+            value: business.openingHours,
+          ),
+          _LocationRow(
+            icon: Icons.near_me_rounded,
+            label: 'Distance',
+            value: '${business.distance} away',
+          ),
           const SizedBox(height: 16),
           // Directions button
           GestureDetector(
@@ -1502,15 +1853,28 @@ class _LocationTab extends StatelessWidget {
             child: Container(
               height: 52,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryDark, AppColors.primary],
+                ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.directions_rounded, color: Colors.white, size: 20),
+                  const Icon(
+                    Icons.directions_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
-                  Text('Get Directions', style: AppTypography.dmSans(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                  Text(
+                    'Get Directions',
+                    style: AppTypography.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1522,7 +1886,11 @@ class _LocationTab extends StatelessWidget {
 }
 
 class _LocationRow extends StatelessWidget {
-  const _LocationRow({required this.icon, required this.label, required this.value});
+  const _LocationRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -1553,9 +1921,23 @@ class _LocationRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                Text(
+                  label,
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textOnDark, height: 1.4)),
+                Text(
+                  value,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textOnDark,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1569,7 +1951,7 @@ class _LocationRow extends StatelessWidget {
 
 class _InfoTab extends StatelessWidget {
   const _InfoTab({required this.business});
-  final MockBusiness business;
+  final CustomerBusiness business;
 
   @override
   Widget build(BuildContext context) {
@@ -1578,10 +1960,26 @@ class _InfoTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoRow(icon: Icons.info_outline_rounded, label: 'About', value: business.description),
-          _InfoRow(icon: Icons.phone_outlined, label: 'Phone', value: business.phone),
-          _InfoRow(icon: Icons.email_outlined, label: 'Email', value: business.email),
-          _InfoRow(icon: Icons.category_outlined, label: 'Category', value: business.category),
+          _InfoRow(
+            icon: Icons.info_outline_rounded,
+            label: 'About',
+            value: business.description,
+          ),
+          _InfoRow(
+            icon: Icons.phone_outlined,
+            label: 'Phone',
+            value: business.phone,
+          ),
+          _InfoRow(
+            icon: Icons.email_outlined,
+            label: 'Email',
+            value: business.email,
+          ),
+          _InfoRow(
+            icon: Icons.category_outlined,
+            label: 'Category',
+            value: business.category,
+          ),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -1592,11 +1990,21 @@ class _InfoTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Loyalty Policy', style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                Text(
+                  'Loyalty Policy',
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'Earn points on every purchase. Redeem rewards at any time. Points are valid for 180 days from the date of last activity. Some rewards and coupons may have specific terms and conditions.',
-                  style: AppTypography.dmSans(fontSize: 12, color: AppColors.textOnDark, height: 1.5),
+                  style: AppTypography.dmSans(
+                    fontSize: 12,
+                    color: AppColors.textOnDark,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -1608,7 +2016,11 @@ class _InfoTab extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -1640,9 +2052,22 @@ class _InfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                Text(
+                  label,
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: AppTypography.dmSans(fontSize: 13, color: AppColors.textOnDark, height: 1.4)),
+                Text(
+                  value,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    color: AppColors.textOnDark,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1665,12 +2090,20 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 56, color: AppColors.textMutedDark.withValues(alpha: 0.3)),
+          Icon(
+            icon,
+            size: 56,
+            color: AppColors.textMutedDark.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark, height: 1.6),
+            style: AppTypography.dmSans(
+              fontSize: 14,
+              color: AppColors.textMutedDark,
+              height: 1.6,
+            ),
           ),
         ],
       ),
