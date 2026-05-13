@@ -53,6 +53,7 @@ class _UpdateRegistrationFormPageState
   final _descriptionFocus = FocusNode();
 
   BusinessType? _selectedBusinessType;
+  String _existingCurrency = 'ALL';
   File? _logoImage;
   XFile? _pickedLogoXFile;
   String? _existingLogoUrl;
@@ -99,6 +100,7 @@ class _UpdateRegistrationFormPageState
     _descriptionCtrl.text = dto.businessDescription ?? '';
     _existingLogoUrl = dto.logoUrl;
     _existingLogoKey = dto.logoKey;
+    _existingCurrency = dto.currency;
     _selectedBusinessType = BusinessType.values.firstWhere(
       (t) => t.value == dto.businessType,
       orElse: () => BusinessType.OTHER,
@@ -177,6 +179,7 @@ class _UpdateRegistrationFormPageState
       final dto = BusinessRegistrationDto(
         businessName: _businessNameCtrl.text.trim(),
         businessType: _selectedBusinessType!.value,
+        currency: _existingCurrency,
         address: _addressCtrl.text.isEmpty ? null : _addressCtrl.text.trim(),
         city: _cityCtrl.text.trim(),
         country: _countryCtrl.text.isEmpty ? null : _countryCtrl.text.trim(),

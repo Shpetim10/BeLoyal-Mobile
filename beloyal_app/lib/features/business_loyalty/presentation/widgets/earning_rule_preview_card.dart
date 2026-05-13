@@ -7,10 +7,12 @@ class EarningRulePreviewCard extends StatelessWidget {
     super.key,
     required this.pointsPer,
     required this.amountPer,
+    this.currencyCode = 'ALL',
   });
 
   final int pointsPer;
   final double amountPer;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -26,17 +28,17 @@ class EarningRulePreviewCard extends StatelessWidget {
       title: 'Example earnings',
       icon: Icons.visibility_rounded,
       children: [
-        _PreviewRow(bill: 100, points: calc(100)),
+        _PreviewRow(bill: 100, points: calc(100), currencyCode: currencyCode),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Divider(color: AppColors.glassBorder),
         ),
-        _PreviewRow(bill: 250, points: calc(250)),
+        _PreviewRow(bill: 250, points: calc(250), currencyCode: currencyCode),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Divider(color: AppColors.glassBorder),
         ),
-        _PreviewRow(bill: 1000, points: calc(1000)),
+        _PreviewRow(bill: 1000, points: calc(1000), currencyCode: currencyCode),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(12),
@@ -69,10 +71,15 @@ class EarningRulePreviewCard extends StatelessWidget {
 }
 
 class _PreviewRow extends StatelessWidget {
-  const _PreviewRow({required this.bill, required this.points});
+  const _PreviewRow({
+    required this.bill,
+    required this.points,
+    required this.currencyCode,
+  });
 
   final int bill;
   final int points;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +87,7 @@ class _PreviewRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Bill $bill ALL',
+          'Bill $bill $currencyCode',
           style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
         ),
         Row(

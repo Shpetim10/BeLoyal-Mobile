@@ -102,6 +102,10 @@ class BusinessOnboardingApi {
       return BusinessRegistrationDto(
         businessName: data['businessName'] as String? ?? '',
         businessType: data['businessType'] as String? ?? 'OTHER',
+        currency:
+            data['currency'] as String? ??
+            data['currencyCode'] as String? ??
+            'ALL',
         address: data['address'] as String?,
         city: data['city'] as String? ?? '',
         country: data['country'] as String?,

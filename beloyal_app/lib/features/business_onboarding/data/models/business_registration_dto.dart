@@ -3,6 +3,7 @@ class BusinessRegistrationDto {
   const BusinessRegistrationDto({
     required this.businessName,
     required this.businessType,
+    required this.currency,
     this.address,
     required this.city,
     this.country,
@@ -16,7 +17,10 @@ class BusinessRegistrationDto {
   });
 
   final String businessName;
-  final String businessType; // Restaurant, Café, Bar, Other
+  final String businessType;
+  /// ISO 4217 currency code used for all money amounts in this business.
+  /// Mandatory at registration. Allowed values: ALL, EUR, USD.
+  final String currency;
   final String? address;
   final String city;
   final String? country;
@@ -31,6 +35,7 @@ class BusinessRegistrationDto {
   Map<String, dynamic> toJson() => {
     'businessName': businessName.trim(),
     'businessType': businessType,
+    'currency': currency,
     if (address != null && address!.isNotEmpty) 'address': address!.trim(),
     'city': city.trim(),
     if (country != null && country!.isNotEmpty) 'country': country!.trim(),
@@ -44,6 +49,18 @@ class BusinessRegistrationDto {
     if (businessDescription != null && businessDescription!.isNotEmpty)
       'businessDescription': businessDescription!.trim(),
   };
+}
+
+/// Supported currencies for business registration.
+/// Maps to [BusinessCurrency] in lib/core/utils/currency_utils.dart.
+enum RegistrationCurrency {
+  lek('Albanian Lek (ALL)', 'ALL'),
+  euro('Euro (€)', 'EUR'),
+  dollar('US Dollar (\$)', 'USD');
+
+  const RegistrationCurrency(this.displayName, this.code);
+  final String displayName;
+  final String code;
 }
 
 /// Business type enum for dropdown selection.

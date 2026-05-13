@@ -391,6 +391,15 @@ class _BusinessProfileTabState extends ConsumerState<BusinessProfileTab> {
                               icon: Icons.receipt_long_rounded,
                             ),
                             const SizedBox(height: 12),
+                            ReadonlyFieldRow(
+                              label: 'Currency',
+                              value: (biz.currencyCode == null ||
+                                      biz.currencyCode!.trim().isEmpty)
+                                  ? '—'
+                                  : biz.currencyCode!,
+                              icon: Icons.payments_rounded,
+                            ),
+                            const SizedBox(height: 12),
                             // Status row with badge
                             Row(
                               children: [

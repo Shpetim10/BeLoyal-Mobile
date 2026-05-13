@@ -33,6 +33,16 @@ class MembershipCard extends StatelessWidget {
           icon: Icons.store_rounded,
           showHelper: false,
         ),
+        if (membership.currencyCode != null &&
+            membership.currencyCode!.trim().isNotEmpty) ...[
+          const SizedBox(height: 16),
+          ReadonlyFieldRow(
+            label: 'Currency',
+            value: membership.currencyCode!,
+            icon: Icons.payments_rounded,
+            showHelper: false,
+          ),
+        ],
         const SizedBox(height: 16),
 
         // Custom row for Status Badge

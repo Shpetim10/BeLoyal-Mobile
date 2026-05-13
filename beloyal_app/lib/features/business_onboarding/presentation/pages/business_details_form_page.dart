@@ -53,6 +53,7 @@ class _BusinessDetailsFormPageState
   final _descriptionFocus = FocusNode();
 
   BusinessType? _selectedBusinessType;
+  RegistrationCurrency? _selectedCurrency;
   File? _logoImage;
   XFile? _pickedLogoXFile;
   final _picker = ImagePicker();
@@ -86,6 +87,13 @@ class _BusinessDetailsFormPageState
   String? _validateBusinessType(BusinessType? value) {
     if (value == null) {
       return 'Please select a business type';
+    }
+    return null;
+  }
+
+  String? _validateCurrency(RegistrationCurrency? value) {
+    if (value == null) {
+      return 'Please select a currency';
     }
     return null;
   }
@@ -161,6 +169,7 @@ class _BusinessDetailsFormPageState
       final businessDto = BusinessRegistrationDto(
         businessName: _businessNameCtrl.text.trim(),
         businessType: _selectedBusinessType!.value,
+        currency: _selectedCurrency!.code,
         address: _addressCtrl.text.isEmpty ? null : _addressCtrl.text.trim(),
         city: _cityCtrl.text.trim(),
         country: _countryCtrl.text.isEmpty ? null : _countryCtrl.text.trim(),
@@ -323,6 +332,38 @@ class _BusinessDetailsFormPageState
                               setState(() => _selectedBusinessType = value);
                             },
                             validator: _validateBusinessType,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Currency (required dropdown)
+                          DropdownButtonFormField<RegistrationCurrency>(
+                            value: _selectedCurrency,
+                            decoration: InputDecoration(
+                              labelText: 'Currency *',
+                              prefixIcon: const Icon(
+                                Icons.attach_money_outlined,
+                                size: 20,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              helperText:
+                                  'Cannot be changed after registration',
+                              helperStyle: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12,
+                              ),
+                            ),
+                            items: RegistrationCurrency.values.map((c) {
+                              return DropdownMenuItem(
+                                value: c,
+                                child: Text(c.displayName),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() => _selectedCurrency = value);
+                            },
+                            validator: _validateCurrency,
                           ),
                           const SizedBox(height: 16),
 

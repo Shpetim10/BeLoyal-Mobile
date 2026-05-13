@@ -135,6 +135,15 @@ class _AdminBusinessDetailsPageState extends ConsumerState<AdminBusinessDetailsP
                   const SizedBox(height: 12),
                   _buildInfoRow(Icons.receipt_long_rounded, 'VAT ID', business.vatId!),
                 ],
+                if (business.currencyCode != null &&
+                    business.currencyCode!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildInfoRow(
+                    Icons.payments_rounded,
+                    'Currency',
+                    business.currencyCode!,
+                  ),
+                ],
               ]),
               const SizedBox(height: 20),
               _buildSectionCard('Team Members', Icons.people_outline_rounded, [

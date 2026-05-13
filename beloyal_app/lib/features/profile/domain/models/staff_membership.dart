@@ -10,6 +10,7 @@ class StaffMembership {
     this.hireDate,
     this.lastLogin,
     required this.memberStatus,
+    this.currencyCode,
   });
 
   final int businessId;
@@ -18,6 +19,7 @@ class StaffMembership {
   final DateTime? hireDate;
   final DateTime? lastLogin;
   final MemberStatus memberStatus;
+  final String? currencyCode;
 
   factory StaffMembership.fromJson(Map<String, dynamic> json) {
     var bName = '';
@@ -46,6 +48,12 @@ class StaffMembership {
       memberStatus: MemberStatus.fromBackend(
         (json['memberStatus'] as String?) ?? 'INACTIVE',
       ),
+      currencyCode: json['currency'] as String? ??
+          json['currencyCode'] as String? ??
+          (json['business'] as Map<String, dynamic>?)?['currency']
+              as String? ??
+          (json['business'] as Map<String, dynamic>?)?['currencyCode']
+              as String?,
     );
   }
 
@@ -56,6 +64,7 @@ class StaffMembership {
     DateTime? hireDate,
     DateTime? lastLogin,
     MemberStatus? memberStatus,
+    String? currencyCode,
   }) {
     return StaffMembership(
       businessId: businessId ?? this.businessId,
@@ -64,6 +73,7 @@ class StaffMembership {
       hireDate: hireDate ?? this.hireDate,
       lastLogin: lastLogin ?? this.lastLogin,
       memberStatus: memberStatus ?? this.memberStatus,
+      currencyCode: currencyCode ?? this.currencyCode,
     );
   }
 }

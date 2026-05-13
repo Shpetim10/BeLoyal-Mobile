@@ -9,10 +9,12 @@ class EarningRuleBuilderCard extends StatelessWidget {
     super.key,
     required this.pointsController,
     required this.amountController,
+    this.currencyCode = 'ALL',
   });
 
   final TextEditingController pointsController;
   final TextEditingController amountController;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -66,14 +68,14 @@ class EarningRuleBuilderCard extends StatelessWidget {
           hint: 'e.g., 100',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           prefixIcon: Icons.payments_rounded,
-          suffixIcon: const Padding(
-            padding: EdgeInsets.only(right: 16),
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'ALL',
-                  style: TextStyle(
+                  currencyCode,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textMuted,
                   ),

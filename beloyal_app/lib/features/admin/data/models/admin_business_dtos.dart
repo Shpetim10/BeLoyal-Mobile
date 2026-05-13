@@ -106,6 +106,7 @@ class BusinessDetailsDto {
     required this.city,
     required this.country,
     this.vatId,
+    this.currencyCode,
     required this.businessPhoneNumber,
     required this.businessStatus,
     this.submittedAt,
@@ -146,6 +147,8 @@ class BusinessDetailsDto {
       city: parseString(json['city']) ?? '',
       country: parseString(json['country']) ?? '',
       vatId: parseString(json['vatId']),
+      currencyCode:
+          parseString(json['currency']) ?? parseString(json['currencyCode']),
       businessPhoneNumber: parseString(json['businessPhoneNumber']) ?? '',
       businessStatus: parseString(json['businessStatus']) ?? 'UNKNOWN',
       submittedAt: parseDate(json['submittedAt']),
@@ -168,6 +171,7 @@ class BusinessDetailsDto {
   final String city;
   final String country;
   final String? vatId;
+  final String? currencyCode;
   final String businessPhoneNumber;
   final String businessStatus;
   final DateTime? submittedAt;

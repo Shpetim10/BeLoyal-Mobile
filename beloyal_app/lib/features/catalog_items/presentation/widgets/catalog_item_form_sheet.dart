@@ -2,11 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../catalog_categories/data/catalog_category_repository.dart';
 import '../../../media/data/repositories/media_repository.dart';
+import '../../../../core/utils/currency_utils.dart';
+import '../../../profile/presentation/controllers/business_profile_controller.dart';
 import '../../data/models/catalog_item_create_request.dart';
 import '../../data/models/catalog_item_detail_response.dart';
 import '../../data/models/catalog_item_type.dart';
@@ -33,11 +34,9 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _priceController = TextEditingController();
-  final _unitController = TextEditingController();
 
   CatalogItemType _selectedType = CatalogItemType.product;
-  String _selectedCurrency = 'EURO'; // Matches Backend: LEK, DOLLAR, EURO
-  String _selectedUnit = 'Piece'; // Matches: Piece, Kg, Hour
+  String _selectedUnit = 'Piece';
   int? _selectedCategoryId;
 
   XFile? _selectedImage;
@@ -53,7 +52,6 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
       _nameController.text = item.name;
       _descController.text = item.description ?? '';
       _priceController.text = item.price.toString();
-      _selectedCurrency = item.currencyCode ?? 'EURO';
       _selectedUnit = item.unit ?? 'Piece';
       _selectedType = CatalogItemType.values.firstWhere(
         (e) => e.name.toUpperCase() == (item.type ?? 'PRODUCT'),
@@ -126,7 +124,6 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
       description: _descController.text,
       price: double.tryParse(_priceController.text) ?? 0.0,
       type: _selectedType,
-      currency: _selectedCurrency,
       unit: _selectedUnit,
       imageUrl: imageUrl,
       imageKey: imageKey,
@@ -165,22 +162,13 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
     }
   }
 
-  String _getCurrencySymbol(String currency) {
-    switch (currency) {
-      case 'EURO':
-        return '€';
-      case 'DOLLAR':
-        return '\$';
-      case 'LEK':
-        return 'L';
-      default:
-        return '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(catalogItemControllerProvider);
+    final profileState = ref.watch(businessProfileControllerProvider);
+    final businessCurrencyCode =
+        profileState.value?.business?.currencyCode ?? 'ALL';
+    final businessCurrencySymbol = currencySymbol(businessCurrencyCode);
     final activeCategoriesAsync = ref.watch(activeCatalogCategoriesProvider(widget.businessId));
     
     final isSubmitting = state.isSubmitting || _isUploadingImage;
@@ -191,10 +179,6 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
     // Provide a safe fallback if categories are still loading or have loaded
     final categories = activeCategoriesAsync.asData?.value ?? [];
     
-    // Safety check: if we have a selected category but it's not in the currently loaded list, 
-    // we don't null it out IMMEDIATELY if we are still loading, because it might appear.
-    // However, if we HAVE data and it's missing, then we null it.
-    bool showDropdown = activeCategoriesAsync.hasValue;
     if (activeCategoriesAsync.hasValue && _selectedCategoryId != null) {
       if (!categories.any((c) => c.id == _selectedCategoryId)) {
         _selectedCategoryId = null;
@@ -383,7 +367,7 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
                           labelText: 'Price',
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.attach_money),
-                          suffixText: _getCurrencySymbol(_selectedCurrency),
+                          suffixText: businessCurrencySymbol,
                           suffixStyle: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.primary,
@@ -395,52 +379,24 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
                 ),
                 const SizedBox(height: 16),
 
-                // Currency & Unit Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedCurrency,
-                        decoration: const InputDecoration(
-                          labelText: 'Currency',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'EURO', child: Text('Euro (€)')),
-                          DropdownMenuItem(value: 'DOLLAR', child: Text('Dollar (\$)')),
-                          DropdownMenuItem(value: 'LEK', child: Text('Lek (L)')),
-                        ],
-                        onChanged: isSubmitting
-                            ? null
-                            : (val) {
-                                if (val != null) setState(() => _selectedCurrency = val);
-                              },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 1,
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedUnit,
-                        decoration: const InputDecoration(
-                          labelText: 'Unit',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'Piece', child: Text('Piece')),
-                          DropdownMenuItem(value: 'Kg', child: Text('Kg')),
-                          DropdownMenuItem(value: 'Hour', child: Text('Hour')),
-                        ],
-                        onChanged: isSubmitting
-                            ? null
-                            : (val) {
-                                if (val != null) setState(() => _selectedUnit = val);
-                              },
-                      ),
-                    ),
+                // Unit
+                DropdownButtonFormField<String>(
+                  value: _selectedUnit,
+                  decoration: const InputDecoration(
+                    labelText: 'Unit',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.straighten_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Piece', child: Text('Piece')),
+                    DropdownMenuItem(value: 'Kg', child: Text('Kg')),
+                    DropdownMenuItem(value: 'Hour', child: Text('Hour')),
                   ],
+                  onChanged: isSubmitting
+                      ? null
+                      : (val) {
+                          if (val != null) setState(() => _selectedUnit = val);
+                        },
                 ),
                 const SizedBox(height: 16),
 

@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../../auth/presentation/widgets/primary_gradient_button.dart';
 import '../../../../core/widgets/besa_loader.dart';
+import '../../../profile/presentation/controllers/business_profile_controller.dart';
 import '../controllers/earning_rule_controller.dart';
 import '../widgets/earning_rule_builder_card.dart';
 import '../widgets/earning_rule_preview_card.dart';
@@ -132,6 +133,9 @@ class _EarningRuleManagementPageState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(earningRuleControllerProvider);
+    final profileState = ref.watch(businessProfileControllerProvider);
+    final currencyCode =
+        profileState.value?.business?.currencyCode ?? 'ALL';
 
     return Scaffold(
       appBar: AppBar(
@@ -168,12 +172,14 @@ class _EarningRuleManagementPageState
                       EarningRuleBuilderCard(
                         pointsController: _pointsCtrl,
                         amountController: _amountCtrl,
+                        currencyCode: currencyCode,
                       ),
                       const SizedBox(height: 24),
 
                       EarningRulePreviewCard(
                         pointsPer: state.pointsPer,
                         amountPer: state.amountPer,
+                        currencyCode: currencyCode,
                       ),
 
                       const SizedBox(height: 24),
