@@ -32,7 +32,6 @@ class _CustomerBusinessDetailPageState
       icon: Icons.confirmation_number_rounded,
       label: 'Coupons & Offers',
     ),
-    _TabItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
     _TabItem(icon: Icons.receipt_long_rounded, label: 'Transactions'),
     _TabItem(icon: Icons.location_on_rounded, label: 'Location'),
     _TabItem(icon: Icons.info_outline_rounded, label: 'Info'),
@@ -98,26 +97,7 @@ class _CustomerBusinessDetailPageState
           ),
         ),
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-          ),
-          child: IconButton(
-            icon: const Icon(
-              Icons.share_rounded,
-              color: Colors.white,
-              size: 18,
-            ),
-            onPressed: () {},
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            padding: EdgeInsets.zero,
-          ),
-        ),
-      ],
+      actions: const [],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -193,47 +173,6 @@ class _CustomerBusinessDetailPageState
                             style: const TextStyle(fontSize: 36),
                           ),
                         ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: topPad + 16,
-              right: 72,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: (_b.isOpen ? AppColors.success : AppColors.error)
-                      .withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: (_b.isOpen ? AppColors.success : AppColors.error)
-                        .withValues(alpha: 0.4),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _b.isOpen ? AppColors.success : AppColors.error,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _b.isOpen ? 'Open Now' : 'Closed',
-                      style: AppTypography.dmSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _b.isOpen ? AppColors.success : AppColors.error,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -406,41 +345,6 @@ class _CustomerBusinessDetailPageState
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              GestureDetector(
-                onTap: () => setState(() => _selectedTab = 3),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.card_giftcard_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Rewards',
-                        style: AppTypography.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
           if (memberCode.isNotEmpty) ...[
@@ -602,23 +506,18 @@ class _CustomerBusinessDetailPageState
       0 => _OverviewTab(
         business: _b,
         data: data,
-        onScanTap: () => setState(() => _selectedTab = 4),
         onCouponsTap: () => setState(() => _selectedTab = 2),
-        onDirectionsTap: () => setState(() => _selectedTab = 5),
+        onDirectionsTap: () => setState(() => _selectedTab = 4),
       ),
       1 => _MenuTab(business: _b, detail: detail),
       2 => _CouponsTab(
         coupons: detailData?.coupons ?? data.couponsForBusiness(_b.id),
       ),
-      3 => _RewardsTab(
-        detail: detailData,
-        fallbackCoupons: data.couponsForBusiness(_b.id),
-      ),
-      4 => _TransactionsTab(
+      3 => _TransactionsTab(
         txs: detailData?.transactions ?? data.transactionsForBusiness(_b.id),
       ),
-      5 => _LocationTab(business: _b, location: detailData?.location),
-      6 => _InfoTab(business: _b, detail: detailData),
+      4 => _LocationTab(business: _b, location: detailData?.location),
+      5 => _InfoTab(business: _b, detail: detailData),
       _ => const SizedBox.shrink(),
     };
   }
@@ -636,13 +535,11 @@ class _OverviewTab extends StatelessWidget {
   const _OverviewTab({
     required this.business,
     required this.data,
-    required this.onScanTap,
     required this.onCouponsTap,
     required this.onDirectionsTap,
   });
   final CustomerBusiness business;
   final CustomerDataSource data;
-  final VoidCallback onScanTap;
   final VoidCallback onCouponsTap;
   final VoidCallback onDirectionsTap;
 
@@ -665,31 +562,6 @@ class _OverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Quick actions ──────────────────────────────────────────────
-          Row(
-            children: [
-              _QuickAction(
-                icon: Icons.qr_code_scanner_rounded,
-                label: 'Scan & Earn',
-                onTap: onScanTap,
-                accentColors: business.gradientColors,
-              ),
-              const SizedBox(width: 10),
-              _QuickAction(
-                icon: Icons.confirmation_number_rounded,
-                label: 'My Coupons',
-                onTap: onCouponsTap,
-                accentColors: business.gradientColors,
-              ),
-              const SizedBox(width: 10),
-              _QuickAction(
-                icon: Icons.directions_rounded,
-                label: 'Directions',
-                onTap: onDirectionsTap,
-                accentColors: business.gradientColors,
-              ),
-            ],
-          ),
           if (coupons.isNotEmpty) ...[
             const SizedBox(height: 22),
             _SubSectionHeader(title: 'Active Coupons', count: coupons.length),
@@ -724,51 +596,6 @@ class _OverviewTab extends StatelessWidget {
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.accentColors,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final List<Color> accentColors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 20, color: accentColors.last),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: AppTypography.dmSans(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMutedDark,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _SubSectionHeader extends StatelessWidget {
   const _SubSectionHeader({required this.title, required this.count});
@@ -1998,143 +1825,6 @@ class _DashedPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
-// ─── Rewards Tab ──────────────────────────────────────────────────────────────
-
-class _RewardsTab extends StatelessWidget {
-  const _RewardsTab({required this.detail, required this.fallbackCoupons});
-  final CustomerBusinessDetail? detail;
-  final List<CustomerCoupon> fallbackCoupons;
-
-  @override
-  Widget build(BuildContext context) {
-    final coupons = detail?.coupons ?? fallbackCoupons;
-    if (coupons.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 40),
-        child: _EmptyState(
-          icon: Icons.card_giftcard_outlined,
-          message: 'No redeemable rewards/offers for this business yet.',
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Redeemable rewards/offers',
-            style: AppTypography.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textOnDark,
-            ),
-          ),
-          if (detail != null) ...[
-            const SizedBox(height: 10),
-            _LoyaltyRulesCard(detail: detail!),
-          ],
-          const SizedBox(height: 12),
-          ...coupons.map(
-            (c) => _DetailCouponCard(
-              coupon: c,
-              onTap: () => CustomerCouponDetailSheet.show(context, c),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LoyaltyRulesCard extends StatelessWidget {
-  const _LoyaltyRulesCard({required this.detail});
-  final CustomerBusinessDetail detail;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Loyalty rules',
-              style: AppTypography.dmSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textOnDark,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              detail.loyaltyPolicy,
-              style: AppTypography.dmSans(
-                fontSize: 12,
-                color: AppColors.textMutedDark,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _rule('Min redeem', '${detail.minPointsToRedeem} pts'),
-            if (detail.maxPointsToRedeem != null)
-              _rule('Max redeem', '${detail.maxPointsToRedeem} pts'),
-            if (detail.pointsPerUnitDiscount != null)
-              _rule(
-                'Discount rule',
-                '${detail.pointsPerUnitDiscount} pts per unit',
-              ),
-            if (detail.maxPointsPerTransaction != null)
-              _rule(
-                'Max / transaction',
-                '${detail.maxPointsPerTransaction} pts',
-              ),
-            if (detail.hasEarningRule)
-              _rule('Earn rule', detail.earningRuleLabel),
-            if (detail.expiryLabel.isNotEmpty)
-              _rule('Expiry', detail.expiryLabel),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _rule(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: AppTypography.dmSans(
-              fontSize: 11,
-              color: AppColors.textMutedDark,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTypography.dmSans(
-                fontSize: 11,
-                color: AppColors.textOnDark,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ─── Transactions Tab ─────────────────────────────────────────────────────────

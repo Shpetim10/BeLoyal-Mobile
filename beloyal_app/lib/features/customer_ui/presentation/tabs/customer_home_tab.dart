@@ -39,7 +39,7 @@ class CustomerHomeTab extends ConsumerStatefulWidget {
 }
 
 class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
-  int _selectedCategoryId = 0;
+  int _selectedCategoryId = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +85,7 @@ class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
               ),
               const SizedBox(height: 12),
               _BusinessCarousel(
-                businesses: _selectedCategoryId == 0
+                businesses: _selectedCategoryId == -1
                     ? data.businessesWithPoints
                     : data.businessesWithPoints
                           .where((b) => b.categoryId == _selectedCategoryId)
@@ -104,7 +104,7 @@ class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
               const SizedBox(height: 12),
               _DiscoverCarousel(
                 businesses:
-                    (_selectedCategoryId == 0
+                    (_selectedCategoryId == -1
                             ? data.businesses.where((b) => b.points == 0)
                             : data.businesses.where(
                                 (b) =>
@@ -667,7 +667,7 @@ class _CategoryCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     final categories = [
       CustomerCategory(
-        id: 0,
+        id: -1,
         name: 'All',
         icon: Icons.apps_rounded,
         color: AppColors.primary,

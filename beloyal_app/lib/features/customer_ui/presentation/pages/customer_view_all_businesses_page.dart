@@ -20,7 +20,7 @@ class _CustomerViewAllBusinessesPageState
     with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  int _selectedCategoryId = 0;
+  int _selectedCategoryId = -1;
   late final TabController _tabController;
 
   @override
@@ -43,7 +43,7 @@ class _CustomerViewAllBusinessesPageState
           !b.category.toLowerCase().contains(_searchQuery.toLowerCase())) {
         return false;
       }
-      if (_selectedCategoryId != 0 && b.categoryId != _selectedCategoryId) {
+      if (_selectedCategoryId != -1 && b.categoryId != _selectedCategoryId) {
         return false;
       }
       return true;
@@ -172,10 +172,10 @@ class _CustomerViewAllBusinessesPageState
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
                     _CategoryChip(
-                      id: 0,
+                      id: -1,
                       label: 'All',
-                      isSelected: _selectedCategoryId == 0,
-                      onTap: () => setState(() => _selectedCategoryId = 0),
+                      isSelected: _selectedCategoryId == -1,
+                      onTap: () => setState(() => _selectedCategoryId = -1),
                     ),
                     ...data.categories.map(
                       (c) => _CategoryChip(
@@ -185,7 +185,7 @@ class _CustomerViewAllBusinessesPageState
                         color: c.color,
                         onTap: () => setState(
                           () => _selectedCategoryId =
-                              _selectedCategoryId == c.id ? 0 : c.id,
+                              _selectedCategoryId == c.id ? -1 : c.id,
                         ),
                       ),
                     ),

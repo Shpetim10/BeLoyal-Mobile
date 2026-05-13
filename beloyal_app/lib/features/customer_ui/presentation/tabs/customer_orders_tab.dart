@@ -6,6 +6,7 @@ import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_transaction_detail_sheet.dart';
 
 enum _TxFilter {
   all,
@@ -239,7 +240,27 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
                                 ],
                               ),
                             ),
-                            ...entry.value.map((tx) => _TxCard(tx: tx)),
+                            ...entry.value.map(
+                              (tx) => _TxCard(
+                                tx: tx,
+                                onTap: () {
+                                  // Prefer richer transaction data from
+                                  // business detail cache if already loaded;
+                                  // the home endpoint returns sparse fields.
+                                  final detailState = ref.read(
+                                    customerBusinessDetailProvider(tx.businessId),
+                                  );
+                                  final richTx = detailState.asData?.value
+                                      .transactions
+                                      .where((t) => t.id == tx.id)
+                                      .firstOrNull;
+                                  CustomerTransactionDetailSheet.show(
+                                    context,
+                                    richTx ?? tx,
+                                  );
+                                },
+                              ),
+                            ),
                           ],
                         );
                       }).toList(),
@@ -302,8 +323,9 @@ class _SummaryPill extends StatelessWidget {
 // ─── Transaction Card ─────────────────────────────────────────────────────────
 
 class _TxCard extends StatelessWidget {
-  const _TxCard({required this.tx});
+  const _TxCard({required this.tx, this.onTap});
   final CustomerTransaction tx;
+  final VoidCallback? onTap;
 
   Color get _typeColor => switch (tx.type) {
     'EARN' => AppColors.success,
@@ -338,7 +360,9 @@ class _TxCard extends StatelessWidget {
     final timeFmt = DateFormat('h:mm a');
     final isPositive = tx.points > 0;
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -456,6 +480,7 @@ class _TxCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

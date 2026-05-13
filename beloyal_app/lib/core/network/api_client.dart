@@ -12,7 +12,7 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl:
-          'https://patricia-enlarge-dist-does.trycloudflare.com/api/besahub',
+          'https://workshops-typical-boots-richards.trycloudflare.com/api/besahub',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {

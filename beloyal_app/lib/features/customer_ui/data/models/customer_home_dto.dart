@@ -1,4 +1,4 @@
-// DTOs for GET /api/besahub/customer/home and related endpoints.
+// DTOs for GET /api/besahub/customer/home, /customer/me/details and related endpoints.
 
 int _asInt(dynamic value, [int fallback = 0]) {
   if (value is num) {
@@ -100,6 +100,90 @@ class CustomerSummaryDto {
       activeRewards: _asInt(json['activeRewards']),
       memberSinceLabel: _asString(json['memberSinceLabel']),
       memberCode: _asString(json['memberCode']),
+    );
+  }
+}
+
+// ─── Profile Details DTOs (GET /customer/me/details) ─────────────────────────
+
+class CustomerProfileHeaderDto {
+  const CustomerProfileHeaderDto({
+    required this.firstName,
+    required this.lastName,
+    required this.fullName,
+    required this.email,
+    required this.username,
+    required this.avatarInitials,
+    required this.status,
+    required this.memberSince,
+    required this.memberCode,
+    required this.acceptedTerms,
+    required this.notificationEnabled,
+    this.phoneNumber,
+    this.profileImageUrl,
+    this.city,
+    this.country,
+    this.gender,
+    this.birthDate,
+    this.referralCode,
+    this.referredBy,
+  });
+
+  final String firstName;
+  final String lastName;
+  final String fullName;
+  final String email;
+  final String username;
+  final String? phoneNumber;
+  final String? profileImageUrl;
+  final String avatarInitials;
+  final String status;
+  final String memberSince;
+  final String memberCode;
+  final bool acceptedTerms;
+  final bool notificationEnabled;
+  final String? city;
+  final String? country;
+  final String? gender;
+  final String? birthDate;
+  final String? referralCode;
+  final String? referredBy;
+
+  factory CustomerProfileHeaderDto.fromJson(Map<String, dynamic> json) {
+    return CustomerProfileHeaderDto(
+      firstName: _asString(json['firstName']),
+      lastName: _asString(json['lastName']),
+      fullName: _asString(json['fullName']),
+      email: _asString(json['email']),
+      username: _asString(json['username']),
+      phoneNumber: json['phoneNumber']?.toString(),
+      profileImageUrl: json['profileImageUrl']?.toString(),
+      avatarInitials: _asString(json['avatarInitials']),
+      status: _asString(json['status']),
+      memberSince: _asString(json['memberSince']),
+      memberCode: _asString(json['memberCode']),
+      acceptedTerms: _asBool(json['acceptedTerms']),
+      notificationEnabled: _asBool(json['notificationEnabled'], true),
+      city: json['city']?.toString(),
+      country: json['country']?.toString(),
+      gender: json['gender']?.toString(),
+      birthDate: (json['birthDate'] ?? json['birthdate'])?.toString(),
+      referralCode: json['referralCode']?.toString(),
+      referredBy: json['referredBy']?.toString(),
+    );
+  }
+}
+
+class CustomerProfileDetailsDto {
+  const CustomerProfileDetailsDto({required this.profile, required this.stats});
+
+  final CustomerProfileHeaderDto profile;
+  final CustomerSummaryDto stats;
+
+  factory CustomerProfileDetailsDto.fromJson(Map<String, dynamic> json) {
+    return CustomerProfileDetailsDto(
+      profile: CustomerProfileHeaderDto.fromJson(_asMap(json['profile'])),
+      stats: CustomerSummaryDto.fromJson(_asMap(json['stats'])),
     );
   }
 }

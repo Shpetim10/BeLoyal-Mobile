@@ -1,14 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/network/api_client.dart';
+import '../../../../../core/services/token_storage.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/models/user_profile.dart';
 import '../../domain/models/customer_profile.dart';
 import '../../domain/models/staff_membership.dart';
 
 class ProfileRepository {
-  ProfileRepository(this._dio);
+  ProfileRepository(this._dio, this._tokenStorage);
   final Dio _dio;
+  final TokenStorage _tokenStorage;
 
   Future<AuthResult<UserProfile>> fetchUserProfile() async {
     try {
@@ -147,9 +149,16 @@ class ProfileRepository {
         data: {'currentPassword': currentPassword, 'newPassword': newPassword},
       );
 
-      final msg =
-          response.data?['message']?.toString() ??
-          'Password updated successfully';
+      final data = response.data as Map<String, dynamic>?;
+      final msg = data?['message']?.toString() ?? 'Password updated successfully';
+      final accessToken = data?['accessToken']?.toString();
+      final refreshToken = data?['refreshToken']?.toString();
+      if (accessToken != null && refreshToken != null) {
+        await _tokenStorage.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
       return AuthSuccess(msg);
     } on DioException catch (e) {
       return AuthError(_mapDioError(e));
@@ -199,5 +208,5 @@ class ProfileRepository {
 
 /// Riverpod provider for ProfileRepository.
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return ProfileRepository(ref.watch(dioProvider));
+  return ProfileRepository(ref.watch(dioProvider), ref.read(tokenStorageProvider));
 });
