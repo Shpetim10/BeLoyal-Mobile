@@ -1584,7 +1584,7 @@ class _AvailabilityStep extends ConsumerWidget {
     final now = DateTime.now();
     final initial = isStart
         ? (state.startDate ?? now)
-        : (state.endDate ?? now.add(const Duration(days: 30)));
+        : (state.endDate ?? state.startDate ?? now);
     final first = isStart ? now : (state.startDate ?? now);
 
     final picked = await showDatePicker(
@@ -1604,12 +1604,21 @@ class _AvailabilityStep extends ConsumerWidget {
         ? DateTime(picked.year, picked.month, picked.day, 0, 0, 0)
         : DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
 
-    ref
-        .read(couponCreateControllerProvider.notifier)
-        .updateAvailability(
-          startDate: isStart ? dt : state.startDate,
-          endDate: isStart ? state.endDate : dt,
-        );
+    if (isStart) {
+      ref
+          .read(couponCreateControllerProvider.notifier)
+          .updateAvailability(startDate: dt, endDate: state.endDate);
+    } else {
+      if (dt.isBefore(state.startDate ?? now)) {
+        ref
+            .read(couponCreateControllerProvider.notifier)
+            .updateAvailability(startDate: now, endDate: now);
+      } else {
+        ref
+            .read(couponCreateControllerProvider.notifier)
+            .updateAvailability(endDate: dt);
+      }
+    }
   }
 
   @override

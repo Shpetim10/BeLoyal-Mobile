@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 
@@ -91,6 +91,14 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
     'FIXED_AMOUNT_DISCOUNT' => 'Fixed Discount',
     _ => _coupon.type,
   };
+
+  String _formatCouponMoney(double value, String? currency) {
+    final symbol = currencySymbol(currency);
+    final fixed = value % 1 == 0
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(2);
+    return '$symbol $fixed'.trim();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -368,7 +376,10 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
             _DetailRow(
               icon: Icons.shopping_cart_outlined,
               label: 'Min. Order',
-              value: 'L ${_coupon.minimumOrderAmount!.toStringAsFixed(0)}',
+              value: _formatCouponMoney(
+                _coupon.minimumOrderAmount!,
+                _coupon.currency,
+              ),
             ),
           ],
           if (!isFreeProduct &&
@@ -378,7 +389,10 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
             _DetailRow(
               icon: Icons.calculate_outlined,
               label: 'Max Discount',
-              value: 'L ${_coupon.maximumDiscountAmount!.toStringAsFixed(0)}',
+              value: _formatCouponMoney(
+                _coupon.maximumDiscountAmount!,
+                _coupon.currency,
+              ),
               valueColor: AppColors.success,
             ),
           ],
@@ -414,30 +428,21 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
   }
 
   Widget _buildExpiryRow() {
-    final isExpired = _coupon.expiresAt.isBefore(DateTime.now());
-    final daysLeft = _coupon.expiresAt.difference(DateTime.now()).inDays;
-    final hoursLeft = _coupon.expiresAt.difference(DateTime.now()).inHours;
-    final expiryFmt = DateFormat('MMM d, yyyy – h:mm a');
-
-    final timeLabel = isExpired
-        ? 'Expired ${(-daysLeft)}d ago'
-        : hoursLeft < 24
-        ? 'Expires in ${hoursLeft}h'
-        : 'Expires in ${daysLeft}d';
-
-    final expiryColor = isExpired
+    final expiresIn = _coupon.expiresIn ?? 'Expires soon';
+    final expiryColor = _coupon.status == 'expiring'
         ? AppColors.error
-        : hoursLeft < 24
-        ? AppColors.warning
         : AppColors.textMutedDark;
 
     return Row(
       children: [
         Icon(Icons.access_time_rounded, size: 14, color: expiryColor),
         const SizedBox(width: 6),
-        Text(
-          '${expiryFmt.format(_coupon.expiresAt)}  ($timeLabel)',
-          style: AppTypography.dmSans(fontSize: 12, color: expiryColor),
+        Expanded(
+          child: Text(
+            expiresIn,
+            style: AppTypography.dmSans(fontSize: 12, color: expiryColor),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

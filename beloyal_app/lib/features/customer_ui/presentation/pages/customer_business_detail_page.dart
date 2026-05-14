@@ -1020,7 +1020,8 @@ class _FancyMenuItemCard extends StatelessWidget {
   }
 
   Widget _buildBasePriceRow() {
-    final displayLabel = item.pointsLabel.isNotEmpty ? item.pointsLabel : null;
+    final earnLabel = _earnLabelFromItem();
+    final displayLabel = earnLabel ?? (item.pointsLabel.isNotEmpty ? item.pointsLabel : null);
     final symbol = item.baseCurrency.isEmpty ? 'L' : item.baseCurrency;
     final hasBasePrice = item.basePrice != null;
     return Row(
@@ -1058,7 +1059,7 @@ class _FancyMenuItemCard extends StatelessWidget {
 
   Widget _buildSingleVariantRow() {
     final variant = item.variants.first;
-    final earnLabel = _earnLabel(variant);
+    final earnLabel = _earnLabelFromItem() ?? _earnLabel(variant);
     final displayLabel = earnLabel ?? (item.pointsLabel.isNotEmpty ? item.pointsLabel : null);
     return Row(
       children: [
@@ -1093,7 +1094,9 @@ class _FancyMenuItemCard extends StatelessWidget {
   }
 
   Widget _buildMultiVariantRow() {
-    final anyEarnedPoints = item.variants.any((v) => v.earnedPoints != null && v.earnedPoints! > 0);
+    final itemEarnedPoints = item.earnedPoints;
+    final anyEarnedPoints = itemEarnedPoints != null && itemEarnedPoints > 0 ||
+        item.variants.any((v) => v.earnedPoints != null && v.earnedPoints! > 0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1152,6 +1155,20 @@ class _FancyMenuItemCard extends StatelessWidget {
               style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
             ),
           ),
+        ] else if (anyEarnedPoints && itemEarnedPoints != null && itemEarnedPoints > 0) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+            ),
+            child: Text(
+              '+$itemEarnedPoints pts',
+              style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+            ),
+          ),
         ],
       ],
     );
@@ -1160,6 +1177,13 @@ class _FancyMenuItemCard extends StatelessWidget {
   String? _earnLabel(CustomerMenuVariant v) {
     if (v.earnedPoints != null && v.earnedPoints! > 0) {
       return '+${v.earnedPoints} pts';
+    }
+    return null;
+  }
+
+  String? _earnLabelFromItem() {
+    if (item.earnedPoints != null && item.earnedPoints! > 0) {
+      return '+${item.earnedPoints} pts';
     }
     return null;
   }
@@ -1338,14 +1362,8 @@ class _DetailCouponCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final hoursLeft = coupon.expiresAt.difference(DateTime.now()).inHours;
-    final daysLeft = coupon.expiresAt.difference(DateTime.now()).inDays;
-    final isExpired = coupon.expiresAt.isBefore(DateTime.now());
-    final timeLabel = isExpired
-        ? 'Expired ${-daysLeft}d ago'
-        : hoursLeft < 24
-        ? 'Expires in ${hoursLeft}h'
-        : 'Expires in ${daysLeft}d';
+    final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
+    final expiresIn = coupon.expiresIn ?? 'Expires soon';
 
     return GestureDetector(
       onTap: onTap,
@@ -1464,13 +1482,24 @@ class _DetailCouponCard extends StatelessWidget {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              const Icon(Icons.calendar_today_rounded, size: 11, color: AppColors.textMutedDark),
+                              if (coupon.status == 'expiring')
+                                Icon(Icons.local_fire_department_rounded, size: 11, color: AppColors.error)
+                              else
+                                const Icon(Icons.calendar_today_rounded, size: 11, color: AppColors.textMutedDark),
                               const SizedBox(width: 4),
-                              Text(
-                                timeLabel,
-                                style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                              Expanded(
+                                child: Text(
+                                  '$expiresAt • $expiresIn',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 11,
+                                    fontWeight: coupon.status == 'expiring' ? FontWeight.w600 : FontWeight.w400,
+                                    color: coupon.status == 'expiring' ? AppColors.error : AppColors.textMutedDark,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              const Spacer(),
+                              const SizedBox(width: 4),
                               if (isActive)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

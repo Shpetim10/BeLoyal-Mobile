@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
@@ -1335,14 +1336,8 @@ class _OfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daysLeft = coupon.expiresAt.difference(DateTime.now()).inDays;
-    final hoursLeft = coupon.expiresAt.difference(DateTime.now()).inHours;
-    final urgencyLabel = daysLeft <= 0
-        ? '${hoursLeft}h left'
-        : daysLeft == 1
-        ? 'Ends tomorrow'
-        : '$daysLeft days left';
-    final isUrgent = daysLeft <= 1;
+    final urgencyLabel = coupon.expiresIn ?? 'Expires soon';
+    final isUrgent = coupon.status == 'expiring';
     final displayValue = coupon.multiplierLabel ?? coupon.discountDisplay;
 
     return GestureDetector(
@@ -1929,10 +1924,8 @@ class _ExpiringCouponRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hours = coupon.expiresAt.difference(DateTime.now()).inHours;
-    final label = hours < 24
-        ? '${hours}h left'
-        : '${coupon.expiresAt.difference(DateTime.now()).inDays}d left';
+    final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
+    final expiresIn = coupon.expiresIn ?? 'Expires soon';
 
     return GestureDetector(
       onTap: () => _push(
@@ -1943,9 +1936,17 @@ class _ExpiringCouponRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.06),
+          gradient: LinearGradient(
+            colors: [
+              AppColors.error.withValues(alpha: 0.08),
+              AppColors.error.withValues(alpha: 0.04),
+            ],
+          ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: AppColors.error.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
         ),
         child: Row(
           children: [
@@ -1959,9 +1960,16 @@ class _ExpiringCouponRow extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: coupon.gradientColors.last.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
-                Icons.confirmation_number_rounded,
+                Icons.local_fire_department_rounded,
                 color: Colors.white,
                 size: 18,
               ),
@@ -1978,6 +1986,8 @@ class _ExpiringCouponRow extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: AppColors.textOnDark,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     coupon.businessName,
@@ -1985,6 +1995,8 @@ class _ExpiringCouponRow extends StatelessWidget {
                       fontSize: 11,
                       color: AppColors.textMutedDark,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -2001,9 +2013,10 @@ class _ExpiringCouponRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  label,
+                  '$expiresAt • $expiresIn',
                   style: AppTypography.dmSans(
                     fontSize: 10,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.error,
                   ),
                 ),

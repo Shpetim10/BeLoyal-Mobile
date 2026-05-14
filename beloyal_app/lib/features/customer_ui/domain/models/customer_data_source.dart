@@ -60,6 +60,7 @@ CustomerBusinessDetail mapBusinessDetailDto(CustomerBusinessDetailDto dto) {
           basePrice: i.basePrice,
           baseCurrency: i.currency,
           unit: i.unit,
+          earnedPoints: i.earnedPoints,
         ),
       )
       .toList();
@@ -333,6 +334,7 @@ class CustomerDataSource {
                   type: coupon.type,
                   isUsed: coupon.isUsed,
                   description: coupon.description,
+                  expiresIn: coupon.expiresIn,
                   termsAndConditions: coupon.termsAndConditions,
                   usageLimit: coupon.usageLimit,
                   usageCount: coupon.usageCount,
@@ -462,9 +464,8 @@ CustomerCoupon _mapPromotion(
   String? qrCodeOverride,
 }) {
   final categoryKey = bizCategoryMap[dto.businessId] ?? '';
-  final expires =
-      DateTime.tryParse(dto.expiresAt ?? '') ??
-      DateTime.now().add(const Duration(days: 30));
+  final expires = dto.expiresAt ?? DateTime.now().add(const Duration(days: 30));
+  final expiresIn = dto.expiresIn ?? _calculateExpiresInTime(expires);
 
   return CustomerCoupon(
     id: dto.id,
@@ -480,6 +481,7 @@ CustomerCoupon _mapPromotion(
     type: dto.promotionType,
     isUsed: dto.isUsed,
     description: dto.description,
+    expiresIn: expiresIn,
     termsAndConditions: dto.termsAndConditions ?? '',
     usageLimit: dto.usageLimit,
     usageCount: dto.usageCount,
@@ -505,6 +507,22 @@ CustomerCoupon _mapPromotion(
     orderId: dto.orderId,
     qrCode: (qrCodeOverride?.isNotEmpty == true) ? qrCodeOverride : dto.qrCode,
   );
+}
+
+String _calculateExpiresInTime(DateTime expiresAt) {
+  final now = DateTime.now();
+  if (expiresAt.isBefore(now)) {
+    final daysAgo = now.difference(expiresAt).inDays;
+    return 'Expired ${daysAgo}d ago';
+  }
+
+  final hoursLeft = expiresAt.difference(now).inHours;
+  if (hoursLeft < 24) {
+    return 'Expires in ${hoursLeft}h';
+  }
+
+  final daysLeft = expiresAt.difference(now).inDays;
+  return 'Expires in ${daysLeft}d';
 }
 
 CustomerTransaction _mapTransaction(

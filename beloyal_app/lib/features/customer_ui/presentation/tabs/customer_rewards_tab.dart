@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
@@ -513,14 +514,8 @@ class _CouponCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final hoursLeft = coupon.expiresAt.difference(DateTime.now()).inHours;
-    final daysLeft = coupon.expiresAt.difference(DateTime.now()).inDays;
-    final isExpired = coupon.expiresAt.isBefore(DateTime.now());
-    final timeLabel = isExpired
-        ? 'Expired ${-daysLeft}d ago'
-        : hoursLeft < 24
-        ? 'Expires in ${hoursLeft}h'
-        : 'Expires in ${daysLeft}d';
+    final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
+    final expiresIn = coupon.expiresIn ?? 'Expires soon';
     final redemptionState = ref.watch(customerCouponRedemptionProvider);
     final isClaimLoading = redemptionState is CouponRedemptionLoading;
 
@@ -650,20 +645,30 @@ class _CouponCard extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(
-                            Icons.calendar_today_rounded,
-                            size: 11,
-                            color: AppColors.textMutedDark,
-                          ),
+                          if (coupon.status == 'expiring')
+                            Icon(Icons.local_fire_department_rounded,
+                                size: 11, color: AppColors.error)
+                          else
+                            const Icon(Icons.calendar_today_rounded,
+                                size: 11, color: AppColors.textMutedDark),
                           const SizedBox(width: 4),
-                          Text(
-                            timeLabel,
-                            style: AppTypography.dmSans(
-                              fontSize: 11,
-                              color: AppColors.textMutedDark,
+                          Expanded(
+                            child: Text(
+                              '$expiresAt • $expiresIn',
+                              style: AppTypography.dmSans(
+                                fontSize: 11,
+                                fontWeight: coupon.status == 'expiring'
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: coupon.status == 'expiring'
+                                    ? AppColors.error
+                                    : AppColors.textMutedDark,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 4),
                           if (isActive)
                             GestureDetector(
                               onTap: coupon.isOwned

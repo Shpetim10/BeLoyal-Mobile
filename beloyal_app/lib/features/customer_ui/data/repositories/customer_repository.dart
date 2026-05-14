@@ -82,6 +82,13 @@ class CustomerRepository {
       response.data as Map<String, dynamic>,
     );
   }
+
+  Future<CustomerPromotionDto> fetchCouponDetails(int couponId) async {
+    final response = await _dio.get('/customer/coupons/$couponId');
+    return CustomerPromotionDto.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }
 
 final customerRepositoryProvider = Provider<CustomerRepository>((ref) {

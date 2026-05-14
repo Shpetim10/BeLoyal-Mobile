@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_qr_sheet.dart';
@@ -24,6 +25,7 @@ class CustomerCouponDetailSheet {
           coupon: coupon,
           scrollController: scrollController,
           rootContext: context,
+          fetchDetailed: true,
         ),
       ),
     );
@@ -35,28 +37,50 @@ class _CouponSheetBody extends ConsumerStatefulWidget {
     required this.coupon,
     required this.scrollController,
     required this.rootContext,
+    this.fetchDetailed = false,
   });
 
   final CustomerCoupon coupon;
   final ScrollController scrollController;
   final BuildContext rootContext;
+  final bool fetchDetailed;
 
   @override
   ConsumerState<_CouponSheetBody> createState() => _CouponSheetBodyState();
 }
 
 class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
-  CustomerCoupon get coupon => widget.coupon;
+  late final Future<CustomerCoupon?> _detailedCouponFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.fetchDetailed) {
+      _detailedCouponFuture = Future.microtask(() async {
+        try {
+          final detailed = await ref.read(
+            customerCouponDetailProvider(widget.coupon.id).future,
+          );
+          return detailed;
+        } catch (_) {
+          return widget.coupon;
+        }
+      });
+    } else {
+      _detailedCouponFuture = Future.value(widget.coupon);
+    }
+  }
+
   ScrollController get scrollController => widget.scrollController;
 
-  Color get _statusColor => switch (coupon.status) {
+  Color _statusColor(CustomerCoupon coupon) => switch (coupon.status) {
     'active' => AppColors.success,
     'expiring' => AppColors.error,
     'used' => AppColors.textMutedDark,
     _ => AppColors.textMutedDark,
   };
 
-  String get _statusLabel => switch (coupon.status) {
+  String _statusLabel(CustomerCoupon coupon) => switch (coupon.status) {
     'active' => 'Active',
     'expiring' => 'Expiring Soon',
     'used' => 'Used',
@@ -64,35 +88,38 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
     _ => coupon.status,
   };
 
-  IconData get _typeIcon => switch (coupon.type) {
+  IconData _typeIcon(CustomerCoupon coupon) => switch (coupon.type) {
     'FREE_PRODUCT' => Icons.card_giftcard_rounded,
     'PERCENTAGE_DISCOUNT' => Icons.percent_rounded,
     'FIXED_AMOUNT_DISCOUNT' => Icons.discount_rounded,
     _ => Icons.confirmation_number_rounded,
   };
 
-  String get _typeLabel => switch (coupon.type) {
+  String _typeLabel(CustomerCoupon coupon) => switch (coupon.type) {
     'FREE_PRODUCT' => 'Free Product',
     'PERCENTAGE_DISCOUNT' => 'Percentage Discount',
     'FIXED_AMOUNT_DISCOUNT' => 'Fixed Discount',
     _ => coupon.type,
   };
 
-  bool get _isFreeProduct => coupon.type == 'FREE_PRODUCT';
+  bool _isFreeProduct(CustomerCoupon coupon) => coupon.type == 'FREE_PRODUCT';
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<CustomerCoupon?>(
+      future: _detailedCouponFuture,
+      builder: (_, snapshot) {
+        final coupon = snapshot.data ?? widget.coupon;
+        return _buildContent(context, coupon);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context, CustomerCoupon coupon) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final hoursLeft = coupon.expiresAt.difference(DateTime.now()).inHours;
-    final daysLeft = coupon.expiresAt.difference(DateTime.now()).inDays;
-    final isExpired = coupon.expiresAt.isBefore(DateTime.now());
-    final timeLabel = isExpired
-        ? 'Expired ${-daysLeft}d ago'
-        : hoursLeft < 24
-        ? 'Expires in ${hoursLeft}h'
-        : 'Expires in ${daysLeft}d';
-    final expiryFmt = DateFormat('MMM d, yyyy');
+    final expiryDate = DateFormat('MMM d, yyyy').format(coupon.expiresAt);
+    final expiresIn = coupon.expiresIn ?? 'Expires soon';
     final dateFmt = DateFormat('MMM d, yyyy');
     final gradientColors = coupon.isUsed || coupon.status == 'expired'
         ? [const Color(0xFF374151), const Color(0xFF6B7280)]
@@ -121,7 +148,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
           // ── Hero card ──────────────────────────────────────────────────
           Opacity(
             opacity: coupon.isUsed || coupon.status == 'expired' ? 0.75 : 1.0,
-            child: _buildHeroCard(gradientColors, isActive),
+            child: _buildHeroCard(coupon, gradientColors, isActive),
           ),
           const SizedBox(height: 20),
           // ── Status & badges ───────────────────────────────────────────
@@ -137,15 +164,15 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: _statusColor.withValues(alpha: 0.12),
+                      color: _statusColor(coupon).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      _statusLabel,
+                      _statusLabel(coupon),
                       style: AppTypography.dmSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: _statusColor,
+                        color: _statusColor(coupon),
                       ),
                     ),
                   ),
@@ -195,7 +222,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
           ],
           const SizedBox(height: 16),
           // ── Free product details ───────────────────────────────────────
-          if (_isFreeProduct && _hasFreeProductInfo) ...[
+          if (_isFreeProduct(coupon) && _buildHasFreeProductInfo(coupon)) ...[
             _SectionLabel(label: 'Free Item'),
             const SizedBox(height: 8),
             Container(
@@ -245,16 +272,47 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
             ),
             child: Column(
               children: [
-                _InfoRow(
-                  icon: Icons.calendar_today_rounded,
-                  label: 'Expires',
-                  value: isExpired
-                      ? timeLabel
-                      : '${expiryFmt.format(coupon.expiresAt)}  ($timeLabel)',
-                  valueColor: coupon.status == 'expiring'
-                      ? AppColors.error
-                      : null,
-                ),
+                if (coupon.status == 'expiring')
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.error.withValues(alpha: 0.08),
+                          AppColors.error.withValues(alpha: 0.04),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.local_fire_department_rounded,
+                            color: AppColors.error, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$expiryDate • $expiresIn',
+                            style: AppTypography.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  _InfoRow(
+                    icon: Icons.calendar_today_rounded,
+                    label: 'Expires',
+                    value: '$expiryDate • $expiresIn',
+                  ),
                 const Divider(
                   height: 1,
                   thickness: 1,
@@ -263,34 +321,35 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                 _InfoRow(
                   icon: Icons.category_rounded,
                   label: 'Type',
-                  value: _typeLabel,
+                  value: _typeLabel(coupon),
                 ),
-                if (coupon.pointCost > 0) ...[
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.glassBorder,
-                  ),
-                  _InfoRow(
-                    icon: Icons.stars_rounded,
-                    label: 'Point Cost',
-                    value: '${coupon.pointCost} pts',
-                    valueColor: AppColors.gold,
-                  ),
-                ],
-                if (coupon.minimumOrderAmount != null &&
-                    coupon.minimumOrderAmount! > 0) ...[
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.glassBorder,
-                  ),
-                  _InfoRow(
-                    icon: Icons.shopping_cart_outlined,
-                    label: 'Min. Order',
-                    value: 'L ${coupon.minimumOrderAmount!.toStringAsFixed(0)}',
-                  ),
-                ],
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.glassBorder,
+                ),
+                _InfoRow(
+                  icon: Icons.stars_rounded,
+                  label: 'Point Cost',
+                  value: '${coupon.pointCost} pts',
+                  valueColor: AppColors.gold,
+                ),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.glassBorder,
+                ),
+                _InfoRow(
+                  icon: Icons.shopping_cart_outlined,
+                  label: 'Min. Order',
+                  value: coupon.minimumOrderAmount != null &&
+                          coupon.minimumOrderAmount! > 0
+                      ? _formatCouponMoney(
+                          coupon.minimumOrderAmount!,
+                          coupon.currency,
+                        )
+                      : 'None',
+                ),
                 if (coupon.maximumDiscountAmount != null &&
                     coupon.maximumDiscountAmount! > 0) ...[
                   const Divider(
@@ -301,41 +360,96 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                   _InfoRow(
                     icon: Icons.discount_rounded,
                     label: 'Max Discount',
-                    value:
-                        'L ${coupon.maximumDiscountAmount!.toStringAsFixed(0)}',
+                    value: _formatCouponMoney(
+                      coupon.maximumDiscountAmount!,
+                      coupon.currency,
+                    ),
                     valueColor: AppColors.success,
                   ),
                 ],
-                if (coupon.usageLimit != null) ...[
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.glassBorder,
-                  ),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.glassBorder,
+                ),
+                if (coupon.usageLimit != null && coupon.usageCount >= coupon.usageLimit!)
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded,
+                            color: AppColors.success, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${coupon.usageCount}/${coupon.usageLimit} • Fully Used',
+                            style: AppTypography.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
                   _InfoRow(
                     icon: Icons.repeat_rounded,
                     label: 'Usage',
-                    value: '${coupon.usageCount} / ${coupon.usageLimit} used',
+                    value: coupon.usageLimit != null
+                        ? '${coupon.usageCount} / ${coupon.usageLimit} used'
+                        : 'Unlimited',
                   ),
-                ],
-                if (coupon.totalRedemptionLimit != null) ...[
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.glassBorder,
-                  ),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.glassBorder,
+                ),
+                if (coupon.totalRedemptionLimit != null && coupon.totalRedemptions >= coupon.totalRedemptionLimit!)
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.trending_up_rounded,
+                            color: AppColors.warning, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${coupon.totalRedemptions}/${coupon.totalRedemptionLimit} • Fully Redeemed',
+                            style: AppTypography.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
                   _InfoRow(
                     icon: Icons.people_rounded,
                     label: 'Total Redemptions',
-                    value:
-                        '${coupon.totalRedemptions} / ${coupon.totalRedemptionLimit}',
+                    value: coupon.totalRedemptionLimit != null
+                        ? '${coupon.totalRedemptions} / ${coupon.totalRedemptionLimit}'
+                        : 'Unlimited',
                   ),
-                ],
               ],
             ),
           ),
           // ── Lifecycle details for owned coupons ────────────────────────
-          if (_hasLifecycleInfo) ...[
+          if (_buildHasLifecycleInfo(coupon)) ...[
             const SizedBox(height: 16),
             _SectionLabel(label: 'Usage Details'),
             const SizedBox(height: 8),
@@ -415,18 +529,26 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
     );
   }
 
-  bool get _hasFreeProductInfo =>
+  bool _buildHasFreeProductInfo(CustomerCoupon coupon) =>
       coupon.freeProductName?.isNotEmpty == true ||
       coupon.freeProductVariant?.isNotEmpty == true ||
       coupon.freeProductCategory?.isNotEmpty == true ||
       (coupon.freeProductQuantity != null && coupon.freeProductQuantity! > 0);
 
-  bool get _hasLifecycleInfo =>
+  bool _buildHasLifecycleInfo(CustomerCoupon coupon) =>
       coupon.redeemedAt != null ||
       coupon.usedAt != null ||
       coupon.orderId?.isNotEmpty == true;
 
-  Widget _buildHeroCard(List<Color> gradientColors, bool isActive) {
+  String _formatCouponMoney(double value, String? currency) {
+    final symbol = currencySymbol(currency);
+    final fixed = value % 1 == 0
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(2);
+    return '$symbol $fixed'.trim();
+  }
+
+  Widget _buildHeroCard(CustomerCoupon coupon, List<Color> gradientColors, bool isActive) {
     // Show image if available, otherwise the discount display card
     if (coupon.imageUrl?.isNotEmpty == true) {
       return ClipRRect(
@@ -441,7 +563,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                 coupon.imageUrl!,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    _buildGradientHero(gradientColors, isActive),
+                    _buildGradientHero(coupon, gradientColors, isActive),
               ),
               Container(
                 decoration: BoxDecoration(
@@ -489,10 +611,10 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
         ),
       );
     }
-    return _buildGradientHero(gradientColors, isActive);
+    return _buildGradientHero(coupon, gradientColors, isActive);
   }
 
-  Widget _buildGradientHero(List<Color> gradientColors, bool isActive) {
+  Widget _buildGradientHero(CustomerCoupon coupon, List<Color> gradientColors, bool isActive) {
     return Container(
       height: 120,
       decoration: BoxDecoration(
@@ -557,7 +679,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                 ),
                 const Spacer(),
                 Icon(
-                  _typeIcon,
+                  _typeIcon(coupon),
                   size: 44,
                   color: Colors.white.withValues(alpha: 0.25),
                 ),

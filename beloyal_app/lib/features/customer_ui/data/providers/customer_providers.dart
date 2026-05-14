@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/customer_home_dto.dart';
 import '../repositories/customer_repository.dart';
@@ -45,6 +46,71 @@ final customerBusinessDetailProvider = FutureProvider.autoDispose
           .fetchBusinessDetail(businessId);
       return mapBusinessDetailDto(dto);
     });
+
+final customerCouponDetailProvider = FutureProvider.autoDispose
+    .family<CustomerCoupon, int>((ref, couponId) async {
+      final repo = ref.read(customerRepositoryProvider);
+      final promotionDto = await repo.fetchCouponDetails(couponId);
+
+      // Map the DTO to CustomerCoupon with the full detail data
+      final expiresAt = promotionDto.expiresAt ?? DateTime.now().add(const Duration(days: 30));
+      final expiresIn = promotionDto.expiresIn ?? _calculateExpiresIn(expiresAt);
+
+      return CustomerCoupon(
+        id: promotionDto.id,
+        businessId: promotionDto.businessId,
+        businessName: promotionDto.businessName,
+        title: promotionDto.title,
+        discountValue: promotionDto.discountValue ?? 0,
+        discountDisplay: promotionDto.discountDisplay,
+        status: promotionDto.status.toLowerCase(),
+        expiresAt: expiresAt,
+        pointCost: promotionDto.pointCost,
+        gradientColors: const [Color(0xFF1A0535), Color(0xFF9B5DE5)],
+        type: promotionDto.promotionType,
+        isUsed: promotionDto.isUsed,
+        description: promotionDto.description,
+        expiresIn: expiresIn,
+        termsAndConditions: promotionDto.termsAndConditions ?? '',
+        usageLimit: promotionDto.usageLimit,
+        usageCount: promotionDto.usageCount,
+        isHot: promotionDto.isHot,
+        isOwned: promotionDto.isOwned,
+        imageUrl: promotionDto.imageUrl,
+        currency: promotionDto.currency,
+        isFeatured: promotionDto.isFeatured,
+        totalRedemptions: promotionDto.totalRedemptions,
+        totalRedemptionLimit: promotionDto.totalRedemptionLimit,
+        startDate: DateTime.tryParse(promotionDto.startDate ?? ''),
+        customerCouponId: promotionDto.customerCouponId,
+        minimumOrderAmount: promotionDto.minimumOrderAmount,
+        maximumDiscountAmount: promotionDto.maximumDiscountAmount,
+        freeProductCategory: promotionDto.freeProductCategory,
+        freeProductName: promotionDto.freeProductName,
+        freeProductVariant: promotionDto.freeProductVariant,
+        freeProductQuantity: promotionDto.freeProductQuantity,
+        redeemedAt: promotionDto.redeemedAt != null ? DateTime.tryParse(promotionDto.redeemedAt!) : null,
+        usedAt: promotionDto.usedAt != null ? DateTime.tryParse(promotionDto.usedAt!) : null,
+        orderId: promotionDto.orderId,
+        qrCode: promotionDto.qrCode,
+      );
+    });
+
+String _calculateExpiresIn(DateTime expiresAt) {
+  final now = DateTime.now();
+  if (expiresAt.isBefore(now)) {
+    final daysAgo = now.difference(expiresAt).inDays;
+    return 'Expired ${daysAgo}d ago';
+  }
+
+  final hoursLeft = expiresAt.difference(now).inHours;
+  if (hoursLeft < 24) {
+    return 'Expires in ${hoursLeft}h';
+  }
+
+  final daysLeft = expiresAt.difference(now).inDays;
+  return 'Expires in ${daysLeft}d';
+}
 
 class CustomerProfileDetailsNotifier
     extends AsyncNotifier<CustomerProfileDetailsDto> {

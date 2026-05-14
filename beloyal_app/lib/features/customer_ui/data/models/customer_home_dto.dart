@@ -69,6 +69,23 @@ List<dynamic> _asList(dynamic value) {
   return const <dynamic>[];
 }
 
+// Handles both ISO-8601 string and Java LocalDateTime array [y,M,d,H,m,s,ns]
+DateTime? _parseLocalDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return DateTime.tryParse(value);
+  if (value is List && value.isNotEmpty) {
+    return DateTime(
+      (value[0] as num).toInt(),
+      value.length > 1 ? (value[1] as num).toInt() : 1,
+      value.length > 2 ? (value[2] as num).toInt() : 1,
+      value.length > 3 ? (value[3] as num).toInt() : 0,
+      value.length > 4 ? (value[4] as num).toInt() : 0,
+      value.length > 5 ? (value[5] as num).toInt() : 0,
+    );
+  }
+  return null;
+}
+
 class CustomerSummaryDto {
   const CustomerSummaryDto({
     required this.currentPoints,
@@ -304,6 +321,7 @@ class CustomerPromotionDto {
     this.discountValue,
     this.usageLimit,
     this.expiresAt,
+    this.expiresIn,
     this.termsAndConditions,
     this.imageUrl,
     this.currency,
@@ -341,7 +359,8 @@ class CustomerPromotionDto {
   final int? customerCouponId;
   final double? discountValue;
   final int? usageLimit;
-  final String? expiresAt;
+  final DateTime? expiresAt;
+  final String? expiresIn;
   final String? termsAndConditions;
   final String? imageUrl;
   final String? currency;
@@ -393,7 +412,8 @@ class CustomerPromotionDto {
       usageLimit: json['usageLimit'] == null
           ? null
           : _asInt(json['usageLimit']),
-      expiresAt: json['expiresAt']?.toString(),
+      expiresAt: _parseLocalDateTime(json['expiresAt']),
+      expiresIn: json['expiresIn']?.toString(),
       termsAndConditions: json['termsAndConditions']?.toString(),
       imageUrl: json['imageUrl']?.toString(),
       currency: json['currency']?.toString(),
@@ -749,6 +769,7 @@ class CustomerCatalogItemDto {
     this.emoji,
     this.pointsLabel,
     this.basePrice,
+    this.earnedPoints,
   });
 
   final int id;
@@ -764,6 +785,7 @@ class CustomerCatalogItemDto {
   final String? emoji;
   final String? pointsLabel;
   final double? basePrice;
+  final int? earnedPoints;
 
   factory CustomerCatalogItemDto.fromJson(Map<String, dynamic> json) {
     return CustomerCatalogItemDto(
@@ -780,6 +802,9 @@ class CustomerCatalogItemDto {
       emoji: json['emoji']?.toString(),
       pointsLabel: json['pointsLabel']?.toString(),
       basePrice: _asDoubleOrNull(json['basePrice']),
+      earnedPoints: json['earnedPoints'] == null
+          ? null
+          : _asInt(json['earnedPoints']),
     );
   }
 }

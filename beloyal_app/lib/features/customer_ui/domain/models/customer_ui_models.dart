@@ -82,6 +82,7 @@ class CustomerCoupon {
     required this.type,
     this.isUsed = false,
     this.description = '',
+    this.expiresIn,
     this.termsAndConditions = '',
     this.usageLimit,
     this.usageCount = 0,
@@ -120,6 +121,7 @@ class CustomerCoupon {
   final String type;
   final bool isUsed;
   final String description;
+  final String? expiresIn;
   final String termsAndConditions;
   final int? usageLimit;
   final int usageCount;
@@ -322,6 +324,7 @@ class CustomerMenuItem {
     this.basePrice,
     this.baseCurrency = 'ALL',
     this.unit = '',
+    this.earnedPoints,
   });
 
   final int id;
@@ -338,6 +341,7 @@ class CustomerMenuItem {
   final double? basePrice;
   final String baseCurrency;
   final String unit;
+  final int? earnedPoints;
 
   double get price {
     if (variants.isEmpty) return 0.0;
