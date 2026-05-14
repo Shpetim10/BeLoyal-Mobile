@@ -150,7 +150,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                 onPressed: () => context.go('/business/dashboard'),
               ),
               title: const Text(
-                'Rewards',
+                'Coupons',
                 style: TextStyle(color: AppColors.textOnDark),
               ),
             ),
@@ -158,50 +158,110 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
         children: [
           Column(
             children: [
-              // Scan Coupon QR button — shown to business admin and staff
+              // ── Top Control Bar: Filter Toggle | Scan Button | Add Button ──
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: GestureDetector(
-                  onTap: () => context.push(
-                    _isStaff ? '/staff/scan-coupon' : '/business/scan-coupon',
-                  ),
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF059669)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Row(
+                  children: [
+                    // Filter Toggle Button (Expanded)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(
+                          () => _isTopControlsExpanded = !_isTopControlsExpanded,
                         ),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.qr_code_scanner_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Scan Coupon QR',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.elevDark,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.tune_rounded,
+                                size: 16,
+                                color: AppColors.textMutedDark,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _isTopControlsExpanded ? 'Hide' : 'Filters',
+                                  style: const TextStyle(
+                                    color: AppColors.textMutedDark,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                _isTopControlsExpanded
+                                    ? Icons.expand_less_rounded
+                                    : Icons.expand_more_rounded,
+                                size: 16,
+                                color: AppColors.textMutedDark,
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    // Scan Coupon Button (with text)
+                    GestureDetector(
+                      onTap: () => context.push(
+                        _isStaff ? '/staff/scan-coupon' : '/business/scan-coupon',
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Scan',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Add Button (Admin Only)
+                    if (!_isStaff)
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        onPressed: _openCreate,
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        tooltip: 'New Coupon',
+                      ),
+                  ],
                 ),
               ),
               _FilterSection(
@@ -277,19 +337,6 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                               ),
                             ),
                           ),
-                          if (!_isStaff) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.add, color: Colors.white),
-                              onPressed: _openCreate,
-                              style: IconButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -698,59 +745,13 @@ class _FilterSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.elevDark,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.glassBorder),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.tune_rounded,
-                    size: 16,
-                    color: AppColors.textMutedDark,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    hasActiveFilters
-                        ? 'Controls (Search, Quick Links, Filters) Active'
-                        : 'Controls (Search, Quick Links, Filters)',
-                    style: const TextStyle(
-                      color: AppColors.textSubDark,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    isExpanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    color: AppColors.textMutedDark,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState: isExpanded
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
-          firstChild: child,
-          secondChild: const SizedBox.shrink(),
-        ),
-      ],
+    return AnimatedCrossFade(
+      duration: const Duration(milliseconds: 200),
+      crossFadeState: isExpanded
+          ? CrossFadeState.showFirst
+          : CrossFadeState.showSecond,
+      firstChild: child,
+      secondChild: const SizedBox.shrink(),
     );
   }
 }

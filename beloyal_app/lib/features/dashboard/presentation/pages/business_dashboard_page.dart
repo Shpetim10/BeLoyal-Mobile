@@ -115,7 +115,7 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
           DashboardNavItem(icon: Icons.people_rounded, label: 'Staff'),
         ],
         rightItems: const [
-          DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
+          DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Coupons'),
           DashboardNavItem(icon: Icons.list_alt_rounded, label: 'Logs'),
         ],
         centerIcon: Icons.qr_code_scanner_rounded,
@@ -130,7 +130,7 @@ class _BusinessDashboardPageState extends ConsumerState<BusinessDashboardPage> {
       0 => 'Management Hub 🏪',
       1 => 'Staff',
       2 => 'Scan QR Code',
-      3 => 'Rewards',
+      3 => 'Coupons',
       4 => 'Transaction Logs',
       _ => '',
     };
