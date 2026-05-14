@@ -284,7 +284,10 @@ class CustomerDataSource {
     );
   }
 
-  factory CustomerDataSource.fromDto(CustomerHomeDto dto) {
+  factory CustomerDataSource.fromDto(
+    CustomerHomeDto dto, {
+    Map<int, String> qrCodeOverrides = const {},
+  }) {
     final bizCategoryMap = <int, String>{
       for (final b in dto.businesses) b.id: b.categoryKey,
     };
@@ -295,7 +298,13 @@ class CustomerDataSource {
       (promotion) => promotion.hasOwnershipSignal,
     );
     final mappedCoupons = dto.promotions
-        .map((p) => _mapPromotion(p, bizCategoryMap))
+        .map(
+          (p) => _mapPromotion(
+            p,
+            bizCategoryMap,
+            qrCodeOverride: qrCodeOverrides[p.id],
+          ),
+        )
         .toList();
     final normalizedCoupons = hasExplicitOwnership
         ? mappedCoupons
@@ -337,6 +346,7 @@ class CustomerDataSource {
                   redeemedAt: coupon.redeemedAt,
                   usedAt: coupon.usedAt,
                   orderId: coupon.orderId,
+                  qrCode: coupon.qrCode,
                 ),
               )
               .toList();
@@ -439,8 +449,9 @@ CustomerReward _mapRewardFromBusiness(CustomerBusiness business) {
 
 CustomerCoupon _mapPromotion(
   CustomerPromotionDto dto,
-  Map<int, String> bizCategoryMap,
-) {
+  Map<int, String> bizCategoryMap, {
+  String? qrCodeOverride,
+}) {
   final categoryKey = bizCategoryMap[dto.businessId] ?? '';
   final expires =
       DateTime.tryParse(dto.expiresAt ?? '') ??
@@ -483,6 +494,7 @@ CustomerCoupon _mapPromotion(
         : null,
     usedAt: dto.usedAt != null ? DateTime.tryParse(dto.usedAt!) : null,
     orderId: dto.orderId,
+    qrCode: (qrCodeOverride?.isNotEmpty == true) ? qrCodeOverride : dto.qrCode,
   );
 }
 

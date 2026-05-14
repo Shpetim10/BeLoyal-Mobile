@@ -12,7 +12,8 @@ class EarnPointsResultPage extends ConsumerStatefulWidget {
   const EarnPointsResultPage({super.key});
 
   @override
-  ConsumerState<EarnPointsResultPage> createState() => _EarnPointsResultPageState();
+  ConsumerState<EarnPointsResultPage> createState() =>
+      _EarnPointsResultPageState();
 }
 
 class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
@@ -32,10 +33,13 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
       curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
     );
     _fadeInController.forward();
-    
+
     // Provide haptic feedback on success
     HapticFeedback.heavyImpact();
-    Future.delayed(const Duration(milliseconds: 200), () => HapticFeedback.mediumImpact());
+    Future.delayed(
+      const Duration(milliseconds: 200),
+      () => HapticFeedback.mediumImpact(),
+    );
   }
 
   @override
@@ -49,7 +53,8 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
     final draft = ref.watch(earnPointsControllerProvider);
     final result = draft.finalResult;
 
-    if (result == null) return const Scaffold(backgroundColor: AppColors.bgDark);
+    if (result == null)
+      return const Scaffold(backgroundColor: AppColors.bgDark);
 
     return Scaffold(
       backgroundColor: AppColors.bgDark,
@@ -57,9 +62,7 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
         children: [
           // ── Explosion Background ──
           Positioned.fill(
-            child: PointsExplosionAnimation(
-              points: result.totalPoints,
-            ),
+            child: PointsExplosionAnimation(points: result.totalPoints),
           ),
 
           // ── Main Content ──
@@ -69,7 +72,7 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
               child: Column(
                 children: [
                   const SizedBox(height: 60),
-                  
+
                   // ── Success Icon / Header ──
                   const Center(
                     child: Hero(
@@ -92,7 +95,7 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // ── Points Count ──
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -138,7 +141,8 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
                             ),
                             _InfoRow(
                               label: 'Total Bill',
-                              value: '${result.billAmount?.toStringAsFixed(0) ?? "--"} ALL',
+                              value:
+                                  '${result.billAmount?.toStringAsFixed(0) ?? "--"} ALL',
                             ),
                             if (result.note != null && result.note!.isNotEmpty)
                               _InfoRow(label: 'Note', value: result.note!),
@@ -190,10 +194,7 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
                   ),
                   child: const Text(
                     'Done',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -255,10 +256,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
           ),
           Text(
             value,

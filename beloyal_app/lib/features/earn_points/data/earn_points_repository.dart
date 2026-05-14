@@ -54,19 +54,23 @@ class EarnPointsRepository {
     required int businessId,
     required double billAmount,
     required List<GuestAllocation> guests,
+    String? couponQrCode,
   }) async {
+    final body = <String, dynamic>{
+      'billAmount': billAmount,
+      'guests': [
+        for (final g in guests) {'customerId': g.customerId},
+      ],
+    };
+    if (couponQrCode != null && couponQrCode.isNotEmpty) {
+      body['couponQrCode'] = couponQrCode;
+    }
     final response = await _dio.post(
       '/business/$businessId/transactions/earn-points/preview',
-      data: {
-        'billAmount': billAmount,
-        'guests': [
-          for (final g in guests) {'customerId': g.customerId},
-        ],
-      },
+      data: body,
     );
     return PointsPreview.fromJson(response.data as Map<String, dynamic>);
   }
-
 
   // ── Transaction Submission ────────────────────────────────────────────────
   Future<PointsPreview> submitEarnTransaction({
@@ -77,11 +81,7 @@ class EarnPointsRepository {
     final response = await _dio.post(
       '/business/$businessId/transactions/earn',
       data: request.toJson(),
-      options: Options(
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-        },
-      ),
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     return PointsPreview.fromJson(response.data as Map<String, dynamic>);
   }

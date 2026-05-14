@@ -159,12 +159,7 @@ class _ScannerFrameOverlayState extends State<ScannerFrameOverlay>
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black54,
-                      blurRadius: 8,
-                    ),
-                  ],
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
                 ),
               ),
               const SizedBox(height: 6),
@@ -177,12 +172,7 @@ class _ScannerFrameOverlayState extends State<ScannerFrameOverlay>
                   color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black38,
-                      blurRadius: 6,
-                    ),
-                  ],
+                  shadows: const [Shadow(color: Colors.black38, blurRadius: 6)],
                 ),
               ),
             ],
@@ -196,10 +186,7 @@ class _ScannerFrameOverlayState extends State<ScannerFrameOverlay>
 // ── Overlay painter (dim background with transparent cutout) ─────────────────
 
 class _ScannerOverlayPainter extends CustomPainter {
-  _ScannerOverlayPainter({
-    required this.frameSize,
-    required this.borderRadius,
-  });
+  _ScannerOverlayPainter({required this.frameSize, required this.borderRadius});
 
   final double frameSize;
   final double borderRadius;
@@ -215,7 +202,11 @@ class _ScannerOverlayPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2 - 40; // Shift up slightly for visual balance.
     final cutout = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(cx, cy), width: frameSize, height: frameSize),
+      Rect.fromCenter(
+        center: Offset(cx, cy),
+        width: frameSize,
+        height: frameSize,
+      ),
       Radius.circular(borderRadius),
     );
 
@@ -237,10 +228,7 @@ class _ScannerOverlayPainter extends CustomPainter {
 // ── Corner brackets painter ─────────────────────────────────────────────────
 
 class _CornerBracketsPainter extends CustomPainter {
-  _CornerBracketsPainter({
-    required this.opacity,
-    required this.color,
-  });
+  _CornerBracketsPainter({required this.opacity, required this.color});
 
   final double opacity;
   final Color color;
@@ -259,7 +247,12 @@ class _CornerBracketsPainter extends CustomPainter {
     // Each corner draws two lines forming an L shape.
     final corners = [
       // Top-left
-      [Offset(0, cornerLen), Offset(0, radius), Offset(radius, 0), Offset(cornerLen, 0)],
+      [
+        Offset(0, cornerLen),
+        Offset(0, radius),
+        Offset(radius, 0),
+        Offset(cornerLen, 0),
+      ],
       // Top-right
       [
         Offset(size.width - cornerLen, 0),

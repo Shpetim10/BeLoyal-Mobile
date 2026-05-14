@@ -47,6 +47,8 @@ class EarnPointsDraftState {
     this.lastScannedRaw,
     this.finalResult,
     this.idempotencyKey,
+    this.couponQrCode,
+    this.isCouponPreviewLoading = false,
   });
 
   final WizardStep currentStep;
@@ -69,6 +71,14 @@ class EarnPointsDraftState {
   /// Raw value of the last scanned QR — used to prevent duplicate reads.
   final String? lastScannedRaw;
 
+  /// QR code of a scanned discount coupon to apply to this transaction.
+  final String? couponQrCode;
+
+  /// True while re-fetching preview after a coupon is scanned.
+  final bool isCouponPreviewLoading;
+
+  bool get hasCoupon => couponQrCode != null && couponQrCode!.isNotEmpty;
+
   // ── Computed helpers ──
 
   bool get hasGuests => guests.isNotEmpty;
@@ -78,8 +88,7 @@ class EarnPointsDraftState {
   bool get canAddGuest => guests.length < maxGuests;
 
   /// Whether the bill details form is valid enough to proceed.
-  bool get isBillValid =>
-      billAmount != null && billAmount! > 0 && hasGuests;
+  bool get isBillValid => billAmount != null && billAmount! > 0 && hasGuests;
 
   EarnPointsDraftState copyWith({
     WizardStep? currentStep,
@@ -107,6 +116,9 @@ class EarnPointsDraftState {
     bool clearFinalResult = false,
     String? idempotencyKey,
     bool clearIdempotencyKey = false,
+    String? couponQrCode,
+    bool clearCouponQrCode = false,
+    bool? isCouponPreviewLoading,
   }) {
     return EarnPointsDraftState(
       currentStep: currentStep ?? this.currentStep,
@@ -115,25 +127,32 @@ class EarnPointsDraftState {
       scannerErrorMessage: clearScannerError
           ? null
           : (scannerErrorMessage ?? this.scannerErrorMessage),
-      billAmount:
-          clearBillAmount ? null : (billAmount ?? this.billAmount),
+      billAmount: clearBillAmount ? null : (billAmount ?? this.billAmount),
       invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       note: note ?? this.note,
       preview: clearPreview ? null : (preview ?? this.preview),
       isPreviewLoading: isPreviewLoading ?? this.isPreviewLoading,
-      previewError:
-          clearPreviewError ? null : (previewError ?? this.previewError),
+      previewError: clearPreviewError
+          ? null
+          : (previewError ?? this.previewError),
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submissionError: clearSubmissionError
           ? null
           : (submissionError ?? this.submissionError),
       isSuccess: isSuccess ?? this.isSuccess,
       totalPointsAwarded: totalPointsAwarded ?? this.totalPointsAwarded,
-      lastScannedRaw:
-          clearLastScanned ? null : (lastScannedRaw ?? this.lastScannedRaw),
-      finalResult:
-          clearFinalResult ? null : (finalResult ?? this.finalResult),
-      idempotencyKey: clearIdempotencyKey ? null : (idempotencyKey ?? this.idempotencyKey),
+      lastScannedRaw: clearLastScanned
+          ? null
+          : (lastScannedRaw ?? this.lastScannedRaw),
+      finalResult: clearFinalResult ? null : (finalResult ?? this.finalResult),
+      idempotencyKey: clearIdempotencyKey
+          ? null
+          : (idempotencyKey ?? this.idempotencyKey),
+      couponQrCode: clearCouponQrCode
+          ? null
+          : (couponQrCode ?? this.couponQrCode),
+      isCouponPreviewLoading:
+          isCouponPreviewLoading ?? this.isCouponPreviewLoading,
     );
   }
 }
@@ -144,8 +163,7 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
   @override
   EarnPointsDraftState build() => const EarnPointsDraftState();
 
-  EarnPointsRepository get _repo =>
-      ref.read(earnPointsRepositoryProvider);
+  EarnPointsRepository get _repo => ref.read(earnPointsRepositoryProvider);
 
   // ── Scanner Actions ───────────────────────────────────────────────────────
 
@@ -267,17 +285,11 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
   }
 
   void updateInvoiceNumber(String value) {
-    state = state.copyWith(
-      invoiceNumber: value,
-      clearIdempotencyKey: true,
-    );
+    state = state.copyWith(invoiceNumber: value, clearIdempotencyKey: true);
   }
 
   void updateNote(String value) {
-    state = state.copyWith(
-      note: value,
-      clearIdempotencyKey: true,
-    );
+    state = state.copyWith(note: value, clearIdempotencyKey: true);
   }
 
   // ── Points Preview ────────────────────────────────────────────────────────
@@ -285,13 +297,9 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
   Future<void> fetchPreview({required int businessId}) async {
     if (!state.isBillValid) return;
 
-    state = state.copyWith(
-      isPreviewLoading: true,
-      clearPreviewError: true,
-    );
+    state = state.copyWith(isPreviewLoading: true, clearPreviewError: true);
 
     try {
-      // Map to a list of Guest objects instead of a list of ints
       final guestsPayload = state.guests
           .map((g) => GuestAllocation(customerId: g.customerId))
           .toList();
@@ -299,13 +307,11 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
       final preview = await _repo.previewPoints(
         businessId: businessId,
         billAmount: state.billAmount!,
-        guests: guestsPayload, // Passed the objects here
+        guests: guestsPayload,
+        couponQrCode: state.couponQrCode,
       );
 
-      state = state.copyWith(
-        preview: preview,
-        isPreviewLoading: false,
-      );
+      state = state.copyWith(preview: preview, isPreviewLoading: false);
     } catch (e) {
       state = state.copyWith(
         isPreviewLoading: false,
@@ -314,28 +320,53 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
     }
   }
 
+  // ── Coupon ────────────────────────────────────────────────────────────────
+
+  /// Stores a scanned discount coupon QR and re-fetches the preview so the
+  /// confirmation screen can show the recalculated discounted totals.
+  Future<void> applyCoupon({
+    required int businessId,
+    required String qrCode,
+  }) async {
+    state = state.copyWith(
+      couponQrCode: qrCode,
+      clearPreview: true,
+      clearPreviewError: true,
+      clearIdempotencyKey: true,
+      isCouponPreviewLoading: true,
+    );
+    await fetchPreview(businessId: businessId);
+    state = state.copyWith(isCouponPreviewLoading: false);
+  }
+
+  /// Remove the applied coupon and re-fetch the original preview.
+  Future<void> removeCoupon({required int businessId}) async {
+    state = state.copyWith(
+      clearCouponQrCode: true,
+      clearPreview: true,
+      clearPreviewError: true,
+      clearIdempotencyKey: true,
+    );
+    await fetchPreview(businessId: businessId);
+  }
 
   // ── Submission ────────────────────────────────────────────────────────────
 
   Future<bool> submitTransaction({required int businessId}) async {
     if (!state.isBillValid) return false;
 
-    state = state.copyWith(
-      isSubmitting: true,
-      clearSubmissionError: true,
-    );
+    state = state.copyWith(isSubmitting: true, clearSubmissionError: true);
 
     try {
       final request = EarnTransactionRequest(
         billAmount: state.billAmount!,
         guests: List.generate(
           state.guestCount,
-          (i) => GuestAllocation(
-            customerId: state.guests[i].customerId,
-          ),
+          (i) => GuestAllocation(customerId: state.guests[i].customerId),
         ),
         invoiceNumber: state.invoiceNumber,
         note: state.note,
+        couponQrCode: state.couponQrCode,
       );
 
       final response = await _repo.submitEarnTransaction(
@@ -385,7 +416,6 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
     return error.toString();
   }
 }
-
 
 // ── Provider ────────────────────────────────────────────────────────────────
 

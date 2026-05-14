@@ -17,8 +17,7 @@ class PointsCalculatingIndicator extends StatefulWidget {
       _PointsCalculatingIndicatorState();
 }
 
-class _PointsCalculatingIndicatorState
-    extends State<PointsCalculatingIndicator>
+class _PointsCalculatingIndicatorState extends State<PointsCalculatingIndicator>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -73,15 +72,20 @@ class _CoinOrbitPainter extends CustomPainter {
       final phase = (progress - fraction) % 1.0;
 
       // Trail opacity: head = 1.0, tail fades to 0
-      final opacity = (phase < _trailFactor
-              ? phase / _trailFactor
-              : (1.0 - phase) / (1.0 - _trailFactor))
-          .clamp(0.0, 1.0);
+      final opacity =
+          (phase < _trailFactor
+                  ? phase / _trailFactor
+                  : (1.0 - phase) / (1.0 - _trailFactor))
+              .clamp(0.0, 1.0);
 
       // Trail size: head dots are larger
-      final dotRadius = 3.5 + 4.0 * (phase < _trailFactor
-          ? phase / _trailFactor
-          : (1.0 - phase) / (1.0 - _trailFactor)).clamp(0.0, 1.0);
+      final dotRadius =
+          3.5 +
+          4.0 *
+              (phase < _trailFactor
+                      ? phase / _trailFactor
+                      : (1.0 - phase) / (1.0 - _trailFactor))
+                  .clamp(0.0, 1.0);
 
       final angle = 2 * math.pi * fraction + 2 * math.pi * progress;
       final dx = center.dx + outerRadius * math.cos(angle);
@@ -95,13 +99,19 @@ class _CoinOrbitPainter extends CustomPainter {
 
       // Coin dot — gradient from gold to accent
       final coinPaint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            Color.lerp(AppColors.accent, const Color(0xFFFFD700), 0.5)!
-                .withValues(alpha: opacity),
-            AppColors.accent.withValues(alpha: opacity * 0.5),
-          ],
-        ).createShader(Rect.fromCircle(center: Offset(dx, dy), radius: dotRadius));
+        ..shader =
+            RadialGradient(
+              colors: [
+                Color.lerp(
+                  AppColors.accent,
+                  const Color(0xFFFFD700),
+                  0.5,
+                )!.withValues(alpha: opacity),
+                AppColors.accent.withValues(alpha: opacity * 0.5),
+              ],
+            ).createShader(
+              Rect.fromCircle(center: Offset(dx, dy), radius: dotRadius),
+            );
       canvas.drawCircle(Offset(dx, dy), dotRadius, coinPaint);
     }
 

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/glass.dart';
 import '../controllers/earn_points_controller.dart';
 import '../widgets/slide_to_confirm_widget.dart';
+import 'discount_coupon_scan_page.dart';
 
 /// Step 3: Transaction confirmation with slide-to-confirm.
 class ConfirmationScreen extends ConsumerStatefulWidget {
@@ -20,13 +22,150 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
 
   Future<void> _onConfirm() async {
     final ctrl = ref.read(earnPointsControllerProvider.notifier);
-    final success =
-        await ctrl.submitTransaction(businessId: widget.businessId);
+    final success = await ctrl.submitTransaction(businessId: widget.businessId);
 
     if (!success && mounted) {
-      // Reset the slider so staff can retry.
       _slideKey.currentState?.reset();
     }
+  }
+
+  Future<void> _scanCoupon() async {
+    final qrCode = await Navigator.of(context).push<String?>(
+      MaterialPageRoute(
+        builder: (_) => const DiscountCouponScanPage(),
+        fullscreenDialog: true,
+      ),
+    );
+
+    if (qrCode == null || qrCode.isEmpty || !mounted) return;
+
+    final ctrl = ref.read(earnPointsControllerProvider.notifier);
+    await ctrl.applyCoupon(businessId: widget.businessId, qrCode: qrCode);
+
+    if (!mounted) return;
+
+    final draft = ref.read(earnPointsControllerProvider);
+    _showCouponAppliedDialog(draft);
+  }
+
+  void _showCouponAppliedDialog(EarnPointsDraftState draft) {
+    final preview = draft.preview;
+    final hasDiscount = preview?.hasCouponDiscount ?? false;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.secondary, AppColors.primary],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.35),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.local_offer_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Coupon Applied!',
+                style: AppTypography.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textOnDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (hasDiscount) ...[
+                Text(
+                  'Discount of ${preview!.couponDiscountApplied!.toStringAsFixed(0)} ALL applied',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.dmSans(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _DialogRow(
+                  label: 'Original Amount',
+                  value:
+                      '${(preview.originalBillAmount ?? 0).toStringAsFixed(0)} ALL',
+                  valueColor: AppColors.textMuted,
+                ),
+                _DialogRow(
+                  label: 'Discount',
+                  value:
+                      '-${preview.couponDiscountApplied!.toStringAsFixed(0)} ALL',
+                  valueColor: AppColors.success,
+                ),
+                _DialogRow(
+                  label: 'New Total',
+                  value: '${(preview.billAmount ?? 0).toStringAsFixed(0)} ALL',
+                  valueColor: AppColors.textOnDark,
+                  isBold: true,
+                ),
+                _DialogRow(
+                  label: 'Points Earned',
+                  value: '+${preview.totalPoints} pts',
+                  valueColor: AppColors.accent,
+                  isBold: true,
+                ),
+              ] else ...[
+                Text(
+                  'The discount coupon QR has been scanned and will be applied when you confirm the transaction.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  child: const Text('Got it'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -85,11 +224,31 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  _SummaryRow(
-                    label: 'Total Amount',
-                    value: '${draft.billAmount ?? 0} ALL',
-                    isHighlighted: true,
-                  ),
+                  if (draft.hasCoupon &&
+                      (draft.preview?.hasCouponDiscount ?? false)) ...[
+                    _SummaryRow(
+                      label: 'Original Amount',
+                      value:
+                          '${(draft.preview!.originalBillAmount ?? draft.billAmount ?? 0).toStringAsFixed(0)} ALL',
+                    ),
+                    _SummaryRow(
+                      label: 'Coupon Discount',
+                      value:
+                          '-${draft.preview!.couponDiscountApplied!.toStringAsFixed(0)} ALL',
+                      valueColor: AppColors.success,
+                    ),
+                    _SummaryRow(
+                      label: 'Final Amount',
+                      value:
+                          '${(draft.preview!.billAmount ?? 0).toStringAsFixed(0)} ALL',
+                      isHighlighted: true,
+                    ),
+                  ] else
+                    _SummaryRow(
+                      label: 'Total Amount',
+                      value: '${draft.billAmount ?? 0} ALL',
+                      isHighlighted: true,
+                    ),
                   if (draft.invoiceNumber != null &&
                       draft.invoiceNumber!.isNotEmpty)
                     _SummaryRow(
@@ -97,10 +256,7 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                       value: '#${draft.invoiceNumber}',
                     ),
                   if (draft.note != null && draft.note!.isNotEmpty)
-                    _SummaryRow(
-                      label: 'Note',
-                      value: draft.note!,
-                    ),
+                    _SummaryRow(label: 'Note', value: draft.note!),
                   _SummaryRow(
                     label: 'Total Points',
                     value: '+${draft.preview?.totalPoints ?? "--"}',
@@ -108,6 +264,18 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Coupon section ──
+            _CouponSection(
+              draft: draft,
+              onScanCoupon: _scanCoupon,
+              onRemoveCoupon: () {
+                ref
+                    .read(earnPointsControllerProvider.notifier)
+                    .removeCoupon(businessId: widget.businessId);
+              },
             ),
             const SizedBox(height: 20),
 
@@ -138,7 +306,6 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                 ),
                 child: Row(
                   children: [
-                    // Avatar
                     Container(
                       width: 44,
                       height: 44,
@@ -157,8 +324,6 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                       ),
                     ),
                     const SizedBox(width: 14),
-
-                    // Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,8 +347,6 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
                         ],
                       ),
                     ),
-
-                    // Points + new balance
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -279,13 +442,193 @@ class _ConfirmationScreenState extends ConsumerState<ConfirmationScreen> {
         child: SlideToConfirmWidget(
           key: _slideKey,
           onConfirmed: _onConfirm,
-          isLoading: draft.isSubmitting,
-          label: 'Slide to award points',
+          isLoading: draft.isSubmitting || draft.isCouponPreviewLoading,
+          label: draft.hasCoupon
+              ? 'Slide to award points + apply coupon'
+              : 'Slide to award points',
         ),
       ),
     );
   }
 }
+
+// ── Coupon section ─────────────────────────────────────────────────────────
+
+class _CouponSection extends StatelessWidget {
+  const _CouponSection({
+    required this.draft,
+    required this.onScanCoupon,
+    required this.onRemoveCoupon,
+  });
+
+  final EarnPointsDraftState draft;
+  final VoidCallback onScanCoupon;
+  final VoidCallback onRemoveCoupon;
+
+  @override
+  Widget build(BuildContext context) {
+    if (draft.isCouponPreviewLoading) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.secondary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.secondary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(AppColors.secondary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Applying coupon discount…',
+              style: AppTypography.dmSans(
+                fontSize: 13,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (draft.hasCoupon) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.local_offer_rounded,
+                color: AppColors.success,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Discount Coupon Applied',
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.success,
+                    ),
+                  ),
+                  if (draft.preview?.hasCouponDiscount ?? false)
+                    Text(
+                      '-${draft.preview!.couponDiscountApplied!.toStringAsFixed(0)} ALL off',
+                      style: AppTypography.dmSans(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: onRemoveCoupon,
+              icon: const Icon(
+                Icons.close_rounded,
+                color: AppColors.textMuted,
+                size: 20,
+              ),
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Remove coupon',
+            ),
+          ],
+        ),
+      );
+    }
+
+    // No coupon yet — show scan button
+    return GestureDetector(
+      onTap: onScanCoupon,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.secondary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.secondary.withValues(alpha: 0.25),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.secondary, AppColors.primary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.qr_code_scanner_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Scan Discount Coupon',
+                    style: AppTypography.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textOnDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Optional — apply customer\'s discount coupon',
+                    style: AppTypography.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Summary row ─────────────────────────────────────────────────────────────
 
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
@@ -321,6 +664,46 @@ class _SummaryRow extends StatelessWidget {
               color: valueColor ?? AppColors.textOnDark,
               fontSize: isHighlighted ? 18 : 14,
               fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Dialog row helper ───────────────────────────────────────────────────────
+
+class _DialogRow extends StatelessWidget {
+  const _DialogRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.isBold = false,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool isBold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? AppColors.textOnDark,
+              fontSize: isBold ? 15 : 13,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ],

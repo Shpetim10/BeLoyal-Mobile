@@ -157,7 +157,10 @@ class _CustomerViewAllTransactionsPageState
         error: (_, __) => CustomerErrorState(
           onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
         ),
-        data: (data) => _buildBody(data.transactions),
+        data: (data) => _buildBody(
+          data.transactions,
+          onRefresh: () => ref.read(customerDataProvider.notifier).refresh(),
+        ),
       ),
     );
   }
@@ -201,7 +204,10 @@ class _CustomerViewAllTransactionsPageState
     );
   }
 
-  Widget _buildBody(List<CustomerTransaction> transactions) {
+  Widget _buildBody(
+    List<CustomerTransaction> transactions, {
+    Future<void> Function()? onRefresh,
+  }) {
     final allTxs = _filtered(transactions, 'ALL');
     final totalEarned = allTxs
         .where((t) => t.type == 'EARN')
@@ -332,71 +338,95 @@ class _CustomerViewAllTransactionsPageState
               final grouped = _grouped(txs);
               final dateFmt = DateFormat('h:mm a');
 
+              Widget listWidget;
               if (txs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.receipt_outlined,
-                        size: 56,
-                        color: AppColors.textMutedDark.withValues(alpha: 0.3),
+                listWidget = ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 80),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.receipt_outlined,
+                            size: 56,
+                            color: AppColors.textMutedDark.withValues(
+                              alpha: 0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No transactions found.',
+                            style: AppTypography.dmSans(
+                              fontSize: 14,
+                              color: AppColors.textMutedDark,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No transactions found.',
-                        style: AppTypography.dmSans(
-                          fontSize: 14,
-                          color: AppColors.textMutedDark,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                );
+              } else {
+                listWidget = ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
                   ),
+                  children: grouped.entries.map((entry) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 3,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                entry.key,
+                                style: AppTypography.dmSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textMutedDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...entry.value.map(
+                          (tx) => _TxCard(
+                            tx: tx,
+                            timeFmt: dateFmt,
+                            onTap: () => CustomerTransactionDetailSheet.show(
+                              context,
+                              tx,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 );
               }
 
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                physics: const BouncingScrollPhysics(),
-                children: grouped.entries.map((entry) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 3,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              entry.key,
-                              style: AppTypography.dmSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textMutedDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ...entry.value.map(
-                        (tx) => _TxCard(
-                          tx: tx,
-                          timeFmt: dateFmt,
-                          onTap: () => CustomerTransactionDetailSheet.show(context, tx),
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              );
+              if (onRefresh != null) {
+                return RefreshIndicator(
+                  onRefresh: onRefresh,
+                  color: AppColors.primary,
+                  backgroundColor: const Color(0xFF1A0535),
+                  child: listWidget,
+                );
+              }
+              return listWidget;
             }).toList(),
           ),
         ),
@@ -512,7 +542,10 @@ class _TxCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 20)),
+                    child: Text(
+                      tx.logoEmoji,
+                      style: const TextStyle(fontSize: 20),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

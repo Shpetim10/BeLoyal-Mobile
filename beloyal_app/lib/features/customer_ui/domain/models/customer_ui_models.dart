@@ -103,6 +103,7 @@ class CustomerCoupon {
     this.redeemedAt,
     this.usedAt,
     this.orderId,
+    this.qrCode,
   });
 
   final int id;
@@ -141,6 +142,15 @@ class CustomerCoupon {
   final DateTime? redeemedAt;
   final DateTime? usedAt;
   final String? orderId;
+  // UUID QR code returned by the backend after redemption or from my-coupons list
+  final String? qrCode;
+
+  bool get isFreeProduct => type == 'FREE_PRODUCT';
+  bool get isDiscountCoupon =>
+      type == 'PERCENTAGE_DISCOUNT' || type == 'FIXED_AMOUNT_DISCOUNT';
+  bool get canShowQr =>
+      isOwned && !isUsed && qrCode != null && qrCode!.isNotEmpty;
+  bool get canClaim => !isOwned;
 }
 
 class CustomerReward {

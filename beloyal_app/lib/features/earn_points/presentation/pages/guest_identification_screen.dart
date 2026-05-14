@@ -68,12 +68,9 @@ class _GuestIdentificationScreenState
       _scannerController?.stop();
 
       // Perform backend lookup.
-      ctrl
-          .lookupGuest(
-            businessId: widget.businessId,
-            qrToken: rawValue,
-          )
-          .then((_) {
+      ctrl.lookupGuest(businessId: widget.businessId, qrToken: rawValue).then((
+        _,
+      ) {
         if (!mounted) return;
         final status = ref.read(earnPointsControllerProvider).scannerStatus;
         // If error, restart scanner so user can try again.
@@ -195,9 +192,7 @@ class _GuestIdentificationScreenState
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        shadows: [
-                          Shadow(color: Colors.black38, blurRadius: 8),
-                        ],
+                        shadows: [Shadow(color: Colors.black38, blurRadius: 8)],
                       ),
                     ),
                   ),
@@ -232,9 +227,7 @@ class _GuestIdentificationScreenState
             scannerStatus: draft.scannerStatus,
             canAddGuest: draft.canAddGuest,
             onRemoveGuest: (id) {
-              ref
-                  .read(earnPointsControllerProvider.notifier)
-                  .removeGuest(id);
+              ref.read(earnPointsControllerProvider.notifier).removeGuest(id);
               // Resume scanner if list becomes empty.
               if (ref.read(earnPointsControllerProvider).guests.isEmpty) {
                 _scannerController?.start();
@@ -448,12 +441,14 @@ class _CameraErrorView extends StatelessWidget {
 
     switch (error.errorCode) {
       case MobileScannerErrorCode.permissionDenied:
-        message = 'Camera permission is required to scan QR codes.\n'
+        message =
+            'Camera permission is required to scan QR codes.\n'
             'Please grant access in Settings.';
         icon = Icons.no_photography_rounded;
         break;
       default:
-        message = 'Camera error: ${error.errorDetails?.message ?? 'Unknown'}.\n'
+        message =
+            'Camera error: ${error.errorDetails?.message ?? 'Unknown'}.\n'
             'Tap to retry.';
         icon = Icons.videocam_off_rounded;
     }

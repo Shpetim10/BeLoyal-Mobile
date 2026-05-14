@@ -39,18 +39,20 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
     );
 
     // Initialize Video
-    _controller = VideoPlayerController.asset(
-        'assets/animation/besahub_splash_screen.mp4')
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {
-            _isVideoInitialized = true;
+    _controller =
+        VideoPlayerController.asset(
+            'assets/animation/besahub_splash_screen.mp4',
+          )
+          ..initialize().then((_) {
+            if (mounted) {
+              setState(() {
+                _isVideoInitialized = true;
+              });
+              // Ensuring no silent audio glitch
+              _controller.setVolume(0.0);
+              _controller.play();
+            }
           });
-          // Ensuring no silent audio glitch
-          _controller.setVolume(1.0);
-          _controller.play();
-        }
-      });
 
     _controller.addListener(_videoListener);
   }
@@ -117,8 +119,9 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
                       width: 32,
                       height: 32,
                       child: CircularProgressIndicator(
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF38BDF8),
+                        ),
                         strokeWidth: 2.5,
                       ),
                     ),

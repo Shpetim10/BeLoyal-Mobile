@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:besahub_app/core/network/api_client.dart';
 import '../models/customer_home_dto.dart';
+export '../models/customer_home_dto.dart' show CustomerCouponRedemptionDto;
 
 class CustomerRepository {
   const CustomerRepository(this._dio);
@@ -62,9 +63,23 @@ class CustomerRepository {
   }
 
   Future<void> updateNotificationEnabled(bool enabled) async {
-    await _dio.patch(
-      '/customer/me',
-      data: {'notificationEnabled': enabled},
+    await _dio.patch('/customer/me', data: {'notificationEnabled': enabled});
+  }
+
+  Future<List<CustomerPromotionDto>> fetchMyCoupons() async {
+    final response = await _dio.get('/customer/my-coupons');
+    final list = response.data as List? ?? [];
+    return list
+        .map(
+          (e) => CustomerPromotionDto.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<CustomerCouponRedemptionDto> redeemCoupon(int couponId) async {
+    final response = await _dio.post('/customer/coupons/$couponId/redeem');
+    return CustomerCouponRedemptionDto.fromJson(
+      response.data as Map<String, dynamic>,
     );
   }
 }

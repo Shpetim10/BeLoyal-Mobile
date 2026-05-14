@@ -7,19 +7,17 @@ class EarnTransactionRequest {
     required this.guests,
     this.invoiceNumber,
     this.note,
+    this.couponQrCode,
   });
 
-  /// Total bill amount.
   final double billAmount;
-
-  /// Per-guest allocation of the bill amount.
   final List<GuestAllocation> guests;
-
-  /// Optional invoice reference number.
   final String? invoiceNumber;
-
-  /// Optional staff note.
   final String? note;
+
+  /// QR code of a REDEEMED discount coupon to apply. The backend will
+  /// calculate points from the discounted amount and mark the coupon USED.
+  final String? couponQrCode;
 
   Map<String, dynamic> toJson() => {
     'billAmount': billAmount,
@@ -27,6 +25,8 @@ class EarnTransactionRequest {
     if (invoiceNumber != null && invoiceNumber!.isNotEmpty)
       'invoiceNumber': invoiceNumber,
     if (note != null && note!.isNotEmpty) 'note': note,
+    if (couponQrCode != null && couponQrCode!.isNotEmpty)
+      'couponQrCode': couponQrCode,
   };
 }
 

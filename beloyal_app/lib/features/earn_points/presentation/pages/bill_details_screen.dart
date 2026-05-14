@@ -158,9 +158,13 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   TextField(
                     controller: _amountController,
                     focusNode: _amountFocus,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d+\.?\d{0,2}'),
+                      ),
                     ],
                     onChanged: _onAmountChanged,
                     style: const TextStyle(
@@ -188,8 +192,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  if (draft.billAmount != null &&
-                      draft.billAmount! > 500000)
+                  if (draft.billAmount != null && draft.billAmount! > 500000)
                     const Padding(
                       padding: EdgeInsets.only(top: 8),
                       child: Text(
@@ -212,9 +215,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
 
             // ── Optional details ──
             Theme(
-              data: Theme.of(context).copyWith(
-                dividerColor: Colors.transparent,
-              ),
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 tilePadding: const EdgeInsets.symmetric(horizontal: 4),
                 title: const Text(
@@ -277,9 +280,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
         ),
       ),
       bottomNavigationBar: _StickyCtaBar(
-        isEnabled: draft.isBillValid &&
-            (draft.billAmount ?? 0) <= 500000,
+        isEnabled: draft.isBillValid && (draft.billAmount ?? 0) <= 500000,
         onPressed: () {
+          FocusScope.of(context).unfocus();
           ref.read(earnPointsControllerProvider.notifier).goToConfirmation();
         },
         label: 'Review & Confirm',
@@ -301,9 +304,7 @@ class _GuestChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -356,7 +357,9 @@ class _PointsPreviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Container(
         constraints: const BoxConstraints(minHeight: 120),
-        alignment: draft.isPreviewLoading ? Alignment.center : Alignment.centerLeft,
+        alignment: draft.isPreviewLoading
+            ? Alignment.center
+            : Alignment.centerLeft,
         child: draft.isPreviewLoading
             // ── Premium loading state ──────────────────────────────────────
             ? Column(
@@ -381,110 +384,114 @@ class _PointsPreviewCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.stars_rounded,
-                      color: AppColors.accent,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Estimated Points',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                if (draft.preview != null)
-                  TweenAnimationBuilder<int>(
-                    tween: IntTween(begin: 0, end: draft.preview!.totalPoints),
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, _) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '+$value',
-                            style: const TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 6, left: 6),
-                            child: Text(
-                              'pts',
-                              style: TextStyle(
-                                color: AppColors.accent,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  )
-                else if (draft.previewError != null)
                   Row(
                     children: [
                       const Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.warning,
-                        size: 18,
+                        Icons.stars_rounded,
+                        color: AppColors.accent,
+                        size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          draft.previewError!,
-                          style: const TextStyle(
-                            color: AppColors.warning,
-                            fontSize: 13,
-                          ),
+                      const Text(
+                        'Estimated Points',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
-                  )
-                else
-                  Text(
-                    '—',
-                    style: TextStyle(
-                      color: AppColors.textMuted.withValues(alpha: 0.4),
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                    ),
                   ),
+                  const SizedBox(height: 12),
 
-                if (draft.preview != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    draft.preview!.earningRuleSummary,
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (draft.preview!.remainingPoints < draft.preview!.maxPointsPerTransaction)
+                  if (draft.preview != null)
+                    TweenAnimationBuilder<int>(
+                      tween: IntTween(
+                        begin: 0,
+                        end: draft.preview!.totalPoints,
+                      ),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, _) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '+$value',
+                              style: const TextStyle(
+                                color: AppColors.accent,
+                                fontSize: 36,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 6, left: 6),
+                              child: Text(
+                                'pts',
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    )
+                  else if (draft.previewError != null)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: AppColors.warning,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            draft.previewError!,
+                            style: const TextStyle(
+                              color: AppColors.warning,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
                     Text(
-                      'Cap: ${draft.preview!.maxPointsPerTransaction} pts/txn · ${draft.preview!.remainingPoints} remaining',
+                      '—',
                       style: TextStyle(
-                        color: AppColors.warning.withValues(alpha: 0.8),
-                        fontSize: 11,
+                        color: AppColors.textMuted.withValues(alpha: 0.4),
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
+
+                  if (draft.preview != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      draft.preview!.earningRuleSummary,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (draft.preview!.remainingPoints <
+                        draft.preview!.maxPointsPerTransaction)
+                      Text(
+                        'Cap: ${draft.preview!.maxPointsPerTransaction} pts/txn · ${draft.preview!.remainingPoints} remaining',
+                        style: TextStyle(
+                          color: AppColors.warning.withValues(alpha: 0.8),
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
                 ],
-              ],
-            ),
+              ),
       ),
     );
   }
@@ -512,9 +519,7 @@ class _StickyCtaBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.bgDark,
         border: Border(
-          top: BorderSide(
-            color: AppColors.glassBorder.withValues(alpha: 0.15),
-          ),
+          top: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.15)),
         ),
       ),
       child: SizedBox(

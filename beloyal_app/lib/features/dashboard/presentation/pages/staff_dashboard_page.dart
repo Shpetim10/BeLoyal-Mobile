@@ -190,14 +190,17 @@ class _StaffHomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-      child: GridView.count(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.05,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.05,
+            children: [
           const StatCard(
             icon: Icons.qr_code_scanner_rounded,
             label: "Today's Scans",
@@ -227,6 +230,8 @@ class _StaffHomeTab extends StatelessWidget {
             label: 'Active Customers',
             value: '—',
             iconColor: AppColors.error,
+          ),
+        ],
           ),
         ],
       ),

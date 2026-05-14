@@ -69,11 +69,12 @@ class SlideToConfirmWidgetState extends State<SlideToConfirmWidget>
       widget.onConfirmed();
     } else {
       // Snap back.
-      _resetAnim = Tween<double>(begin: _dragPosition, end: 0).animate(
-        CurvedAnimation(parent: _resetController, curve: Curves.easeOut),
-      )..addListener(() {
-          setState(() => _dragPosition = _resetAnim.value);
-        });
+      _resetAnim =
+          Tween<double>(begin: _dragPosition, end: 0).animate(
+            CurvedAnimation(parent: _resetController, curve: Curves.easeOut),
+          )..addListener(() {
+            setState(() => _dragPosition = _resetAnim.value);
+          });
       _resetController.forward(from: 0);
     }
   }
@@ -179,10 +180,11 @@ class SlideToConfirmWidgetState extends State<SlideToConfirmWidget>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: (_confirmed
-                                  ? AppColors.secondary
-                                  : AppColors.primary)
-                              .withValues(alpha: 0.4),
+                          color:
+                              (_confirmed
+                                      ? AppColors.secondary
+                                      : AppColors.primary)
+                                  .withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

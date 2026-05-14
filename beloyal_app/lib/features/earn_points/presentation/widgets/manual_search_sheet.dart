@@ -11,10 +11,7 @@ import '../controllers/earn_points_controller.dart';
 ///
 /// Debounces input and calls the search API through the repository.
 class ManualSearchSheet extends ConsumerStatefulWidget {
-  const ManualSearchSheet({
-    super.key,
-    required this.businessId,
-  });
+  const ManualSearchSheet({super.key, required this.businessId});
 
   final int businessId;
 
@@ -62,7 +59,8 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
     _debounce = Timer(const Duration(milliseconds: 400), () {
       query = query.trim();
 
-      if(query.contains('@') || (!query.contains('@') && query.length==9)) { //9 because xxxx-xxxx
+      if (query.contains('@') || (!query.contains('@') && query.length == 9)) {
+        //9 because xxxx-xxxx
         _performSearch(query);
       }
     });
@@ -163,10 +161,7 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
             padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Text(
               'Enter email address or manual code in customer\'s card',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
           ),
 
@@ -177,10 +172,7 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
               controller: _searchController,
               focusNode: _focusNode,
               onChanged: _onSearchChanged,
-              style: const TextStyle(
-                color: AppColors.textOnDark,
-                fontSize: 15,
-              ),
+              style: const TextStyle(color: AppColors.textOnDark, fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'example@example.com or XXXX-XXXX',
                 prefixIcon: const Icon(
@@ -201,21 +193,21 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
                         ),
                       )
                     : _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.clear_rounded,
-                              color: AppColors.textMuted,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _results = [];
-                                _error = null;
-                              });
-                            },
-                          )
-                        : null,
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.clear_rounded,
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _results = [];
+                            _error = null;
+                          });
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
@@ -249,51 +241,48 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
                     ),
                   )
                 : _results.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.search_rounded,
-                                size: 48,
-                                color:
-                                    AppColors.textMuted.withValues(alpha: 0.3),
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Type at least 2 characters to search with email or full code for manual code',
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+                ? Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            size: 48,
+                            color: AppColors.textMuted.withValues(alpha: 0.3),
                           ),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                        shrinkWrap: true,
-                        itemCount: _results.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final guest = _results[index];
-                          final alreadyAdded = ref
-                              .read(earnPointsControllerProvider)
-                              .guests
-                              .any((g) => g.customerId == guest.customerId);
-
-                          return _SearchResultTile(
-                            guest: guest,
-                            alreadyAdded: alreadyAdded,
-                            onTap: alreadyAdded
-                                ? null
-                                : () => _selectGuest(guest),
-                          );
-                        },
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Type at least 2 characters to search with email or full code for manual code',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                    shrinkWrap: true,
+                    itemCount: _results.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final guest = _results[index];
+                      final alreadyAdded = ref
+                          .read(earnPointsControllerProvider)
+                          .guests
+                          .any((g) => g.customerId == guest.customerId);
+
+                      return _SearchResultTile(
+                        guest: guest,
+                        alreadyAdded: alreadyAdded,
+                        onTap: alreadyAdded ? null : () => _selectGuest(guest),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -386,8 +375,10 @@ class _SearchResultTile extends StatelessWidget {
               // Status
               if (alreadyAdded)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),

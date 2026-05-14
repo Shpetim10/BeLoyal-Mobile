@@ -19,9 +19,10 @@ class ResolvedGuest {
   final int currentPoints;
 
   String get fullName {
-    final parts = [firstName, lastName]
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty);
+    final parts = [
+      firstName,
+      lastName,
+    ].map((s) => s.trim()).where((s) => s.isNotEmpty);
     return parts.isEmpty ? '—' : parts.join(' ');
   }
 
@@ -43,12 +44,12 @@ class ResolvedGuest {
   }
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'firstName': firstName,
-        'lastName': lastName,
-        'email': email,
-        'currentPoints': currentPoints,
-      };
+    'customerId': customerId,
+    'firstName': firstName,
+    'lastName': lastName,
+    'email': email,
+    'currentPoints': currentPoints,
+  };
 
   ResolvedGuest copyWith({
     int? customerId,

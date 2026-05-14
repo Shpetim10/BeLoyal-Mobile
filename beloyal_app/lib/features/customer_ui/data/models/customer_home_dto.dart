@@ -265,7 +265,7 @@ class CustomerBusinessDto {
       categoryKey: _asString(json['categoryKey']),
       categoryLabel: _asString(json['categoryLabel']),
       points: _asInt(json['points']),
-      nextRewardPoints: _asInt(json['nextRewardPoints'], 1),
+      nextRewardPoints: _asInt(json['nextRewardPoints']),
       hasLogo: _asBool(json['hasLogo']),
       hasOffer: _asBool(json['hasOffer']),
       rating: _asDoubleOrNull(json['rating']),
@@ -318,6 +318,7 @@ class CustomerPromotionDto {
     this.redeemedAt,
     this.usedAt,
     this.orderId,
+    this.qrCode,
   });
 
   final int id;
@@ -355,6 +356,7 @@ class CustomerPromotionDto {
   final String? redeemedAt;
   final String? usedAt;
   final String? orderId;
+  final String? qrCode;
 
   factory CustomerPromotionDto.fromJson(Map<String, dynamic> json) {
     final hasOwnershipSignal =
@@ -410,6 +412,7 @@ class CustomerPromotionDto {
       redeemedAt: json['redeemedAt']?.toString(),
       usedAt: json['usedAt']?.toString(),
       orderId: json['orderId']?.toString(),
+      qrCode: json['qrCode']?.toString(),
     );
   }
 }
@@ -664,7 +667,7 @@ class CustomerLoyaltyDetailDto {
   factory CustomerLoyaltyDetailDto.fromJson(Map<String, dynamic> json) {
     return CustomerLoyaltyDetailDto(
       currentPoints: _asInt(json['currentPoints']),
-      nextRewardPoints: _asInt(json['nextRewardPoints'], 1),
+      nextRewardPoints: _asInt(json['nextRewardPoints']),
       pointsToNextReward: _asInt(json['pointsToNextReward']),
       memberCode: _asString(json['memberCode']),
       loyaltyPolicy: _asString(json['loyaltyPolicy']),
@@ -893,6 +896,59 @@ class CustomerBusinessDetailDto {
         json['transactions'],
       ).map((e) => CustomerTransactionDto.fromJson(_asMap(e))).toList(),
       details: CustomerBusinessDetailsInfoDto.fromJson(_asMap(json['details'])),
+    );
+  }
+}
+
+// ─── Coupon Redemption Response DTO ──────────────────────────────────────────
+// Returned by POST /api/besahub/customer/coupons/{couponId}/redeem
+
+class CustomerCouponRedemptionDto {
+  const CustomerCouponRedemptionDto({
+    required this.customerCouponId,
+    required this.couponId,
+    required this.status,
+    required this.pointsSpent,
+    required this.remainingBalance,
+    required this.qrCode,
+    required this.snapshotTitle,
+    required this.snapshotDescription,
+    required this.snapshotCouponType,
+    this.currency,
+    this.redeemedAt,
+    this.expiresAt,
+    this.snapshotImageUrl,
+  });
+
+  final int customerCouponId;
+  final int couponId;
+  final String status;
+  final int pointsSpent;
+  final int remainingBalance;
+  final String qrCode;
+  final String snapshotTitle;
+  final String snapshotDescription;
+  final String snapshotCouponType;
+  final String? currency;
+  final String? redeemedAt;
+  final String? expiresAt;
+  final String? snapshotImageUrl;
+
+  factory CustomerCouponRedemptionDto.fromJson(Map<String, dynamic> json) {
+    return CustomerCouponRedemptionDto(
+      customerCouponId: _asInt(json['customerCouponId']),
+      couponId: _asInt(json['couponId']),
+      status: _asString(json['status'], 'REDEEMED'),
+      pointsSpent: _asInt(json['pointsSpent']),
+      remainingBalance: _asInt(json['remainingBalance']),
+      qrCode: _asString(json['qrCode']),
+      snapshotTitle: _asString(json['snapshotTitle']),
+      snapshotDescription: _asString(json['snapshotDescription']),
+      snapshotCouponType: _asString(json['snapshotCouponType'], 'FREE_PRODUCT'),
+      currency: json['currency']?.toString(),
+      redeemedAt: json['redeemedAt']?.toString(),
+      expiresAt: json['expiresAt']?.toString(),
+      snapshotImageUrl: json['snapshotImageUrl']?.toString(),
     );
   }
 }

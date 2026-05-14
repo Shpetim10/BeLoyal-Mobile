@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_qr_sheet.dart';
 
 class CustomerCouponDetailSheet {
   const CustomerCouponDetailSheet._();
@@ -17,23 +20,34 @@ class CustomerCouponDetailSheet {
         minChildSize: 0.4,
         maxChildSize: 0.95,
         expand: false,
-        builder: (_, scrollController) => _CouponSheetBody(
+        builder: (sheetCtx, scrollController) => _CouponSheetBody(
           coupon: coupon,
           scrollController: scrollController,
+          rootContext: context,
         ),
       ),
     );
   }
 }
 
-class _CouponSheetBody extends StatelessWidget {
+class _CouponSheetBody extends ConsumerStatefulWidget {
   const _CouponSheetBody({
     required this.coupon,
     required this.scrollController,
+    required this.rootContext,
   });
 
   final CustomerCoupon coupon;
   final ScrollController scrollController;
+  final BuildContext rootContext;
+
+  @override
+  ConsumerState<_CouponSheetBody> createState() => _CouponSheetBodyState();
+}
+
+class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
+  CustomerCoupon get coupon => widget.coupon;
+  ScrollController get scrollController => widget.scrollController;
 
   Color get _statusColor => switch (coupon.status) {
     'active' => AppColors.success,
@@ -110,21 +124,10 @@ class _CouponSheetBody extends StatelessWidget {
             child: _buildHeroCard(gradientColors, isActive),
           ),
           const SizedBox(height: 20),
-          // ── Title & status ─────────────────────────────────────────────
+          // ── Status & badges ───────────────────────────────────────────
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: Text(
-                  coupon.title,
-                  style: AppTypography.dmSans(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textOnDark,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -248,16 +251,26 @@ class _CouponSheetBody extends StatelessWidget {
                   value: isExpired
                       ? timeLabel
                       : '${expiryFmt.format(coupon.expiresAt)}  ($timeLabel)',
-                  valueColor: coupon.status == 'expiring' ? AppColors.error : null,
+                  valueColor: coupon.status == 'expiring'
+                      ? AppColors.error
+                      : null,
                 ),
-                const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.glassBorder,
+                ),
                 _InfoRow(
                   icon: Icons.category_rounded,
                   label: 'Type',
                   value: _typeLabel,
                 ),
                 if (coupon.pointCost > 0) ...[
-                  const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.glassBorder,
+                  ),
                   _InfoRow(
                     icon: Icons.stars_rounded,
                     label: 'Point Cost',
@@ -267,7 +280,11 @@ class _CouponSheetBody extends StatelessWidget {
                 ],
                 if (coupon.minimumOrderAmount != null &&
                     coupon.minimumOrderAmount! > 0) ...[
-                  const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.glassBorder,
+                  ),
                   _InfoRow(
                     icon: Icons.shopping_cart_outlined,
                     label: 'Min. Order',
@@ -276,16 +293,25 @@ class _CouponSheetBody extends StatelessWidget {
                 ],
                 if (coupon.maximumDiscountAmount != null &&
                     coupon.maximumDiscountAmount! > 0) ...[
-                  const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.glassBorder,
+                  ),
                   _InfoRow(
                     icon: Icons.discount_rounded,
                     label: 'Max Discount',
-                    value: 'L ${coupon.maximumDiscountAmount!.toStringAsFixed(0)}',
+                    value:
+                        'L ${coupon.maximumDiscountAmount!.toStringAsFixed(0)}',
                     valueColor: AppColors.success,
                   ),
                 ],
                 if (coupon.usageLimit != null) ...[
-                  const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.glassBorder,
+                  ),
                   _InfoRow(
                     icon: Icons.repeat_rounded,
                     label: 'Usage',
@@ -293,11 +319,16 @@ class _CouponSheetBody extends StatelessWidget {
                   ),
                 ],
                 if (coupon.totalRedemptionLimit != null) ...[
-                  const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.glassBorder,
+                  ),
                   _InfoRow(
                     icon: Icons.people_rounded,
                     label: 'Total Redemptions',
-                    value: '${coupon.totalRedemptions} / ${coupon.totalRedemptionLimit}',
+                    value:
+                        '${coupon.totalRedemptions} / ${coupon.totalRedemptionLimit}',
                   ),
                 ],
               ],
@@ -324,7 +355,11 @@ class _CouponSheetBody extends StatelessWidget {
                     ),
                   if (coupon.usedAt != null) ...[
                     if (coupon.redeemedAt != null)
-                      const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: AppColors.glassBorder,
+                      ),
                     _InfoRow(
                       icon: Icons.done_all_rounded,
                       label: 'Used',
@@ -332,7 +367,11 @@ class _CouponSheetBody extends StatelessWidget {
                     ),
                   ],
                   if (coupon.orderId?.isNotEmpty == true) ...[
-                    const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: AppColors.glassBorder,
+                    ),
                     _InfoRow(
                       icon: Icons.receipt_outlined,
                       label: 'Order ID',
@@ -366,25 +405,9 @@ class _CouponSheetBody extends StatelessWidget {
           ],
           if (isActive) ...[
             const SizedBox(height: 24),
-            Container(
-              width: double.infinity,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryDark, AppColors.primary],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Text(
-                  'Use Now',
-                  style: AppTypography.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            _CouponActionButton(
+              coupon: coupon,
+              rootContext: widget.rootContext,
             ),
           ],
         ],
@@ -417,10 +440,8 @@ class _CouponSheetBody extends StatelessWidget {
               Image.network(
                 coupon.imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildGradientHero(
-                  gradientColors,
-                  isActive,
-                ),
+                errorBuilder: (_, __, ___) =>
+                    _buildGradientHero(gradientColors, isActive),
               ),
               Container(
                 decoration: BoxDecoration(
@@ -449,13 +470,17 @@ class _CouponSheetBody extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    Text(
-                      _typeLabel,
-                      style: AppTypography.dmSans(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.85),
+                    if (coupon.title.toLowerCase() !=
+                        coupon.discountDisplay.toLowerCase())
+                      Text(
+                        coupon.title,
+                        style: AppTypography.dmSans(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -517,13 +542,17 @@ class _CouponSheetBody extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    Text(
-                      _typeLabel,
-                      style: AppTypography.dmSans(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.8),
+                    if (coupon.title.toLowerCase() !=
+                        coupon.discountDisplay.toLowerCase())
+                      Text(
+                        coupon.title,
+                        style: AppTypography.dmSans(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
                   ],
                 ),
                 const Spacer(),
@@ -540,6 +569,184 @@ class _CouponSheetBody extends StatelessWidget {
     );
   }
 }
+
+// ─── Action Button ────────────────────────────────────────────────────────────
+
+class _CouponActionButton extends ConsumerStatefulWidget {
+  const _CouponActionButton({required this.coupon, required this.rootContext});
+
+  final CustomerCoupon coupon;
+  final BuildContext rootContext;
+
+  @override
+  ConsumerState<_CouponActionButton> createState() =>
+      _CouponActionButtonState();
+}
+
+class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<CouponRedemptionState>(customerCouponRedemptionProvider, (
+      _,
+      next,
+    ) {
+      if (!mounted) return;
+      if (next is CouponRedemptionSuccess) {
+        ScaffoldMessenger.of(widget.rootContext).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Coupon added to your wallet!',
+              style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        ref.read(customerCouponRedemptionProvider.notifier).reset();
+        Navigator.of(context).pop();
+      }
+    });
+
+    final redemptionState = ref.watch(customerCouponRedemptionProvider);
+    final coupon = widget.coupon;
+    final isLoading = redemptionState is CouponRedemptionLoading;
+
+    if (coupon.isOwned) {
+      // Owned coupon — show QR or indicate QR unavailable
+      return GestureDetector(
+        onTap: isLoading
+            ? null
+            : () => CustomerCouponQrSheet.show(widget.rootContext, coupon),
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primaryDark, AppColors.primary],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.qr_code_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Show QR Code',
+                style: AppTypography.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Unowned coupon — show Claim button
+    return Column(
+      children: [
+        if (redemptionState is CouponRedemptionError) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.error.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 14,
+                  color: AppColors.error,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    redemptionState.message,
+                    style: AppTypography.dmSans(
+                      fontSize: 12,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        GestureDetector(
+          onTap: isLoading
+              ? null
+              : () => ref
+                    .read(customerCouponRedemptionProvider.notifier)
+                    .redeemCoupon(
+                      couponId: coupon.id,
+                      couponTitle: coupon.title,
+                    ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: double.infinity,
+            height: 52,
+            decoration: BoxDecoration(
+              gradient: isLoading
+                  ? null
+                  : const LinearGradient(
+                      colors: [AppColors.primaryDark, AppColors.primary],
+                    ),
+              color: isLoading ? AppColors.cardDark : null,
+              borderRadius: BorderRadius.circular(16),
+              border: isLoading
+                  ? Border.all(color: AppColors.glassBorder)
+                  : null,
+            ),
+            child: Center(
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Claim Coupon  •  ${coupon.pointCost} pts',
+                          style: AppTypography.dmSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Section Label ────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label});

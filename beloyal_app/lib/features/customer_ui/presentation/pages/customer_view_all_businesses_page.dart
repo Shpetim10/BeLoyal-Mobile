@@ -259,12 +259,16 @@ class _CustomerViewAllBusinessesPageState
                       isDiscover: false,
                       emptyMessage:
                           'No businesses with your points\nmatch the current filter.',
+                      onRefresh: () =>
+                          ref.read(customerDataProvider.notifier).refresh(),
                     ),
                     _BusinessList(
                       businesses: discoverBusinesses,
                       isDiscover: true,
                       emptyMessage:
                           'No new businesses match\nthe current filter.',
+                      onRefresh: () =>
+                          ref.read(customerDataProvider.notifier).refresh(),
                     ),
                   ],
                 ),
@@ -284,45 +288,63 @@ class _BusinessList extends StatelessWidget {
     required this.businesses,
     required this.isDiscover,
     required this.emptyMessage,
+    this.onRefresh,
   });
   final List<CustomerBusiness> businesses;
   final bool isDiscover;
   final String emptyMessage;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    if (businesses.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.storefront_outlined,
-              size: 56,
-              color: AppColors.textMutedDark.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              emptyMessage,
-              textAlign: TextAlign.center,
-              style: AppTypography.dmSans(
-                fontSize: 14,
-                color: AppColors.textMutedDark,
-                height: 1.6,
+    final child = businesses.isEmpty
+        ? ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 80),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.storefront_outlined,
+                      size: 56,
+                      color: AppColors.textMutedDark.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      emptyMessage,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.dmSans(
+                        fontSize: 14,
+                        color: AppColors.textMutedDark,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ],
+          )
+        : ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-          ],
-        ),
-      );
-    }
+            itemCount: businesses.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => _BusinessListCard(
+              business: businesses[i],
+              isDiscover: isDiscover,
+            ),
+          );
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-      physics: const BouncingScrollPhysics(),
-      itemCount: businesses.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) =>
-          _BusinessListCard(business: businesses[i], isDiscover: isDiscover),
+    if (onRefresh == null) return child;
+    return RefreshIndicator(
+      onRefresh: onRefresh!,
+      color: AppColors.primary,
+      backgroundColor: const Color(0xFF1A0535),
+      child: child,
     );
   }
 }
@@ -383,11 +405,16 @@ class _BusinessListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = (business.points / business.nextRewardPoints).clamp(
-      0.0,
-      1.0,
-    );
-    final remaining = business.nextRewardPoints - business.points;
+    final hasReward = business.nextRewardPoints > 0;
+    final progress = hasReward
+        ? (business.points / business.nextRewardPoints).clamp(0.0, 1.0)
+        : 0.0;
+    final remaining = hasReward
+        ? (business.nextRewardPoints - business.points).clamp(
+            0,
+            business.nextRewardPoints,
+          )
+        : 0;
     final offerLabel = business.offerLabel?.trim();
     final showOfferBadge =
         business.hasOffer && offerLabel != null && offerLabel.isNotEmpty;
@@ -641,7 +668,11 @@ class _BusinessListCard extends StatelessWidget {
                               ),
                               const Spacer(),
                               Text(
-                                '$remaining pts to reward',
+                                !hasReward
+                                    ? 'No rewards available'
+                                    : remaining <= 0
+                                    ? 'Ready to redeem!'
+                                    : '$remaining pts to reward',
                                 style: AppTypography.dmSans(
                                   fontSize: 10,
                                   color: AppColors.textMutedDark,

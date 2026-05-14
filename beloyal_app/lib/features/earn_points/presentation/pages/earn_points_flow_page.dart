@@ -17,8 +17,7 @@ class EarnPointsFlowPage extends ConsumerStatefulWidget {
   final int businessId;
 
   @override
-  ConsumerState<EarnPointsFlowPage> createState() =>
-      _EarnPointsFlowPageState();
+  ConsumerState<EarnPointsFlowPage> createState() => _EarnPointsFlowPageState();
 }
 
 class _EarnPointsFlowPageState extends ConsumerState<EarnPointsFlowPage> {
@@ -51,7 +50,8 @@ class _EarnPointsFlowPageState extends ConsumerState<EarnPointsFlowPage> {
 
     // Sync PageView with state-driven step changes or success state.
     final targetPage = isSuccess ? 3 : currentStep.index;
-    if (_pageController.hasClients && _pageController.page?.round() != targetPage) {
+    if (_pageController.hasClients &&
+        _pageController.page?.round() != targetPage) {
       _pageController.animateToPage(
         targetPage,
         duration: const Duration(milliseconds: 300),
@@ -60,7 +60,8 @@ class _EarnPointsFlowPageState extends ConsumerState<EarnPointsFlowPage> {
     }
 
     return PopScope(
-      canPop: currentStep == WizardStep.guestIdentification ||
+      canPop:
+          currentStep == WizardStep.guestIdentification ||
           ref.read(earnPointsControllerProvider).isSuccess,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {

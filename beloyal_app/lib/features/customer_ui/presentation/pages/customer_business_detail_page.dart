@@ -52,25 +52,35 @@ class _CustomerBusinessDetailPageState
         error: (_, __) => CustomerErrorState(
           onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
         ),
-        data: (data) => CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildSliverAppBar(topPad),
-            SliverToBoxAdapter(child: _buildBusinessInfo()),
-            SliverToBoxAdapter(child: _buildPointsCard(detail)),
-            SliverToBoxAdapter(child: _buildTabBar()),
-            SliverToBoxAdapter(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                switchInCurve: Curves.easeOut,
-                child: KeyedSubtree(
-                  key: ValueKey(_selectedTab),
-                  child: _buildTabContent(data, detail),
+        data: (data) => RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(customerDataProvider.notifier).refresh();
+            ref.invalidate(customerBusinessDetailProvider(_b.id));
+          },
+          color: AppColors.primary,
+          backgroundColor: const Color(0xFF1A0535),
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            slivers: [
+              _buildSliverAppBar(topPad),
+              SliverToBoxAdapter(child: _buildBusinessInfo()),
+              SliverToBoxAdapter(child: _buildPointsCard(detail)),
+              SliverToBoxAdapter(child: _buildTabBar()),
+              SliverToBoxAdapter(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  switchInCurve: Curves.easeOut,
+                  child: KeyedSubtree(
+                    key: ValueKey(_selectedTab),
+                    child: _buildTabContent(data, detail),
+                  ),
                 ),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 60)),
-          ],
+              const SliverToBoxAdapter(child: SizedBox(height: 60)),
+            ],
+          ),
         ),
       ),
     );
@@ -334,8 +344,10 @@ class _CustomerBusinessDetailPageState
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      remaining > 0
-                          ? '$remaining pts until next reward'
+                      nextReward == 0
+                          ? 'No rewards available'
+                          : remaining > 0
+                          ? '$remaining pts to reward'
                           : 'Ready to redeem!',
                       style: AppTypography.dmSans(
                         fontSize: 11,
@@ -595,7 +607,6 @@ class _OverviewTab extends StatelessWidget {
     );
   }
 }
-
 
 class _SubSectionHeader extends StatelessWidget {
   const _SubSectionHeader({required this.title, required this.count});
@@ -1490,33 +1501,140 @@ class _FancyMenuItemCard extends StatelessWidget {
 
 // ─── Coupons Tab ──────────────────────────────────────────────────────────────
 
-class _CouponsTab extends StatelessWidget {
+class _CouponsTab extends StatefulWidget {
   const _CouponsTab({required this.coupons});
   final List<CustomerCoupon> coupons;
 
   @override
+  State<_CouponsTab> createState() => _CouponsTabState();
+}
+
+class _CouponsTabState extends State<_CouponsTab> {
+  bool _showMyCoupons = true;
+
+  @override
   Widget build(BuildContext context) {
-    if (coupons.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 40),
-        child: _EmptyState(
-          icon: Icons.confirmation_number_outlined,
-          message: 'No coupons for this business yet.',
-        ),
-      );
-    }
+    final myCoupons = widget.coupons.where((c) => c.isOwned).toList();
+    final allCoupons = widget.coupons;
+
+    final displayedCoupons = _showMyCoupons ? myCoupons : allCoupons;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
-        children: coupons
-            .map(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _CouponsTabButton(
+                    label: 'My Coupons',
+                    count: myCoupons.length,
+                    isSelected: _showMyCoupons,
+                    onTap: () => setState(() => _showMyCoupons = true),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _CouponsTabButton(
+                    label: 'All Coupons',
+                    count: allCoupons.length,
+                    isSelected: !_showMyCoupons,
+                    onTap: () => setState(() => _showMyCoupons = false),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (displayedCoupons.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: _EmptyState(
+                icon: Icons.confirmation_number_outlined,
+                message: _showMyCoupons
+                    ? 'No coupons found in your wallet.'
+                    : 'No coupons for this business yet.',
+              ),
+            )
+          else
+            ...displayedCoupons.map(
               (c) => _DetailCouponCard(
                 coupon: c,
                 onTap: () => CustomerCouponDetailSheet.show(context, c),
               ),
-            )
-            .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CouponsTabButton extends StatelessWidget {
+  const _CouponsTabButton({
+    required this.label,
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.textMutedDark,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : AppColors.glassBorder,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: AppTypography.dmSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.textMutedDark,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -274,6 +274,52 @@ class CouponRepository {
   }) async {
     await _dio.patch('${_base(businessId)}/coupons/trash/$couponId/restore');
   }
+
+  // ── Coupon QR Scan (staff/admin marks coupon as USED) ────────────────────
+
+  Future<CouponScanResult> scanCoupon({
+    required int businessId,
+    required String qrCode,
+    String? redemptionLocation,
+  }) async {
+    final data = <String, dynamic>{'qrCode': qrCode};
+    if (redemptionLocation != null) data['redemptionLocation'] = redemptionLocation;
+    final response = await _dio.post(
+      '${_base(businessId)}/coupons/scan',
+      data: data,
+    );
+    return CouponScanResult.fromJson(response.data as Map<String, dynamic>);
+  }
+}
+
+class CouponScanResult {
+  const CouponScanResult({
+    required this.customerCouponId,
+    required this.couponId,
+    required this.status,
+    required this.couponType,
+    required this.couponTitle,
+    this.usedAt,
+    this.redemptionLocation,
+  });
+
+  final int customerCouponId;
+  final int couponId;
+  final String status;
+  final String couponType;
+  final String couponTitle;
+  final DateTime? usedAt;
+  final String? redemptionLocation;
+
+  factory CouponScanResult.fromJson(Map<String, dynamic> json) => CouponScanResult(
+    customerCouponId: (json['customerCouponId'] as num).toInt(),
+    couponId: (json['couponId'] as num).toInt(),
+    status: json['status']?.toString() ?? '',
+    couponType: json['couponType']?.toString() ?? '',
+    couponTitle: json['couponTitle']?.toString() ?? '',
+    usedAt: json['usedAt'] != null ? DateTime.tryParse(json['usedAt'].toString()) : null,
+    redemptionLocation: json['redemptionLocation']?.toString(),
+  );
 }
 
 final couponRepositoryProvider = Provider<CouponRepository>((ref) {

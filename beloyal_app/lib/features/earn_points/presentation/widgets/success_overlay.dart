@@ -106,16 +106,12 @@ class _SuccessOverlayState extends State<SuccessOverlay>
                     height: 96,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [
-                          AppColors.secondary,
-                          AppColors.secondaryLight,
-                        ],
+                        colors: [AppColors.secondary, AppColors.secondaryLight],
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color:
-                              AppColors.secondary.withValues(alpha: 0.4),
+                          color: AppColors.secondary.withValues(alpha: 0.4),
                           blurRadius: 32,
                           offset: const Offset(0, 8),
                         ),

@@ -64,6 +64,7 @@ import '../../features/coupons/presentation/pages/coupon_create_page.dart';
 import '../../features/coupons/presentation/pages/coupon_detail_page.dart';
 import '../../features/coupons/presentation/pages/coupon_expired_page.dart';
 import '../../features/coupons/presentation/pages/coupon_list_page.dart';
+import '../../features/coupons/presentation/pages/coupon_scan_page.dart';
 import '../../features/coupons/presentation/pages/coupon_trash_page.dart';
 
 // Customer onboarding imports
@@ -572,6 +573,34 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: EarnPointsFlowPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+
+      // ── Coupon QR Scanner (Business Admin & Staff) ──
+      GoRoute(
+        path: '/business/scan-coupon',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CouponScanPage(businessId: businessId),
+            transitionsBuilder: (ctx, anim, secondAnim, child) =>
+                FadeTransition(opacity: anim, child: child),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/staff/scan-coupon',
+        pageBuilder: (context, state) {
+          final session = ref.read(sessionControllerProvider);
+          final businessId = session?.activeBusinessId ?? 0;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: CouponScanPage(businessId: businessId),
             transitionsBuilder: (ctx, anim, secondAnim, child) =>
                 FadeTransition(opacity: anim, child: child),
           );

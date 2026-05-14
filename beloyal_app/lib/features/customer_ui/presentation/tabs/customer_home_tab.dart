@@ -53,131 +53,138 @@ class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
       data: (data) {
         final customer = data.summary;
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _StatsHeroCard(customer: customer),
-              const SizedBox(height: 20),
-              _QuickShortcuts(),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Categories',
-                subtitle: 'Browse by type',
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 12),
-              _CategoryCarousel(
-                selectedId: _selectedCategoryId,
-                categories: data.categories,
-                onSelect: (id) => setState(() => _selectedCategoryId = id),
-              ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Your Businesses',
-                subtitle: 'Where you have points',
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 12),
-              _BusinessCarousel(
-                businesses: _selectedCategoryId == -1
-                    ? data.businessesWithPoints
-                    : data.businessesWithPoints
-                          .where((b) => b.categoryId == _selectedCategoryId)
+        return RefreshIndicator(
+          onRefresh: () => ref.read(customerDataProvider.notifier).refresh(),
+          color: AppColors.primary,
+          backgroundColor: const Color(0xFF1A0535),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            padding: const EdgeInsets.only(bottom: 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                _StatsHeroCard(customer: customer),
+                const SizedBox(height: 20),
+                _QuickShortcuts(),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: 'Categories',
+                  subtitle: 'Browse by type',
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 12),
+                _CategoryCarousel(
+                  selectedId: _selectedCategoryId,
+                  categories: data.categories,
+                  onSelect: (id) => setState(() => _selectedCategoryId = id),
+                ),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: 'Your Businesses',
+                  subtitle: 'Where you have points',
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 12),
+                _BusinessCarousel(
+                  businesses: _selectedCategoryId == -1
+                      ? data.businessesWithPoints
+                      : data.businessesWithPoints
+                            .where((b) => b.categoryId == _selectedCategoryId)
+                            .toList(),
+                  categories: data.categories,
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: 'Discover Businesses',
+                  subtitle: 'New places to explore',
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 12),
+                _DiscoverCarousel(
+                  businesses:
+                      (_selectedCategoryId == -1
+                              ? data.businesses.where((b) => b.points == 0)
+                              : data.businesses.where(
+                                  (b) =>
+                                      b.points == 0 &&
+                                      b.categoryId == _selectedCategoryId,
+                                ))
                           .toList(),
-                categories: data.categories,
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Discover Businesses',
-                subtitle: 'New places to explore',
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 12),
-              _DiscoverCarousel(
-                businesses:
-                    (_selectedCategoryId == -1
-                            ? data.businesses.where((b) => b.points == 0)
-                            : data.businesses.where(
-                                (b) =>
-                                    b.points == 0 &&
-                                    b.categoryId == _selectedCategoryId,
-                              ))
-                        .toList(),
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: '🎫 Coupons & Offers',
-                subtitle: 'Business-wide deals across all brands',
-                onViewAll: () => _push(
-                  context,
-                  const CustomerViewAllCouponsPage(
-                    initialTab: CustomerCouponsTab.allCoupons,
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: '🎫 Coupons & Offers',
+                  subtitle: 'Business-wide deals across all brands',
+                  onViewAll: () => _push(
+                    context,
+                    const CustomerViewAllCouponsPage(
+                      initialTab: CustomerCouponsTab.allCoupons,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              _OffersCarousel(
-                coupons: data.allCoupons
-                    .where(
-                      (coupon) =>
-                          coupon.status == 'active' ||
-                          coupon.status == 'expiring',
-                    )
-                    .toList(),
-                onViewAll: () => _push(
-                  context,
-                  const CustomerViewAllCouponsPage(
-                    initialTab: CustomerCouponsTab.allCoupons,
+                const SizedBox(height: 12),
+                _OffersCarousel(
+                  coupons: data.allCoupons
+                      .where(
+                        (coupon) =>
+                            coupon.status == 'active' ||
+                            coupon.status == 'expiring',
+                      )
+                      .toList(),
+                  onViewAll: () => _push(
+                    context,
+                    const CustomerViewAllCouponsPage(
+                      initialTab: CustomerCouponsTab.allCoupons,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              _AlmostThereSection(
-                businesses: data.businesses,
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Top Businesses',
-                subtitle: 'Highest rated near you',
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 12),
-              _HotBusinessesCarousel(
-                businesses: data.hotBusinesses,
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllBusinessesPage()),
-              ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Recent Activity',
-                subtitle: 'Your latest transactions',
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllTransactionsPage()),
-              ),
-              const SizedBox(height: 12),
-              _RecentActivityList(
-                transactions: data.transactions,
-                onViewAll: () =>
-                    _push(context, const CustomerViewAllTransactionsPage()),
-              ),
-              const SizedBox(height: 24),
-              _ExpiringSection(coupons: data.coupons),
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 24),
+                _AlmostThereSection(
+                  businesses: data.businesses,
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: 'Top Businesses',
+                  subtitle: 'Highest rated near you',
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 12),
+                _HotBusinessesCarousel(
+                  businesses: data.hotBusinesses,
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllBusinessesPage()),
+                ),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: 'Recent Activity',
+                  subtitle: 'Your latest transactions',
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllTransactionsPage()),
+                ),
+                const SizedBox(height: 12),
+                _RecentActivityList(
+                  transactions: data.transactions,
+                  onViewAll: () =>
+                      _push(context, const CustomerViewAllTransactionsPage()),
+                ),
+                const SizedBox(height: 24),
+                _ExpiringSection(coupons: data.coupons),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         );
       },
@@ -854,11 +861,16 @@ class _BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = (business.points / business.nextRewardPoints).clamp(
-      0.0,
-      1.0,
-    );
-    final remaining = business.nextRewardPoints - business.points;
+    final hasReward = business.nextRewardPoints > 0;
+    final progress = hasReward
+        ? (business.points / business.nextRewardPoints).clamp(0.0, 1.0)
+        : 0.0;
+    final remaining = hasReward
+        ? (business.nextRewardPoints - business.points).clamp(
+            0,
+            business.nextRewardPoints,
+          )
+        : 0;
     final category = categories.firstWhere(
       (c) => c.id == business.categoryId || c.name == business.category,
       orElse: () => categories.isNotEmpty
@@ -1056,7 +1068,11 @@ class _BusinessCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '$remaining pts to reward',
+                      !hasReward
+                          ? 'No rewards available'
+                          : remaining <= 0
+                          ? 'Ready to redeem!'
+                          : '$remaining pts to reward',
                       style: AppTypography.dmSans(
                         fontSize: 9,
                         color: AppColors.textMutedDark,
@@ -1520,11 +1536,16 @@ class _AlmostThereCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = business.nextRewardPoints - business.points;
-    final progress = (business.points / business.nextRewardPoints).clamp(
-      0.0,
-      1.0,
-    );
+    final hasReward = business.nextRewardPoints > 0;
+    final remaining = hasReward
+        ? (business.nextRewardPoints - business.points).clamp(
+            0,
+            business.nextRewardPoints,
+          )
+        : 0;
+    final progress = hasReward
+        ? (business.points / business.nextRewardPoints).clamp(0.0, 1.0)
+        : 0.0;
 
     return GestureDetector(
       onTap: () =>
@@ -1582,7 +1603,11 @@ class _AlmostThereCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$remaining pts until reward',
+                    !hasReward
+                        ? 'No rewards available'
+                        : remaining <= 0
+                        ? 'Ready to redeem!'
+                        : '$remaining pts to reward',
                     style: AppTypography.dmSans(
                       fontSize: 10,
                       color: AppColors.textMutedDark,

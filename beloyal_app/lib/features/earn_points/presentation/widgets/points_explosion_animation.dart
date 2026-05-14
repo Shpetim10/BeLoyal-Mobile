@@ -13,7 +13,8 @@ class PointsExplosionAnimation extends StatefulWidget {
   final VoidCallback? onCompleted;
 
   @override
-  State<PointsExplosionAnimation> createState() => _PointsExplosionAnimationState();
+  State<PointsExplosionAnimation> createState() =>
+      _PointsExplosionAnimationState();
 }
 
 class _PointsExplosionAnimationState extends State<PointsExplosionAnimation>
@@ -40,15 +41,17 @@ class _PointsExplosionAnimationState extends State<PointsExplosionAnimation>
   void _createParticles() {
     final int count = math.min(widget.points, 50) + 20;
     for (int i = 0; i < count; i++) {
-      _particles.add(_Particle(
-        angle: _random.nextDouble() * 2 * math.pi,
-        distance: _random.nextDouble() * 150 + 50,
-        size: _random.nextDouble() * 8 + 4,
-        color: i % 3 == 0
-            ? AppColors.accent
-            : (i % 3 == 1 ? AppColors.primary : AppColors.secondary),
-        speed: _random.nextDouble() * 0.5 + 0.5,
-      ));
+      _particles.add(
+        _Particle(
+          angle: _random.nextDouble() * 2 * math.pi,
+          distance: _random.nextDouble() * 150 + 50,
+          size: _random.nextDouble() * 8 + 4,
+          color: i % 3 == 0
+              ? AppColors.accent
+              : (i % 3 == 1 ? AppColors.primary : AppColors.secondary),
+          speed: _random.nextDouble() * 0.5 + 0.5,
+        ),
+      );
     }
   }
 
@@ -92,10 +95,7 @@ class _Particle {
 }
 
 class _ExplosionPainter extends CustomPainter {
-  _ExplosionPainter({
-    required this.particles,
-    required this.progress,
-  });
+  _ExplosionPainter({required this.particles, required this.progress});
 
   final List<_Particle> particles;
   final double progress;
@@ -107,12 +107,12 @@ class _ExplosionPainter extends CustomPainter {
     for (final particle in particles) {
       // Ease out cubic for the explosion movement
       final t = 1.0 - math.pow(1.0 - progress, 3).toDouble();
-      
+
       // Calculate current position
       final currentDistance = particle.distance * t * particle.speed;
       final x = center.dx + math.cos(particle.angle) * currentDistance;
       final y = center.dy + math.sin(particle.angle) * currentDistance;
-      
+
       // Gravity effect after initial burst
       final gravity = math.pow(progress, 2) * 200;
       final finalY = y + gravity;

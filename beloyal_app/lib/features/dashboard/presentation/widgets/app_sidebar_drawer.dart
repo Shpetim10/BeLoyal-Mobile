@@ -136,6 +136,19 @@ class _DrawerContent extends ConsumerWidget {
                         delay: 1,
                       ),
                       _SidebarItem(
+                        icon: Icons.document_scanner_rounded,
+                        label: 'Scan Coupon QR',
+                        color: const Color(0xFF10B981),
+                        onTap: () {
+                          Navigator.pop(context);
+                          final path = isAdmin
+                              ? '/business/scan-coupon'
+                              : '/staff/scan-coupon';
+                          context.push(path);
+                        },
+                        delay: 2,
+                      ),
+                      _SidebarItem(
                         icon: Icons.category_rounded,
                         label: 'Catalog Categories',
                         color: const Color(0xFF7C3AED),
@@ -146,7 +159,7 @@ class _DrawerContent extends ConsumerWidget {
                               : '/staff/$businessId/catalog-categories';
                           context.push(path);
                         },
-                        delay: 2,
+                        delay: 3,
                       ),
                       _SidebarItem(
                         icon: Icons.inventory_2_rounded,
@@ -159,7 +172,7 @@ class _DrawerContent extends ConsumerWidget {
                               : '/staff/$businessId/catalog-items';
                           context.push(path);
                         },
-                        delay: 3,
+                        delay: 4,
                       ),
                       _SidebarItem(
                         icon: Icons.receipt_long_rounded,
@@ -172,7 +185,7 @@ class _DrawerContent extends ConsumerWidget {
                               : '/staff/$businessId/transactions';
                           context.push(path);
                         },
-                        delay: 4,
+                        delay: 5,
                       ),
                       _SidebarItem(
                         icon: Icons.card_giftcard_rounded,
@@ -182,7 +195,7 @@ class _DrawerContent extends ConsumerWidget {
                           Navigator.pop(context);
                           context.push('/business/$businessId/coupons');
                         },
-                        delay: 5,
+                        delay: 6,
                       ),
 
                       // ── Admin-only sections ──────────────────────────────
