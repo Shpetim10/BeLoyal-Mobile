@@ -81,8 +81,16 @@ CustomerBusinessDetail mapBusinessDetailDto(CustomerBusinessDetailDto dto) {
 
   final coupons = dto.coupons.map((p) => _mapPromotion(p, bizMap)).toList();
 
+  // Derive business currency early so transactions carry it.
+  final businessCurrencyEarly =
+      dto.catalog.variants.isNotEmpty
+          ? dto.catalog.variants.first.currency
+          : dto.catalog.items.isNotEmpty
+          ? dto.catalog.items.first.currency
+          : 'ALL';
+
   final transactions = dto.transactions
-      .map((t) => _mapTransaction(t, bizMap))
+      .map((t) => _mapTransaction(t, bizMap, businessCurrencyEarly))
       .toList();
 
   final loyalty = dto.loyalty;
@@ -123,6 +131,7 @@ CustomerBusinessDetail mapBusinessDetailDto(CustomerBusinessDetailDto dto) {
     email: email,
     categoryLabel: categoryLabel,
     websiteUrl: websiteUrl,
+    currency: businessCurrencyEarly,
     minPointsToRedeem: loyalty.minPointsToRedeem,
     maxPointsToRedeem: loyalty.maxPointsToRedeem,
     pointsPerUnitDiscount: loyalty.pointsPerUnitDiscount,
@@ -500,10 +509,10 @@ CustomerCoupon _mapPromotion(
 
 CustomerTransaction _mapTransaction(
   CustomerTransactionDto dto,
-  Map<int, String> bizCategoryMap,
-) {
+  Map<int, String> bizCategoryMap, [
+  String? currencyFallback,
+]) {
   final categoryKey = bizCategoryMap[dto.businessId] ?? '';
-  final date = DateTime.tryParse(dto.date) ?? DateTime.now();
 
   return CustomerTransaction(
     id: dto.id,
@@ -511,7 +520,7 @@ CustomerTransaction _mapTransaction(
     businessName: dto.businessName,
     type: dto.type,
     points: dto.points,
-    date: date,
+    date: dto.date,
     description: dto.description,
     netAmount: dto.netAmount ?? 0.0,
     billAmount: dto.billAmount ?? 0.0,
@@ -525,6 +534,7 @@ CustomerTransaction _mapTransaction(
     moneyAmount: dto.moneyAmount,
     ruleAmountPer: dto.ruleAmountPer,
     rulePointsPer: dto.rulePointsPer,
+    currency: dto.currency ?? currencyFallback,
   );
 }
 

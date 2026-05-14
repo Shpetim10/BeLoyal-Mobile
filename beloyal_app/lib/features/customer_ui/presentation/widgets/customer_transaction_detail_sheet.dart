@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 
 class CustomerTransactionDetailSheet extends StatelessWidget {
@@ -178,32 +179,32 @@ class CustomerTransactionDetailSheet extends StatelessWidget {
               if (tx.moneyAmount != null && tx.moneyAmount! > 0)
                 _DetailRow(
                   label: 'Amount',
-                  value: 'L ${tx.moneyAmount!.toStringAsFixed(0)}',
+                  value: '${currencySymbol(tx.currency)} ${tx.moneyAmount!.toStringAsFixed(0)}',
                   mono: true,
                 ),
               if (tx.billAmount > 0)
                 _DetailRow(
                   label: 'Bill Amount',
-                  value: 'L ${tx.billAmount.toStringAsFixed(0)}',
+                  value: '${currencySymbol(tx.currency)} ${tx.billAmount.toStringAsFixed(0)}',
                   mono: true,
                 ),
               if (tx.netAmount > 0)
                 _DetailRow(
                   label: 'Net Amount',
-                  value: 'L ${tx.netAmount.toStringAsFixed(0)}',
+                  value: formatCurrency(tx.netAmount, tx.currency),
                   mono: true,
                 ),
               if (tx.discountAmount != null && tx.discountAmount! > 0)
                 _DetailRow(
                   label: 'Discount',
-                  value: '- L ${tx.discountAmount!.toStringAsFixed(0)}',
+                  value: '- ${formatCurrency(tx.discountAmount!, tx.currency)}',
                   mono: true,
                   valueColor: AppColors.success,
                 ),
               if (tx.ruleAmountPer != null && tx.rulePointsPer != null)
                 _DetailRow(
                   label: 'Earning Rule',
-                  value: '${tx.rulePointsPer} pts / L ${tx.ruleAmountPer!.toStringAsFixed(0)}',
+                  value: '${tx.rulePointsPer} pts / ${formatCurrency(tx.ruleAmountPer!, tx.currency)}',
                   mono: true,
                 ),
               if (tx.scanMethod?.isNotEmpty == true)

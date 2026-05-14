@@ -26,7 +26,7 @@ enum BusinessCurrency {
 
   /// Short symbol shown in price displays.
   String get symbol => switch (this) {
-    BusinessCurrency.lek => 'ALL',
+    BusinessCurrency.lek => 'L',
     BusinessCurrency.euro => '€',
     BusinessCurrency.dollar => '\$',
   };
@@ -42,7 +42,7 @@ enum BusinessCurrency {
   String format(double amount) {
     final formatted = amount.toStringAsFixed(2);
     return switch (this) {
-      BusinessCurrency.lek => '$formatted ALL',
+      BusinessCurrency.lek => '$formatted L',
       BusinessCurrency.euro => '€$formatted',
       BusinessCurrency.dollar => '\$$formatted',
     };
@@ -57,3 +57,27 @@ String currencySymbol(String? code) =>
 /// Formats [amount] with the symbol derived from [code].
 String formatCurrency(double amount, String? code) =>
     BusinessCurrency.fromCode(code).format(amount);
+
+/// Formats [amount] with a currency symbol (when symbol is provided directly from backend).
+/// Handles both symbol strings (€, L, $) and currency codes (EUR, ALL, USD).
+String formatCurrencyWithSymbol(double amount, String? currencySymbolOrCode) {
+  if (currencySymbolOrCode == null || currencySymbolOrCode.isEmpty) {
+    return '${amount.toStringAsFixed(2)} L';
+  }
+
+  final trimmed = currencySymbolOrCode.trim();
+  final formatted = amount.toStringAsFixed(2);
+
+  // If it's already a symbol (€, L, $), use it directly
+  switch (trimmed) {
+    case '€':
+      return '€$formatted';
+    case 'L':
+      return '$formatted L';
+    case '\$':
+      return '\$$formatted';
+    default:
+      // Otherwise treat as currency code and convert
+      return formatCurrency(amount, trimmed);
+  }
+}

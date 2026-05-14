@@ -137,6 +137,7 @@ class SessionController extends Notifier<Session?> {
           earningSettingsConfigured: configured,
           loyaltySettingsEnabled: p.loyaltySettingsEnabled,
           loyaltySettingsConfigured: p.loyaltySettingsConfigured,
+          currency: p.currency,
         );
       }
       return p;
@@ -171,6 +172,7 @@ class SessionController extends Notifier<Session?> {
           earningSettingsConfigured: p.earningSettingsConfigured,
           loyaltySettingsEnabled: p.loyaltySettingsEnabled,
           loyaltySettingsConfigured: p.loyaltySettingsConfigured,
+          currency: p.currency,
         );
       }
       return p;
@@ -204,6 +206,7 @@ class SessionController extends Notifier<Session?> {
           earningSettingsConfigured: p.earningSettingsConfigured,
           loyaltySettingsEnabled: enabled,
           loyaltySettingsConfigured: configured,
+          currency: p.currency,
         );
       }
       return p;
@@ -217,3 +220,16 @@ class SessionController extends Notifier<Session?> {
 final sessionControllerProvider = NotifierProvider<SessionController, Session?>(
   SessionController.new,
 );
+
+/// Derives the active business currency code from the session.
+/// Returns the ISO code (e.g. 'ALL', 'EUR', 'USD') or null when not in a
+/// business context. Callers should fall back to 'ALL' when null.
+final activeBusinessCurrencyProvider = Provider<String?>((ref) {
+  final session = ref.watch(sessionControllerProvider);
+  final businessId = session?.activeBusinessId;
+  if (businessId == null) return null;
+  return session!.user.businessProfiles
+      .where((p) => p.businessId == businessId)
+      .map((p) => p.currency)
+      .firstOrNull;
+});

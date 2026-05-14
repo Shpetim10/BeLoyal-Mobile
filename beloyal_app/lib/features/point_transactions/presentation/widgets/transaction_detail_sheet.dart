@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../../../../core/widgets/besa_loader.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../data/models/point_transaction_view_dto.dart';
@@ -21,6 +22,7 @@ class TransactionDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
     final businessId = session?.activeBusinessId ?? 0;
+    final currencyCode = ref.watch(activeBusinessCurrencyProvider);
     final detailAsync = ref.watch(transactionDetailProvider((businessId: businessId, txId: transactionId)));
 
     return Container(
@@ -73,7 +75,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                   ),
                 ),
               ),
-              data: (detail) => _buildContent(context, detail),
+              data: (detail) => _buildContent(context, detail, currencyCode),
             ),
           ),
         ],
@@ -81,8 +83,7 @@ class TransactionDetailSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, PointTransactionViewDto detail) {
-    final currencyFormat = NumberFormat.currency(symbol: 'L ', decimalDigits: 2);
+  Widget _buildContent(BuildContext context, PointTransactionViewDto detail, String? currencyCode) {
     final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
 
     Color typeColor;
@@ -218,12 +219,12 @@ class TransactionDetailSheet extends ConsumerWidget {
           _buildSectionTitle('Bill Details'),
           _buildDetailRow('Invoice Ref', detail.invoiceReference ?? 'None'),
           if (detail.note != null) _buildDetailRow('Note', detail.note!),
-          _buildDetailRow('Net Amount', currencyFormat.format(detail.netAmount)),
+          _buildDetailRow('Net Amount', formatCurrency(detail.netAmount, currencyCode)),
           if (detail.discountAmount != null && detail.discountAmount! > 0)
-            _buildDetailRow('Discount', '-${currencyFormat.format(detail.discountAmount)}', valueColor: AppColors.errorLight),
+            _buildDetailRow('Discount', '-${formatCurrency(detail.discountAmount!, currencyCode)}', valueColor: AppColors.errorLight),
           _buildDetailRow(
-            'Total Bill', 
-            currencyFormat.format(detail.billAmount), 
+            'Total Bill',
+            formatCurrency(detail.billAmount, currencyCode),
             isBold: true, 
             valueColor: AppColors.primaryLight
           ),
@@ -234,7 +235,7 @@ class TransactionDetailSheet extends ConsumerWidget {
             const Divider(color: AppColors.glassBorder),
             const SizedBox(height: 16),
             _buildSectionTitle('Applied Rule Snapshot'),
-            _buildDetailRow('Rule', '${detail.rulePointsPer} pts / ${currencyFormat.format(detail.ruleAmountPer)}'),
+            _buildDetailRow('Rule', '${detail.rulePointsPer} pts / ${formatCurrency(detail.ruleAmountPer ?? 0, currencyCode)}'),
           ],
         ],
       ),

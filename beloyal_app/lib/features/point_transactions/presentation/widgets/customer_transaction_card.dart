@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_transaction_detail_sheet.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../../data/models/point_transaction_customer_list_dto.dart';
 
 class CustomerTransactionCard extends StatelessWidget {
@@ -16,7 +16,6 @@ class CustomerTransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(symbol: 'L ', decimalDigits: 2);
     final isEarn = transaction.points > 0 || transaction.type.toUpperCase() == 'EARN_BILL';
     final customerTransaction = CustomerTransaction(
       id: transaction.id,
@@ -196,7 +195,7 @@ class CustomerTransactionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    currencyFormat.format(transaction.netAmount),
+                    formatCurrency(transaction.netAmount, null),
                     style: const TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 13,

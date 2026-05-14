@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_utils.dart';
+import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../data/models/point_transaction_staff_list_dto.dart';
 import 'transaction_detail_sheet.dart';
 
-class StaffTransactionCard extends StatelessWidget {
+class StaffTransactionCard extends ConsumerWidget {
   const StaffTransactionCard({
     super.key,
     required this.transaction,
@@ -14,9 +17,9 @@ class StaffTransactionCard extends StatelessWidget {
   final PointTransactionStaffListViewDto transaction;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final timeFormat = DateFormat('HH:mm');
-    final currencyFormat = NumberFormat.currency(symbol: 'L ', decimalDigits: 2);
+    final currencyCode = ref.watch(activeBusinessCurrencyProvider);
     
     // Determine Type Colors
     Color typeColor;
@@ -176,7 +179,7 @@ class StaffTransactionCard extends StatelessWidget {
                       const Icon(Icons.receipt_long_rounded, size: 12, color: AppColors.textMuted),
                       const SizedBox(width: 4),
                       Text(
-                        currencyFormat.format(transaction.billAmount),
+                        formatCurrency(transaction.billAmount, currencyCode),
                         style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 13,

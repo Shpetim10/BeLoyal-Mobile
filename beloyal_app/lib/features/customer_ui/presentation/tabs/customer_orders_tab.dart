@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
@@ -446,7 +447,7 @@ class _TxCard extends StatelessWidget {
                     if (tx.billAmount > 0) ...[
                       const SizedBox(width: 6),
                       Text(
-                        '· L ${tx.billAmount.toStringAsFixed(0)}',
+                        '· ${formatCurrency(tx.billAmount, tx.currency)}',
                         style: AppTypography.dmMono(
                           fontSize: 10,
                           color: AppColors.textMutedDark,

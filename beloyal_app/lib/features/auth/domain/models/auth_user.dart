@@ -47,6 +47,7 @@ class BusinessProfileInfo {
     this.earningSettingsConfigured = false,
     this.loyaltySettingsEnabled = false,
     this.loyaltySettingsConfigured = false,
+    this.currency,
   });
 
   final int businessId;
@@ -71,6 +72,10 @@ class BusinessProfileInfo {
 
   /// Whether loyalty (redemption) settings have been configured at least once.
   final bool loyaltySettingsConfigured;
+
+  /// Currency code for this business (e.g. 'ALL', 'EUR', 'USD'). Null means
+  /// the backend did not return one; callers should fall back to 'ALL'.
+  final String? currency;
 
   bool get isStaffInactive => memberStatus?.toUpperCase() == 'INACTIVE';
   bool get hasPendingInvitation => !invitationAccepted;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../controllers/catalog_item_variant_controller.dart';
 import '../../data/models/catalog_item_variant_summary_response.dart';
 import '../../data/models/catalog_item_variant_update_request.dart';
@@ -26,22 +27,6 @@ class CatalogItemVariantsSection extends ConsumerStatefulWidget {
 }
 
 class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariantsSection> {
-  String _getCurrencySymbol(String? currency) {
-    switch (currency?.toUpperCase()) {
-      case 'EURO':
-      case 'EUR':
-        return '€';
-      case 'DOLLAR':
-      case 'USD':
-        return '\$';
-      case 'LEK':
-      case 'ALL':
-        return 'L';
-      default:
-        return '€';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -240,7 +225,7 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
         itemBuilder: (context, index) {
           final variant = variants[index];
           final isActive = variant.status.toLowerCase() == 'active';
-          final currencySymbol = _getCurrencySymbol(widget.currencyCode);
+          final sym = currencySymbol(widget.currencyCode);
 
           return Material(
             key: ValueKey(variant.id),
@@ -319,7 +304,7 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: Text(
-                          '$currencySymbol${variant.priceOverride!.toStringAsFixed(2)}',
+                          '$sym${variant.priceOverride!.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,

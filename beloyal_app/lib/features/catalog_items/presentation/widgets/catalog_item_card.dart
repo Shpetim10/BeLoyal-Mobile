@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../../data/models/catalog_item_short_response.dart';
 import '../../data/models/catalog_item_status.dart';
 
@@ -122,7 +123,7 @@ class _CatalogItemCardState extends State<CatalogItemCard>
 
                               const Spacer(),
                               Text(
-                                '${_getCurrencySymbol(item.currencyCode)} ${item.price.toStringAsFixed(2)}',
+                                formatCurrency(item.price, item.currencyCode),
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primary,
@@ -173,22 +174,6 @@ class _CatalogItemCardState extends State<CatalogItemCard>
         .animate(delay: (widget.animationIndex * 55).ms)
         .fadeIn(duration: 350.ms)
         .slideY(begin: 0.18, end: 0, curve: Curves.easeOut);
-  }
-
-  String _getCurrencySymbol(String? currency) {
-    switch (currency?.toUpperCase()) {
-      case 'EURO':
-      case 'EUR':
-        return '€';
-      case 'DOLLAR':
-      case 'USD':
-        return '\$';
-      case 'LEK':
-      case 'ALL':
-        return 'L';
-      default:
-        return '€'; // default
-    }
   }
 
   Widget _buildImagePlaceholder() {

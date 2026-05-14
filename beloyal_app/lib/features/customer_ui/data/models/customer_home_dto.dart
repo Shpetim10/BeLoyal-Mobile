@@ -437,6 +437,7 @@ class CustomerTransactionDto {
     this.moneyAmount,
     this.ruleAmountPer,
     this.rulePointsPer,
+    this.currency,
   });
 
   final int id;
@@ -444,7 +445,7 @@ class CustomerTransactionDto {
   final String businessName;
   final String type;
   final int points;
-  final String date;
+  final DateTime date;
   final String description;
   final double? netAmount;
   final double? billAmount;
@@ -457,15 +458,31 @@ class CustomerTransactionDto {
   final double? moneyAmount;
   final double? ruleAmountPer;
   final int? rulePointsPer;
+  final String? currency;
 
   factory CustomerTransactionDto.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      if (v is String) return DateTime.tryParse(v);
+      if (v is List && v.isNotEmpty) {
+        int year = v.length > 0 ? (v[0] as num).toInt() : 1970;
+        int month = v.length > 1 ? (v[1] as num).toInt() : 1;
+        int day = v.length > 2 ? (v[2] as num).toInt() : 1;
+        int hour = v.length > 3 ? (v[3] as num).toInt() : 0;
+        int minute = v.length > 4 ? (v[4] as num).toInt() : 0;
+        int second = v.length > 5 ? (v[5] as num).toInt() : 0;
+        return DateTime(year, month, day, hour, minute, second);
+      }
+      return null;
+    }
+
     return CustomerTransactionDto(
       id: _asInt(json['id']),
       businessId: _asInt(json['businessId']),
       businessName: _asString(json['businessName']),
       type: _asString(json['type'], 'EARN'),
       points: _asInt(json['points']),
-      date: _asString(json['date']),
+      date: parseDate(json['date']) ?? DateTime.now(),
       description: _asString(json['description']),
       netAmount: _asDoubleOrNull(json['netAmount']),
       billAmount: _asDoubleOrNull(json['billAmount']),
@@ -480,6 +497,7 @@ class CustomerTransactionDto {
       rulePointsPer: json['rulePointsPer'] == null
           ? null
           : _asInt(json['rulePointsPer']),
+      currency: json['currency']?.toString(),
     );
   }
 }

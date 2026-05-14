@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../../../../features/auth/domain/models/auth_user.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
 
@@ -19,31 +20,6 @@ class CatalogItemDetailSheet extends ConsumerWidget {
     required this.businessId,
     required this.itemId,
   });
-
-  String _currencyDisplayText(String? currencyCode) {
-    final code = currencyCode?.trim().toUpperCase();
-    switch (code) {
-      case 'EURO':
-      case 'EUR':
-        return 'Euro (EUR)';
-      case 'DOLLAR':
-      case 'USD':
-        return 'Dollar (USD)';
-      case 'LEK':
-      case 'ALL':
-        return 'Lek (ALL)';
-      default:
-        return currencyCode?.trim() ?? '';
-    }
-  }
-
-  String _formatMainPrice(double price, String? currencyCode) {
-    final displayCurrency = _currencyDisplayText(currencyCode);
-    if (displayCurrency.isEmpty) {
-      return price.toStringAsFixed(2);
-    }
-    return '${price.toStringAsFixed(2)} $displayCurrency';
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -152,7 +128,7 @@ class CatalogItemDetailSheet extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _formatMainPrice(item.price, item.currencyCode),
+                            formatCurrency(item.price, item.currencyCode),
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.primaryColor,
                               fontWeight: FontWeight.bold,

@@ -343,6 +343,7 @@ class AuthRepositoryImpl implements AuthRepository {
                 loyaltySettingsEnabled: item['loyaltySettingsEnabled'] == true,
                 loyaltySettingsConfigured:
                     item['loyaltySettingsConfigured'] == true,
+                currency: _parseCurrencyCode(item['currency']),
               ),
             );
             debugPrint(
@@ -379,6 +380,19 @@ class AuthRepositoryImpl implements AuthRepository {
       businessProfiles: businessProfiles,
     );
   }
+  /// Parses currency from a raw backend value.
+  /// Backend may send a String code ('ALL'), or an object {'code':'ALL',...}.
+  /// Returns null when missing; callers fall back to 'ALL'.
+  String? _parseCurrencyCode(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) return raw.isNotEmpty ? raw.trim().toUpperCase() : null;
+    if (raw is Map) {
+      final code = raw['code']?.toString().trim().toUpperCase();
+      return (code != null && code.isNotEmpty) ? code : null;
+    }
+    return null;
+  }
+
   AuthFailure _mapDioError(DioException e) {
     final data = e.response?.data;
     if (data is String && data.isNotEmpty) {

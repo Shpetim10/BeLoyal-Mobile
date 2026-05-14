@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/currency_utils.dart';
 
 class CustomerCategory {
   const CustomerCategory({
@@ -200,6 +201,7 @@ class CustomerTransaction {
     this.moneyAmount,
     this.ruleAmountPer,
     this.rulePointsPer,
+    this.currency,
   });
 
   final int id;
@@ -221,6 +223,8 @@ class CustomerTransaction {
   final double? moneyAmount;
   final double? ruleAmountPer;
   final int? rulePointsPer;
+  /// Currency code for this transaction (e.g. 'ALL', 'EUR'). Null falls back to 'ALL'.
+  final String? currency;
 }
 
 class CustomerMenuVariant {
@@ -249,8 +253,7 @@ class CustomerMenuVariant {
   final int? earnedPoints;
 
   String get formattedPrice {
-    final symbol = currency == 'ALL' ? 'L' : currency;
-    return '${price.toStringAsFixed(0)} $symbol';
+    return formatCurrencyWithSymbol(price, currency);
   }
 }
 
@@ -374,6 +377,7 @@ class CustomerBusinessDetail {
     required this.lifetimeEarned,
     required this.lifetimeRedeemed,
     required this.lifetimeExpired,
+    this.currency = 'ALL',
     this.websiteUrl,
     this.maxPointsToRedeem,
     this.pointsPerUnitDiscount,
@@ -408,6 +412,8 @@ class CustomerBusinessDetail {
   final int? monthsToExpire;
   final int pointsPer;
   final double amountPer;
+  /// Currency code for this business (e.g. 'ALL', 'EUR', 'USD'). Defaults to 'ALL'.
+  final String currency;
   // Lifetime stats
   final int lifetimeEarned;
   final int lifetimeRedeemed;
@@ -423,8 +429,8 @@ class CustomerBusinessDetail {
 
   String get earningRuleLabel {
     if (!hasEarningRule) return '';
-    final symbol = 'L';
-    return 'Earn $pointsPer pts per ${amountPer.toStringAsFixed(0)} $symbol spent';
+    final sym = currencySymbol(currency);
+    return 'Earn $pointsPer pts per ${amountPer.toStringAsFixed(0)} $sym spent';
   }
 
   String get expiryLabel {
