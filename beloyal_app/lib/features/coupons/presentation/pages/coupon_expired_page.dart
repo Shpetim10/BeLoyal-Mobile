@@ -23,6 +23,7 @@ class _CouponExpiredPageState extends ConsumerState<CouponExpiredPage> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _isSearchVisible = false;
+  bool _isRefreshingFromTop = false;
 
   static const _amber = Color(0xFFF59E0B);
   static const _amberLight = Color(0xFFFBBF24);
@@ -48,7 +49,16 @@ class _CouponExpiredPageState extends ConsumerState<CouponExpiredPage> {
   void _onScroll() {
     final ctrl = ref.read(couponExpiredControllerProvider.notifier);
     final state = ref.read(couponExpiredControllerProvider);
-    if (_scrollCtrl.position.pixels >=
+
+    if (_scrollCtrl.position.pixels <=
+            50 &&
+        !_isRefreshingFromTop &&
+        !state.isLoading) {
+      _isRefreshingFromTop = true;
+      ctrl.fetchCoupons(widget.businessId).then((_) {
+        _isRefreshingFromTop = false;
+      });
+    } else if (_scrollCtrl.position.pixels >=
             _scrollCtrl.position.maxScrollExtent - 200 &&
         state.hasMore &&
         !state.isLoadingMore) {

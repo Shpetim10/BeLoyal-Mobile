@@ -73,14 +73,10 @@ class _GuestIdentificationScreenState
       ) {
         if (!mounted) return;
         final status = ref.read(earnPointsControllerProvider).scannerStatus;
-        // If error, restart scanner so user can try again.
+        // If error, restart scanner immediately so user can try again.
         if (status == ScannerStatus.error) {
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              _scannerController?.start();
-              ref.read(earnPointsControllerProvider.notifier).resumeScanning();
-            }
-          });
+          _scannerController?.start();
+          ref.read(earnPointsControllerProvider.notifier).resumeScanning();
         }
       });
     }

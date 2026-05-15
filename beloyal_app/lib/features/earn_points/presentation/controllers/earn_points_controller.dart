@@ -332,7 +332,7 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
       couponQrCode: qrCode,
       clearPreview: true,
       clearPreviewError: true,
-      clearIdempotencyKey: true,
+      idempotencyKey: const Uuid().v4(),
       isCouponPreviewLoading: true,
     );
     await fetchPreview(businessId: businessId);
@@ -345,7 +345,7 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
       clearCouponQrCode: true,
       clearPreview: true,
       clearPreviewError: true,
-      clearIdempotencyKey: true,
+      idempotencyKey: const Uuid().v4(),
     );
     await fetchPreview(businessId: businessId);
   }
@@ -369,10 +369,14 @@ class EarnPointsController extends Notifier<EarnPointsDraftState> {
         couponQrCode: state.couponQrCode,
       );
 
+      final key = state.idempotencyKey ?? const Uuid().v4();
+      if (state.idempotencyKey == null) {
+        state = state.copyWith(idempotencyKey: key);
+      }
       final response = await _repo.submitEarnTransaction(
         businessId: businessId,
         request: request,
-        idempotencyKey: state.idempotencyKey!,
+        idempotencyKey: key,
       );
 
       state = state.copyWith(

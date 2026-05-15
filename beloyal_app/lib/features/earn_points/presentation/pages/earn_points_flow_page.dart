@@ -52,6 +52,7 @@ class _EarnPointsFlowPageState extends ConsumerState<EarnPointsFlowPage> {
     final targetPage = isSuccess ? 3 : currentStep.index;
     if (_pageController.hasClients &&
         _pageController.page?.round() != targetPage) {
+      FocusScope.of(context).unfocus();
       _pageController.animateToPage(
         targetPage,
         duration: const Duration(milliseconds: 300),
@@ -76,15 +77,18 @@ class _EarnPointsFlowPageState extends ConsumerState<EarnPointsFlowPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.bgDark,
-        body: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            GuestIdentificationScreen(businessId: widget.businessId),
-            BillDetailsScreen(businessId: widget.businessId),
-            ConfirmationScreen(businessId: widget.businessId),
-            const EarnPointsResultPage(),
-          ],
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              GuestIdentificationScreen(businessId: widget.businessId),
+              BillDetailsScreen(businessId: widget.businessId),
+              ConfirmationScreen(businessId: widget.businessId),
+              const EarnPointsResultPage(),
+            ],
+          ),
         ),
       ),
     );

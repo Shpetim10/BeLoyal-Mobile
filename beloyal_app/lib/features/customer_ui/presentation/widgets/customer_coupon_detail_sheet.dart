@@ -7,7 +7,10 @@ import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/data/repositories/customer_repository.dart';
+import 'package:besahub_app/features/customer_ui/domain/models/customer_data_source.dart'
+    show buildOwnedCouponFromRedemption;
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_helpers.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_qr_sheet.dart';
 
 class CustomerCouponDetailSheet {
@@ -67,7 +70,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
       _detailedCouponFuture = Future.microtask(() async {
         try {
           final detailed = await ref.read(
-            customerCouponDetailProvider(widget.coupon.id).future,
+            customerCouponDetailProvider(widget.coupon.couponId).future,
           );
           return detailed;
         } catch (_) {
@@ -81,36 +84,14 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
 
   ScrollController get scrollController => widget.scrollController;
 
-  Color _statusColor(CustomerCoupon coupon) => switch (coupon.status) {
-    'active' => AppColors.success,
-    'expiring' => AppColors.error,
-    'used' => AppColors.textMutedDark,
-    _ => AppColors.textMutedDark,
-  };
+  Color _statusColor(CustomerCoupon coupon) => couponStatusColor(coupon.status);
+  String _statusLabel(CustomerCoupon coupon) =>
+      couponStatusLabel(coupon.status);
+  IconData _typeIcon(CustomerCoupon coupon) => couponTypeIcon(coupon.type);
+  String _typeLabel(CustomerCoupon coupon) => couponTypeLabel(coupon.type);
 
-  String _statusLabel(CustomerCoupon coupon) => switch (coupon.status) {
-    'active' => 'Active',
-    'expiring' => 'Expiring Soon',
-    'used' => 'Used',
-    'expired' => 'Expired',
-    _ => coupon.status,
-  };
-
-  IconData _typeIcon(CustomerCoupon coupon) => switch (coupon.type) {
-    'FREE_PRODUCT' => Icons.card_giftcard_rounded,
-    'PERCENTAGE_DISCOUNT' => Icons.percent_rounded,
-    'FIXED_AMOUNT_DISCOUNT' => Icons.discount_rounded,
-    _ => Icons.confirmation_number_rounded,
-  };
-
-  String _typeLabel(CustomerCoupon coupon) => switch (coupon.type) {
-    'FREE_PRODUCT' => 'Free Product',
-    'PERCENTAGE_DISCOUNT' => 'Percentage Discount',
-    'FIXED_AMOUNT_DISCOUNT' => 'Fixed Discount',
-    _ => coupon.type,
-  };
-
-  bool _isFreeProduct(CustomerCoupon coupon) => coupon.type == 'FREE_PRODUCT';
+  bool _isFreeProduct(CustomerCoupon coupon) =>
+      coupon.type == CustomerCouponType.freeProduct;
 
   @override
   Widget build(BuildContext context) {
@@ -126,8 +107,10 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
   Widget _buildContent(BuildContext context, CustomerCoupon coupon) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final expiryDate = DateFormat('MMM d, yyyy').format(coupon.expiresAt);
-    final expiresIn = coupon.expiresIn ?? 'Expires soon';
+    final expiryDate = coupon.expiresAt != null
+        ? DateFormat('MMM d, yyyy').format(coupon.expiresAt!)
+        : 'No expiry provided';
+    final expiresIn = coupon.expiresIn ?? coupon.expiryLabel;
     final dateFmt = DateFormat('MMM d, yyyy');
     final gradientColors = coupon.isUsed || coupon.status == 'expired'
         ? [const Color(0xFF374151), const Color(0xFF6B7280)]
@@ -739,7 +722,7 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
         ref.read(customerDataProvider.notifier).refresh();
 
         // Build a temporary coupon from the redemption result for QR display
-        final qrCoupon = _buildQrCoupon(widget.coupon, result);
+        final qrCoupon = buildOwnedCouponFromRedemption(widget.coupon, result);
         Navigator.of(context).pop();
         if (widget.rootContext.mounted) {
           CustomerCouponQrSheet.show(widget.rootContext, qrCoupon);
@@ -822,7 +805,7 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
     try {
       validation = await ref
           .read(customerRepositoryProvider)
-          .validateRedemption(coupon.id);
+          .validateRedemption(coupon.couponId);
       if (!mounted) return;
       if (validation.canRedeem == false) {
         setState(() => _isValidating = false);
@@ -872,62 +855,8 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
     if (confirmed == true && mounted) {
       ref
           .read(customerCouponRedemptionProvider.notifier)
-          .redeemCoupon(couponId: coupon.id, couponTitle: coupon.title);
+          .redeemCoupon(couponId: coupon.couponId, couponTitle: coupon.title);
     }
-  }
-
-  CustomerCoupon _buildQrCoupon(
-    CustomerCoupon original,
-    CustomerCouponRedemptionDto result,
-  ) {
-    final expiresAt = result.expiresAt != null
-        ? DateTime.tryParse(result.expiresAt!) ?? original.expiresAt
-        : original.expiresAt;
-    final now = DateTime.now();
-    String? expiresIn;
-    if (expiresAt.isAfter(now)) {
-      final hours = expiresAt.difference(now).inHours;
-      expiresIn = hours < 24
-          ? 'Expires in ${hours}h'
-          : 'Expires in ${expiresAt.difference(now).inDays}d';
-    }
-    return CustomerCoupon(
-      id: result.couponId,
-      businessId: original.businessId,
-      businessName: original.businessName,
-      title: result.snapshotTitle,
-      discountValue: original.discountValue,
-      discountDisplay: original.discountDisplay,
-      status: 'active',
-      expiresAt: expiresAt,
-      pointCost: result.pointsSpent,
-      gradientColors: original.gradientColors,
-      type: result.snapshotCouponType,
-      isUsed: false,
-      description: result.snapshotDescription,
-      expiresIn: expiresIn,
-      termsAndConditions: original.termsAndConditions,
-      usageLimit: original.usageLimit,
-      usageCount: original.usageCount,
-      customerRedemptionCount: original.customerRedemptionCount + 1,
-      isOwned: true,
-      imageUrl: result.snapshotImageUrl ?? original.imageUrl,
-      currency: result.currency ?? original.currency,
-      customerCouponId: result.customerCouponId,
-      isFeatured: original.isFeatured,
-      totalRedemptions: original.totalRedemptions,
-      totalRedemptionLimit: original.totalRedemptionLimit,
-      minimumOrderAmount: original.minimumOrderAmount,
-      maximumDiscountAmount: original.maximumDiscountAmount,
-      freeProductName: original.freeProductName,
-      freeProductVariant: original.freeProductVariant,
-      freeProductCategory: original.freeProductCategory,
-      freeProductQuantity: original.freeProductQuantity,
-      redeemedAt: result.redeemedAt != null
-          ? DateTime.tryParse(result.redeemedAt!)
-          : null,
-      qrCode: result.qrCode,
-    );
   }
 }
 
@@ -1332,7 +1261,7 @@ class _CouponPurchaseConfirmDialog extends StatelessWidget {
                           ],
                         ),
                         // ── Balance before → after (from validate result) ─
-                        if (validation != null) ...[
+                        if (validation != null && validation!.canRedeem) ...[
                           const SizedBox(height: 10),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

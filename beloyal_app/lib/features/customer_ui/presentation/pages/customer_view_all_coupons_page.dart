@@ -5,7 +5,7 @@ import 'package:besahub_app/features/customer_ui/data/repositories/customer_repo
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_detail_sheet.dart';
-import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_qr_sheet.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -22,7 +22,7 @@ Future<void> _confirmAndRedeem(
   try {
     validation = await ref
         .read(customerRepositoryProvider)
-        .validateRedemption(coupon.id);
+        .validateRedemption(coupon.couponId);
     if (!context.mounted) return;
     if (validation.canRedeem == false) {
       final reason = validation.reason?.isNotEmpty == true
@@ -63,7 +63,7 @@ Future<void> _confirmAndRedeem(
   if (confirmed == true && context.mounted) {
     ref
         .read(customerCouponRedemptionProvider.notifier)
-        .redeemCoupon(couponId: coupon.id, couponTitle: coupon.title);
+        .redeemCoupon(couponId: coupon.couponId, couponTitle: coupon.title);
   }
 }
 
@@ -478,28 +478,9 @@ class _CustomerViewAllCouponsPageState
     }).toList();
   }
 
-  IconData _typeIcon(String type) => switch (type) {
-    'FREE_PRODUCT' => Icons.card_giftcard_rounded,
-    'PERCENTAGE_DISCOUNT' => Icons.percent_rounded,
-    'FIXED_AMOUNT_DISCOUNT' => Icons.discount_rounded,
-    _ => Icons.confirmation_number_rounded,
-  };
-
-  Color _statusColor(String status) => switch (status) {
-    'active' => AppColors.success,
-    'expiring' => AppColors.error,
-    'used' => AppColors.textMutedDark,
-    'expired' => AppColors.textMutedDark,
-    _ => AppColors.textMutedDark,
-  };
-
-  String _statusLabel(String status) => switch (status) {
-    'active' => 'Active',
-    'expiring' => 'Expiring',
-    'used' => 'Used',
-    'expired' => 'Expired',
-    _ => status,
-  };
+  IconData _typeIcon(String type) => couponTypeIcon(type);
+  Color _statusColor(String status) => couponStatusColor(status);
+  String _statusLabel(String status) => couponStatusLabel(status);
 
   @override
   Widget build(BuildContext context) {
@@ -974,8 +955,10 @@ class _CouponListCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
-    final expiresIn = coupon.expiresIn ?? 'Expires soon';
+    final expiresAt = coupon.expiresAt != null
+        ? DateFormat('MMM d').format(coupon.expiresAt!)
+        : 'No expiry';
+    final expiresIn = coupon.expiresIn ?? coupon.expiryLabel;
     final isPerLimitReached = coupon.isPerCustomerLimitReached;
     final isOverallLimitReached = coupon.isOverallLimitReached;
     final isLimitReached = coupon.isLimitReached;
@@ -1232,210 +1215,12 @@ class _CouponListCard extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 4),
-                                  // ── Action chips ────────────────────────────
-                                  if (isActive &&
-                                      isLimitReached &&
-                                      coupon.isOwned)
-                                    // Can't buy more but still show QR
-                                    GestureDetector(
-                                      onTap: () => CustomerCouponQrSheet.show(
-                                        context,
-                                        coupon,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              AppColors.primaryDark,
-                                              AppColors.primary,
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Use Now',
-                                          style: AppTypography.dmSans(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  else if (isActive && !isLimitReached) ...[
-                                    if (coupon.isOwned) ...[
-                                      GestureDetector(
-                                        onTap: () => CustomerCouponQrSheet.show(
-                                          context,
-                                          coupon,
-                                        ),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 5,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                AppColors.primaryDark,
-                                                AppColors.primary,
-                                              ],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            'Use Now',
-                                            style: AppTypography.dmSans(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    GestureDetector(
-                                      onTap: isClaimLoading
-                                          ? null
-                                          : () => _confirmAndRedeem(
-                                              context,
-                                              ref,
-                                              coupon,
-                                            ),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 150,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: isClaimLoading
-                                              ? null
-                                              : LinearGradient(
-                                                  colors: coupon.isOwned
-                                                      ? [
-                                                          const Color(
-                                                            0xFF1D4ED8,
-                                                          ),
-                                                          const Color(
-                                                            0xFF2563EB,
-                                                          ),
-                                                        ]
-                                                      : [
-                                                          AppColors.primaryDark,
-                                                          AppColors.primary,
-                                                        ],
-                                                ),
-                                          color: isClaimLoading
-                                              ? AppColors.cardDark
-                                              : null,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: isClaimLoading
-                                              ? Border.all(
-                                                  color: AppColors.glassBorder,
-                                                )
-                                              : null,
-                                        ),
-                                        child: isClaimLoading
-                                            ? const SizedBox(
-                                                width: 12,
-                                                height: 12,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 1.5,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation(
-                                                        AppColors.primary,
-                                                      ),
-                                                ),
-                                              )
-                                            : Text(
-                                                coupon.isOwned
-                                                    ? 'Buy More'
-                                                    : 'Claim',
-                                                style: AppTypography.dmSans(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                  ]
-                                  // Coupon is used/non-active but per-customer
-                                  // limit not yet reached — allow buying another.
-                                  else if (!isActive && coupon.canBuyMore)
-                                    GestureDetector(
-                                      onTap: isClaimLoading
-                                          ? null
-                                          : () => _confirmAndRedeem(
-                                              context,
-                                              ref,
-                                              coupon,
-                                            ),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 150,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: isClaimLoading
-                                              ? null
-                                              : const LinearGradient(
-                                                  colors: [
-                                                    Color(0xFF1D4ED8),
-                                                    Color(0xFF2563EB),
-                                                  ],
-                                                ),
-                                          color: isClaimLoading
-                                              ? AppColors.cardDark
-                                              : null,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: isClaimLoading
-                                              ? Border.all(
-                                                  color: AppColors.glassBorder,
-                                                )
-                                              : null,
-                                        ),
-                                        child: isClaimLoading
-                                            ? const SizedBox(
-                                                width: 12,
-                                                height: 12,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 1.5,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation(
-                                                        AppColors.primary,
-                                                      ),
-                                                ),
-                                              )
-                                            : Text(
-                                                'Buy More',
-                                                style: AppTypography.dmSans(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
+                                  CouponActionChipRow(
+                                    coupon: coupon,
+                                    isClaimLoading: isClaimLoading,
+                                    onClaim: () =>
+                                        _confirmAndRedeem(context, ref, coupon),
+                                  ),
                                 ],
                               ),
                               if (coupon.pointCost > 0) ...[

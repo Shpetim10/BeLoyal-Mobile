@@ -7,6 +7,7 @@ import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_helpers.dart';
 
 class CustomerCouponQrSheet extends ConsumerStatefulWidget {
   const CustomerCouponQrSheet({super.key, required this.coupon});
@@ -71,26 +72,20 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
 
   bool get _isFreeProduct => _coupon.isFreeProduct;
 
+  // Free-product coupons are redeemed via the staff scan endpoint.
+  // Discount coupons are applied during the earn-points / payment flow — the
+  // free-product scan endpoint intentionally rejects them, so the instruction
+  // must point staff at the payment flow instead.
   String get _instruction => _isFreeProduct
       ? 'Show this QR code to staff to redeem your free product.'
-      : 'Show this QR code to staff during payment.\nYour discount will be applied before points are calculated.';
+      : 'Show this code to staff during payment so the discount can be applied before points are calculated.';
 
   Color get _accentColor =>
       _isFreeProduct ? AppColors.success : AppColors.accent;
 
-  IconData get _typeIcon => switch (_coupon.type) {
-    'FREE_PRODUCT' => Icons.card_giftcard_rounded,
-    'PERCENTAGE_DISCOUNT' => Icons.percent_rounded,
-    'FIXED_AMOUNT_DISCOUNT' => Icons.discount_rounded,
-    _ => Icons.confirmation_number_rounded,
-  };
+  IconData get _typeIcon => couponTypeIcon(_coupon.type);
 
-  String get _typeLabel => switch (_coupon.type) {
-    'FREE_PRODUCT' => 'Free Product',
-    'PERCENTAGE_DISCOUNT' => 'Percentage Discount',
-    'FIXED_AMOUNT_DISCOUNT' => 'Fixed Discount',
-    _ => _coupon.type,
-  };
+  String get _typeLabel => couponTypeLabel(_coupon.type);
 
   String _formatCouponMoney(double value, String? currency) {
     final symbol = currencySymbol(currency);
@@ -265,7 +260,40 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
   }
 
   Widget _buildQrPanel(bool hasQr) {
-    if (!hasQr) {
+    if (!hasQr || _coupon.qrCode?.isEmpty != false) {
+      return Container(
+        width: 220,
+        height: 220,
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.qr_code_rounded,
+              size: 48,
+              color: AppColors.textMutedDark,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'QR code unavailable.\nPlease show your coupon\ndetails to staff.',
+              textAlign: TextAlign.center,
+              style: AppTypography.dmSans(
+                fontSize: 12,
+                color: AppColors.textMutedDark,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final qrCode = _coupon.qrCode;
+    if (qrCode == null || qrCode.isEmpty) {
       return Container(
         width: 220,
         height: 220,
@@ -313,7 +341,7 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
       child: Column(
         children: [
           QrImageView(
-            data: _coupon.qrCode!,
+            data: qrCode,
             version: QrVersions.auto,
             size: 200,
             backgroundColor: Colors.white,
@@ -328,9 +356,9 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
           ),
           const SizedBox(height: 8),
           Text(
-            _coupon.qrCode!.length > 16
-                ? '${_coupon.qrCode!.substring(0, 8)}...${_coupon.qrCode!.substring(_coupon.qrCode!.length - 8)}'
-                : _coupon.qrCode!,
+            qrCode.length > 16
+                ? '${qrCode.substring(0, 8)}...${qrCode.substring(qrCode.length - 8)}'
+                : qrCode,
             style: AppTypography.dmSans(
               fontSize: 10,
               color: Colors.black38,
@@ -348,8 +376,14 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
         _coupon.freeProductName?.isNotEmpty == true ||
         _coupon.freeProductVariant?.isNotEmpty == true ||
         _coupon.freeProductCategory?.isNotEmpty == true;
+    // discountDisplay can be meaningful ("10%", "5 EUR off") even when
+    // discountValue is 0/null (snapshot rows). Trust either signal.
+    final hasDiscountInfo =
+        !isFreeProduct &&
+        (_coupon.discountValue > 0 ||
+            _coupon.discountDisplay.trim().isNotEmpty);
 
-    if (!isFreeProduct && _coupon.discountValue <= 0 && !hasFreeProductInfo) {
+    if (!isFreeProduct && !hasDiscountInfo && !hasFreeProductInfo) {
       return const SizedBox.shrink();
     }
 
@@ -361,18 +395,20 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
       ),
       child: Column(
         children: [
-          if (!isFreeProduct && _coupon.discountValue > 0) ...[
+          if (hasDiscountInfo) ...[
             _DetailRow(
               icon: Icons.discount_rounded,
               label: 'Discount',
-              value: _coupon.discountDisplay,
+              value: _coupon.discountDisplay.isNotEmpty
+                  ? _coupon.discountDisplay
+                  : '${_coupon.discountValue}',
               valueColor: AppColors.success,
             ),
           ],
           if (!isFreeProduct &&
               _coupon.minimumOrderAmount != null &&
               _coupon.minimumOrderAmount! > 0) ...[
-            const _Divider(),
+            if (hasDiscountInfo) const _Divider(),
             _DetailRow(
               icon: Icons.shopping_cart_outlined,
               label: 'Min. Order',
@@ -397,13 +433,22 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
             ),
           ],
           if (isFreeProduct && hasFreeProductInfo) ...[
-            if (_coupon.freeProductName?.isNotEmpty == true)
+            if (_coupon.freeProductCategory?.isNotEmpty == true)
+              _DetailRow(
+                icon: Icons.category_rounded,
+                label: 'Category',
+                value: _coupon.freeProductCategory!,
+              ),
+            if (_coupon.freeProductName?.isNotEmpty == true) ...[
+              if (_coupon.freeProductCategory?.isNotEmpty == true)
+                const _Divider(),
               _DetailRow(
                 icon: Icons.restaurant_menu_rounded,
                 label: 'Free Item',
                 value: _coupon.freeProductName!,
                 valueColor: AppColors.success,
               ),
+            ],
             if (_coupon.freeProductVariant?.isNotEmpty == true) ...[
               const _Divider(),
               _DetailRow(
@@ -428,7 +473,7 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
   }
 
   Widget _buildExpiryRow() {
-    final expiresIn = _coupon.expiresIn ?? 'Expires soon';
+    final expiresIn = _coupon.expiresIn ?? _coupon.expiryLabel;
     final expiryColor = _coupon.status == 'expiring'
         ? AppColors.error
         : AppColors.textMutedDark;

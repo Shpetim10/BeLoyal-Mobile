@@ -62,8 +62,6 @@ class _CouponUpdateSheetState extends ConsumerState<CouponUpdateSheet> {
   bool _loadingVariants = false;
   String? _uploadedImageUrl;
 
-  final Set<int> _expanded = {0};
-
   @override
   void initState() {
     super.initState();
@@ -132,7 +130,8 @@ class _CouponUpdateSheetState extends ConsumerState<CouponUpdateSheet> {
     final repo = ref.read(couponRepositoryProvider);
     setState(() => _loadingCategories = true);
     try {
-      final categories = await repo.lookupCategories(businessId: widget.businessId);
+      final categories =
+          await repo.lookupCategories(businessId: widget.businessId);
       if (!mounted) return;
       setState(() {
         _categories = categories;
@@ -358,320 +357,435 @@ class _CouponUpdateSheetState extends ConsumerState<CouponUpdateSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: SafeArea(
+        child: Container(
+          color: AppColors.bgDark,
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  children: [
+                    if (widget.coupon.totalRedemptions > 0)
+                      _SnapshotFreezeNotice(
+                        redemptionCount: widget.coupon.totalRedemptions,
+                      ),
+                    _buildBasicsSection(),
+                    _buildRewardSection(),
+                    _buildValiditySection(),
+                    _buildLimitsSection(),
+                    _buildTermsSection(),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+              _buildStickyFooter(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+      decoration: const BoxDecoration(
         color: AppColors.bgDark,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-          children: [
-            Row(
+        border: Border(
+          bottom: BorderSide(color: AppColors.glassBorder),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.glassAccent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.local_offer_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Text(
-                    'Update Coupon',
-                    style: TextStyle(
-                      color: AppColors.textOnDark,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
+                const Text(
+                  'Update Coupon',
+                  style: TextStyle(
+                    color: AppColors.textOnDark,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, color: AppColors.textOnDark),
+                Text(
+                  widget.coupon.title,
+                  style: const TextStyle(
+                    color: AppColors.textMutedDark,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            _section(0, '1. Basics', _buildBasics()),
-            _section(1, '2. Reward', _buildReward()),
-            _section(2, '3. Validity & Points', _buildValidity()),
-            _section(3, '4. Limits & Placement', _buildLimits()),
-            _section(4, '5. Terms & Save', _buildTermsAndSave()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _section(int index, String title, Widget body) {
-    final isOpen = _expanded.contains(index);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.textOnDark,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            trailing: Icon(
-              isOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-              color: AppColors.textOnDark,
-            ),
-            onTap: () {
-              setState(() {
-                if (isOpen) {
-                  _expanded.remove(index);
-                } else {
-                  _expanded.add(index);
-                }
-              });
-            },
           ),
-          if (isOpen) Padding(padding: const EdgeInsets.all(14), child: body),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close, color: AppColors.textSubDark),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBasics() {
-    return Column(
-      children: [
-        _input(_titleCtrl, 'Title *'),
-        const SizedBox(height: 10),
-        _input(_descriptionCtrl, 'Description', maxLines: 3),
-        const SizedBox(height: 10),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
+  Widget _buildStickyFooter() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: const BoxDecoration(
+        color: AppColors.bgDark,
+        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: _isSaving ? null : _submit,
+          icon: _isSaving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.save_rounded),
+          label: Text(_isSaving ? 'Updating...' : 'Update Coupon'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildBasicsSection() {
+    return _sectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('Basics', Icons.info_outline_rounded, AppColors.primary),
+          _input(_titleCtrl, 'Title *'),
+          const SizedBox(height: 10),
+          _input(_descriptionCtrl, 'Description', maxLines: 3),
+          const SizedBox(height: 10),
+          const Text(
             'Promotional Photo (Optional)',
             style: TextStyle(color: AppColors.textSubDark, fontSize: 13),
           ),
-        ),
-        const SizedBox(height: 8),
-        _ImagePicker(
-          isUploadingImage: _isUploadingImage,
-          uploadedImageUrl: _uploadedImageUrl,
-          onPick: _pickAndUploadImage,
-          onRemove: () => setState(() => _uploadedImageUrl = null),
-        ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<CouponStatus>(
-          initialValue: _status,
-          dropdownColor: AppColors.cardDark,
-          decoration: _decoration('Status'),
-          items: CouponStatus.values
-              .map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text(s.displayName),
-                  ))
-              .toList(),
-          onChanged: (v) => setState(() => _status = v ?? _status),
-        ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<CouponVisibility>(
-          initialValue: _visibility,
-          dropdownColor: AppColors.cardDark,
-          decoration: _decoration('Visibility'),
-          items: CouponVisibility.values
-              .map((v) => DropdownMenuItem(
-                    value: v,
-                    child: Text(v.displayName),
-                  ))
-              .toList(),
-          onChanged: (v) => setState(() => _visibility = v ?? _visibility),
-        ),
-      ],
+          const SizedBox(height: 8),
+          _ImagePicker(
+            isUploadingImage: _isUploadingImage,
+            uploadedImageUrl: _uploadedImageUrl,
+            onPick: _pickAndUploadImage,
+            onRemove: () => setState(() => _uploadedImageUrl = null),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildReward() {
-    return Column(
-      children: [
-        DropdownButtonFormField<CouponType>(
-          initialValue: _type,
-          dropdownColor: AppColors.cardDark,
-          decoration: _decoration('Type'),
-          items: CouponType.values
-              .map((t) => DropdownMenuItem(
-                    value: t,
-                    child: Text(t.displayName),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            if (v == null) return;
-            setState(() => _type = v);
-            _loadLookups();
-          },
-        ),
-        const SizedBox(height: 10),
-        if (_type == CouponType.freeProduct) ...[
-          DropdownButtonFormField<int>(
-            initialValue: _selectedCategoryId,
-            dropdownColor: AppColors.cardDark,
-            decoration: _decoration(
-              _loadingCategories ? 'Category (loading...)' : 'Category',
-            ),
-            items: _categories
-                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                .toList(),
+  Widget _buildRewardSection() {
+    return _sectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('Reward Type', Icons.card_giftcard_rounded, AppColors.secondary),
+          _CouponTypeSelector(
+            selected: _type,
             onChanged: (v) {
-              if (v == null) return;
-              setState(() => _selectedCategoryId = v);
-              _loadProducts(v);
+              setState(() => _type = v);
+              _loadLookups();
             },
           ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedProductId,
-            dropdownColor: AppColors.cardDark,
-            decoration: _decoration(
-              _loadingProducts ? 'Product (loading...)' : 'Product',
-            ),
-            items: _products
-                .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
-                .toList(),
-            onChanged: (v) {
-              if (v == null) return;
-              setState(() => _selectedProductId = v);
-              _loadVariants(v);
-            },
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedVariantId,
-            dropdownColor: AppColors.cardDark,
-            decoration: _decoration(
-              _loadingVariants ? 'Variant (loading...)' : 'Variant (optional)',
-            ),
-            items: _variants
-                .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
-                .toList(),
-            onChanged: (v) => setState(() => _selectedVariantId = v),
-          ),
-          const SizedBox(height: 10),
-          _input(_quantityCtrl, 'Quantity', keyboard: TextInputType.number),
-        ],
-        if (_type == CouponType.percentageDiscount) ...[
-          _input(
-            _discountPctCtrl,
-            'Discount Percentage',
-            keyboard: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 10),
-          _input(
-            _minimumOrderCtrl,
-            'Minimum Order Amount',
-            keyboard: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 10),
-          _input(
-            _maximumDiscountCtrl,
-            'Maximum Discount Amount',
-            keyboard: const TextInputType.numberWithOptions(decimal: true),
-          ),
-        ],
-        if (_type == CouponType.fixedAmountDiscount) ...[
-          _input(
-            _discountAmountCtrl,
-            'Discount Amount',
-            keyboard: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 10),
-          _input(
-            _minimumOrderCtrl,
-            'Minimum Order Amount',
-            keyboard: const TextInputType.numberWithOptions(decimal: true),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildValidity() {
-    final f = DateFormat('MMM d, yyyy');
-    return Column(
-      children: [
-        _input(_pointsCtrl, 'Points Cost *', keyboard: TextInputType.number),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _pickDate(isStart: true),
-                child: Text('Start: ${f.format(_startDate)}'),
+          const SizedBox(height: 12),
+          if (_type == CouponType.freeProduct) ...[
+            DropdownButtonFormField<int>(
+              initialValue: _selectedCategoryId,
+              dropdownColor: AppColors.cardDark,
+              decoration: _decoration(
+                _loadingCategories ? 'Category (loading...)' : 'Category',
               ),
+              items: _categories
+                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                  .toList(),
+              onChanged: (v) {
+                if (v == null) return;
+                setState(() => _selectedCategoryId = v);
+                _loadProducts(v);
+              },
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _pickDate(isStart: false),
-                child: Text('End: ${f.format(_endDate)}'),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(
+              initialValue: _selectedProductId,
+              dropdownColor: AppColors.cardDark,
+              decoration: _decoration(
+                _loadingProducts ? 'Product (loading...)' : 'Product',
               ),
+              items: _products
+                  .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
+                  .toList(),
+              onChanged: (v) {
+                if (v == null) return;
+                setState(() => _selectedProductId = v);
+                _loadVariants(v);
+              },
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(
+              initialValue: _selectedVariantId,
+              dropdownColor: AppColors.cardDark,
+              decoration: _decoration(
+                _loadingVariants ? 'Variant (loading...)' : 'Variant (optional)',
+              ),
+              items: _variants
+                  .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedVariantId = v),
+            ),
+            const SizedBox(height: 10),
+            _input(_quantityCtrl, 'Quantity', keyboard: TextInputType.number),
+          ],
+          if (_type == CouponType.percentageDiscount) ...[
+            _input(
+              _discountPctCtrl,
+              'Discount Percentage',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 10),
+            _input(
+              _minimumOrderCtrl,
+              'Minimum Order Amount',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 10),
+            _input(
+              _maximumDiscountCtrl,
+              'Maximum Discount Amount',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLimits() {
-    return Column(
-      children: [
-        _input(
-          _totalLimitCtrl,
-          'Total Redemption Limit',
-          keyboard: TextInputType.number,
-        ),
-        const SizedBox(height: 10),
-        _input(
-          _perCustomerLimitCtrl,
-          'Per Customer Redemption Limit',
-          keyboard: TextInputType.number,
-        ),
-        const SizedBox(height: 10),
-        _input(_sortOrderCtrl, 'Sort Order', keyboard: TextInputType.number),
-        const SizedBox(height: 8),
-        SwitchListTile.adaptive(
-          value: _isFeatured,
-          onChanged: (v) => setState(() => _isFeatured = v),
-          title: const Text(
-            'Featured Coupon',
-            style: TextStyle(color: AppColors.textOnDark),
-          ),
-          contentPadding: EdgeInsets.zero,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTermsAndSave() {
-    return Column(
-      children: [
-        _input(_termsCtrl, 'Terms & Conditions', maxLines: 4),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _isSaving ? null : _submit,
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_rounded),
-            label: Text(_isSaving ? 'Updating...' : 'Update Coupon'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          if (_type == CouponType.fixedAmountDiscount) ...[
+            _input(
+              _discountAmountCtrl,
+              'Discount Amount',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
             ),
+            const SizedBox(height: 10),
+            _input(
+              _minimumOrderCtrl,
+              'Minimum Order Amount',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValiditySection() {
+    final f = DateFormat('MMM d, yyyy');
+    return _sectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('Validity & Points', Icons.calendar_today_rounded, AppColors.accent),
+          _input(_pointsCtrl, 'Points Cost *', keyboard: TextInputType.number),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _DateButton(
+                  label: 'Start Date',
+                  value: f.format(_startDate),
+                  onTap: () => _pickDate(isStart: true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DateButton(
+                  label: 'End Date',
+                  value: f.format(_endDate),
+                  onTap: () => _pickDate(isStart: false),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<CouponStatus>(
+                  initialValue: _status,
+                  dropdownColor: AppColors.cardDark,
+                  decoration: _decoration('Status'),
+                  items: CouponStatus.values
+                      .map((s) => DropdownMenuItem(
+                            value: s,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: s.color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(s.displayName),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _status = v ?? _status),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonFormField<CouponVisibility>(
+                  initialValue: _visibility,
+                  dropdownColor: AppColors.cardDark,
+                  decoration: _decoration('Visibility'),
+                  items: CouponVisibility.values
+                      .map((v) => DropdownMenuItem(
+                            value: v,
+                            child: Row(
+                              children: [
+                                Icon(v.icon, size: 14, color: v.color),
+                                const SizedBox(width: 6),
+                                Text(v.displayName),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _visibility = v ?? _visibility),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLimitsSection() {
+    return _sectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('Limits & Placement', Icons.tune_rounded, AppColors.gold),
+          Row(
+            children: [
+              Expanded(
+                child: _input(
+                  _totalLimitCtrl,
+                  'Total Limit',
+                  keyboard: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _input(
+                  _perCustomerLimitCtrl,
+                  'Per Customer',
+                  keyboard: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _input(_sortOrderCtrl, 'Sort Order', keyboard: TextInputType.number),
+          const SizedBox(height: 6),
+          _FeaturedToggle(
+            value: _isFeatured,
+            onChanged: (v) => setState(() => _isFeatured = v),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermsSection() {
+    return _sectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('Terms & Conditions', Icons.gavel_rounded, AppColors.textSubDark),
+          _input(_termsCtrl, 'Terms & Conditions (optional)', maxLines: 4),
+        ],
+      ),
     );
   }
 
@@ -691,13 +805,297 @@ class _CouponUpdateSheetState extends ConsumerState<CouponUpdateSheet> {
     String label, {
     int maxLines = 1,
     TextInputType? keyboard,
+    TextInputAction? action,
   }) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(color: AppColors.textOnDark),
       maxLines: maxLines,
       keyboardType: keyboard,
+      textInputAction: action ?? (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
       decoration: _decoration(label),
+    );
+  }
+}
+
+class _CouponTypeSelector extends StatelessWidget {
+  const _CouponTypeSelector({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final CouponType selected;
+  final ValueChanged<CouponType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: CouponType.values.map((type) {
+        final isSelected = type == selected;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(type),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: EdgeInsets.only(
+                right: type != CouponType.values.last ? 6 : 0,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? type.color.withValues(alpha: 0.2)
+                    : AppColors.elevDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? type.color : AppColors.glassBorder,
+                  width: isSelected ? 1.5 : 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    type.icon,
+                    color: isSelected ? type.color : AppColors.textMutedDark,
+                    size: 20,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    type.shortLabel,
+                    style: TextStyle(
+                      color: isSelected ? type.color : AppColors.textMutedDark,
+                      fontSize: 10,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _DateButton extends StatelessWidget {
+  const _DateButton({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.elevDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_month_rounded,
+              color: AppColors.accent,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.textMutedDark,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: AppColors.textOnDark,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeaturedToggle extends StatelessWidget {
+  const _FeaturedToggle({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: value
+              ? AppColors.gold.withValues(alpha: 0.12)
+              : AppColors.elevDark,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: value ? AppColors.gold.withValues(alpha: 0.4) : AppColors.glassBorder,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              value ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: value ? AppColors.gold : AppColors.textMutedDark,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Featured Coupon',
+                style: TextStyle(
+                  color: value ? AppColors.gold : AppColors.textSubDark,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Switch.adaptive(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: AppColors.gold,
+              activeTrackColor: AppColors.gold.withValues(alpha: 0.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SnapshotFreezeNotice extends StatelessWidget {
+  const _SnapshotFreezeNotice({required this.redemptionCount});
+
+  final int redemptionCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.lock_clock_rounded,
+                color: AppColors.warning,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$redemptionCount ${redemptionCount == 1 ? 'customer has' : 'customers have'} already redeemed this coupon',
+                  style: const TextStyle(
+                    color: AppColors.warning,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Changes to title, description, photo, points cost, and discount values will not affect customers who already hold this coupon — they see the values from when they redeemed it.',
+            style: TextStyle(
+              color: AppColors.textSubDark,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const _FrozenFieldsRow(),
+          const SizedBox(height: 6),
+          const Text(
+            'Terms & conditions, dates, and limits always update for everyone.',
+            style: TextStyle(
+              color: AppColors.textMutedDark,
+              fontSize: 11,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FrozenFieldsRow extends StatelessWidget {
+  const _FrozenFieldsRow();
+
+  static const _frozenFields = [
+    'Title',
+    'Description',
+    'Photo',
+    'Points cost',
+    'Discount values',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: _frozenFields.map((label) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 10, color: AppColors.warning),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

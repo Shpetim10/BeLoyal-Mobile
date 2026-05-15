@@ -111,6 +111,7 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
   }
 
   void _selectGuest(ResolvedGuest guest) {
+    FocusScope.of(context).unfocus();
     ref.read(earnPointsControllerProvider.notifier).addGuestFromSearch(guest);
     Navigator.of(context).pop();
   }
@@ -128,163 +129,171 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Handle bar ──
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textMuted.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
-          // ── Title ──
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Text(
-              'Search Customer',
-              style: TextStyle(
-                color: AppColors.textOnDark,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Text(
-              'Enter email address or manual code in customer\'s card',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-            ),
-          ),
-
-          // ── Search field ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: TextField(
-              controller: _searchController,
-              focusNode: _focusNode,
-              onChanged: _onSearchChanged,
-              style: const TextStyle(color: AppColors.textOnDark, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: 'example@example.com or XXXX-XXXX',
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.textMuted,
-                  size: 20,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Handle bar ──
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                suffixIcon: _isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      )
-                    : _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(
-                          Icons.clear_rounded,
-                          color: AppColors.textMuted,
-                          size: 18,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _results = [];
-                            _error = null;
-                          });
-                        },
-                      )
-                    : null,
               ),
             ),
-          ),
-          const SizedBox(height: 12),
 
-          // ── Results list ──
-          Flexible(
-            child: _error != null
-                ? Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.person_search_rounded,
-                            size: 48,
-                            color: AppColors.textMuted.withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : _results.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.search_rounded,
-                            size: 48,
-                            color: AppColors.textMuted.withValues(alpha: 0.3),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Type at least 2 characters to search with email or full code for manual code',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    shrinkWrap: true,
-                    itemCount: _results.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final guest = _results[index];
-                      final alreadyAdded = ref
-                          .read(earnPointsControllerProvider)
-                          .guests
-                          .any((g) => g.customerId == guest.customerId);
+            // ── Title ──
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text(
+                'Search Customer',
+                style: TextStyle(
+                  color: AppColors.textOnDark,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Text(
+                'Enter email address or manual code in customer\'s card',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              ),
+            ),
 
-                      return _SearchResultTile(
-                        guest: guest,
-                        alreadyAdded: alreadyAdded,
-                        onTap: alreadyAdded ? null : () => _selectGuest(guest),
-                      );
-                    },
+            // ── Search field ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _focusNode,
+                onChanged: _onSearchChanged,
+                style: const TextStyle(
+                  color: AppColors.textOnDark,
+                  fontSize: 15,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'example@example.com or XXXX-XXXX',
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.textMuted,
+                    size: 20,
                   ),
-          ),
-        ],
+                  suffixIcon: _isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        )
+                      : _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear_rounded,
+                            color: AppColors.textMuted,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _results = [];
+                              _error = null;
+                            });
+                          },
+                        )
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Results list ──
+            Flexible(
+              child: _error != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.person_search_rounded,
+                              size: 48,
+                              color: AppColors.textMuted.withValues(alpha: 0.4),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _results.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_rounded,
+                              size: 48,
+                              color: AppColors.textMuted.withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Type at least 2 characters to search with email or full code for manual code',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                      shrinkWrap: true,
+                      itemCount: _results.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final guest = _results[index];
+                        final alreadyAdded = ref
+                            .read(earnPointsControllerProvider)
+                            .guests
+                            .any((g) => g.customerId == guest.customerId);
+
+                        return _SearchResultTile(
+                          guest: guest,
+                          alreadyAdded: alreadyAdded,
+                          onTap: alreadyAdded
+                              ? null
+                              : () => _selectGuest(guest),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

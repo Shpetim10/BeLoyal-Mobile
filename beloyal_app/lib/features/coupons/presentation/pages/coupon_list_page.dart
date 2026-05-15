@@ -31,6 +31,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
   bool _isSearchVisible = false;
   bool _isTopControlsExpanded = false;
   bool _isStaff = false;
+  bool _isRefreshingFromTop = false;
 
   @override
   void initState() {
@@ -60,7 +61,16 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
   void _onScroll() {
     final ctrl = ref.read(couponListControllerProvider.notifier);
     final state = ref.read(couponListControllerProvider);
-    if (_scrollCtrl.position.pixels >=
+
+    if (_scrollCtrl.position.pixels <=
+            50 &&
+        !_isRefreshingFromTop &&
+        !state.isLoading) {
+      _isRefreshingFromTop = true;
+      ctrl.fetchCoupons(widget.businessId).then((_) {
+        _isRefreshingFromTop = false;
+      });
+    } else if (_scrollCtrl.position.pixels >=
             _scrollCtrl.position.maxScrollExtent - 200 &&
         state.hasMore &&
         !state.isLoadingMore) {
@@ -466,23 +476,6 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                               coupon: coupon,
                               readOnly: _isStaff,
                               onTap: () => _openDetail(coupon),
-                              onStatusChange: (status) => ctrl.changeStatus(
-                                businessId: widget.businessId,
-                                couponId: coupon.id,
-                                status: status,
-                              ),
-                              onVisibilityChange: (visibility) =>
-                                  ctrl.changeVisibility(
-                                    businessId: widget.businessId,
-                                    couponId: coupon.id,
-                                    visibility: visibility,
-                                  ),
-                              onDelete: () =>
-                                  _confirmDelete(context, coupon, ctrl),
-                              onArchive: () => ctrl.archiveCoupon(
-                                businessId: widget.businessId,
-                                couponId: coupon.id,
-                              ),
                             );
                           },
                         ),
@@ -525,46 +518,6 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
-    );
-  }
-
-  void _confirmDelete(
-    BuildContext context,
-    CouponSummary coupon,
-    CouponListController ctrl,
-  ) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardDark,
-        title: const Text(
-          'Delete Coupon',
-          style: TextStyle(color: AppColors.textOnDark),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${coupon.title}"?',
-          style: const TextStyle(color: AppColors.textSubDark),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ctrl.deleteCoupon(
-                businessId: widget.businessId,
-                couponId: coupon.id,
-              );
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

@@ -60,6 +60,19 @@ class CouponDetailPage extends ConsumerWidget {
           style: TextStyle(color: AppColors.textOnDark),
         ),
       ),
+      bottomNavigationBar: couponAsync.whenOrNull(
+        data: (coupon) => isAdmin
+            ? _ActionBar(
+                coupon: coupon,
+                onChanged: () => ref.invalidate(
+                  couponDetailProvider((
+                    businessId: businessId,
+                    couponId: couponId,
+                  )),
+                ),
+              )
+            : null,
+      ),
       body: couponAsync.when(
         data: (coupon) => RefreshIndicator(
           color: AppColors.primary,
@@ -82,18 +95,6 @@ class CouponDetailPage extends ConsumerWidget {
             children: [
               _CouponHero(coupon: coupon),
               const SizedBox(height: 16),
-              if (isAdmin) ...[
-                _ActionPanel(
-                  coupon: coupon,
-                  onChanged: () => ref.invalidate(
-                    couponDetailProvider((
-                      businessId: businessId,
-                      couponId: couponId,
-                    )),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
               _SectionCard(
                 title: 'Overview',
                 child: Column(
@@ -521,8 +522,8 @@ class _SmallChip extends StatelessWidget {
   }
 }
 
-class _ActionPanel extends ConsumerWidget {
-  const _ActionPanel({required this.coupon, required this.onChanged});
+class _ActionBar extends ConsumerWidget {
+  const _ActionBar({required this.coupon, required this.onChanged});
 
   final CouponDetail coupon;
   final VoidCallback onChanged;
@@ -669,20 +670,81 @@ class _ActionPanel extends ConsumerWidget {
         label: 'Delete',
         color: AppColors.error,
         onTap: () async {
-          await runAction(
-            () => repo.deleteCoupon(
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.cardDark,
+              title: const Text(
+                'Move to Trash',
+                style: TextStyle(color: AppColors.textOnDark),
+              ),
+              content: const Text(
+                'Move this coupon to trash? You can restore it later from the Trash section.',
+                style: TextStyle(color: AppColors.textSubDark),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: AppColors.textMutedDark),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text(
+                    'Move to Trash',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                ),
+              ],
+            ),
+          );
+          if (confirmed != true) return;
+
+          try {
+            await repo.deleteCoupon(
               businessId: coupon.businessId,
               couponId: coupon.id,
-            ),
-            'Coupon deleted.',
-          );
-          if (context.mounted) Navigator.of(context).pop();
+            );
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Coupon moved to trash'),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'View Trash',
+                  onPressed: () => context.go('/business/${coupon.businessId}/coupons/trash'),
+                ),
+              ),
+            );
+            if (context.mounted) context.go('/business/${coupon.businessId}/coupons');
+          } catch (error) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error.toString().replaceFirst('Exception: ', '')),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         },
       ),
     ];
 
-    return _SectionCard(
-      title: 'Actions',
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        border: Border(top: BorderSide(color: AppColors.glassBorder)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        12,
+        10,
+        12,
+        MediaQuery.of(context).padding.bottom + 10,
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(

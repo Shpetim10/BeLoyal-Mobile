@@ -20,10 +20,13 @@ class CustomerDataNotifier extends AsyncNotifier<CustomerDataSource> {
     ]);
     final dto = results[0] as CustomerHomeDto;
     final myCoupons = results[1] as List<CustomerPromotionDto>;
-    // Build couponId -> qrCode map from the my-coupons endpoint (the only source of qrCode)
+    // Merge by underlying couponId (not by row `id`). For owned my-coupons rows
+    // the row `id` is the customer-coupon row id, not the coupon id — keying by
+    // couponId is the only reliable way to attach the QR to the right /home
+    // promotion row.
     final qrCodeOverrides = <int, String>{
       for (final c in myCoupons)
-        if (c.qrCode?.isNotEmpty == true) c.id: c.qrCode!,
+        if (c.qrCode?.isNotEmpty == true) c.couponId: c.qrCode!,
     };
     return CustomerDataSource.fromDto(dto, qrCodeOverrides: qrCodeOverrides);
   }
@@ -52,25 +55,31 @@ final customerCouponDetailProvider = FutureProvider.autoDispose
       final repo = ref.read(customerRepositoryProvider);
       final promotionDto = await repo.fetchCouponDetails(couponId);
 
-      // Map the DTO to CustomerCoupon with the full detail data
-      final expiresAt =
-          promotionDto.expiresAt ??
-          DateTime.now().add(const Duration(days: 30));
+      final expiresAt = promotionDto.expiresAt;
       final expiresIn =
-          promotionDto.expiresIn ?? _calculateExpiresIn(expiresAt);
+          promotionDto.expiresIn ??
+          (expiresAt != null ? _calculateExpiresIn(expiresAt) : null);
+      final canonicalType = CustomerCouponType.canonical(
+        promotionDto.promotionType,
+      );
+      final canonicalStatus = canonicalCouponStatus(
+        promotionDto.status,
+        expiresAt: expiresAt,
+      );
 
       return CustomerCoupon(
-        id: promotionDto.id,
+        couponId: promotionDto.couponId,
+        sourceId: promotionDto.sourceId,
         businessId: promotionDto.businessId,
         businessName: promotionDto.businessName,
         title: promotionDto.title,
         discountValue: promotionDto.discountValue ?? 0,
         discountDisplay: promotionDto.discountDisplay,
-        status: promotionDto.status.toLowerCase(),
+        status: canonicalStatus,
         expiresAt: expiresAt,
         pointCost: promotionDto.pointCost,
         gradientColors: const [Color(0xFF1A0535), Color(0xFF9B5DE5)],
-        type: promotionDto.promotionType,
+        type: canonicalType,
         isUsed: promotionDto.isUsed,
         description: promotionDto.description,
         expiresIn: expiresIn,

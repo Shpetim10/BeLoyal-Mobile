@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
+import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../../data/models/resolved_guest.dart';
 import '../../data/models/points_preview.dart';
 import '../controllers/earn_points_controller.dart';
@@ -53,155 +54,168 @@ class _EarnPointsResultPageState extends ConsumerState<EarnPointsResultPage>
     final draft = ref.watch(earnPointsControllerProvider);
     final result = draft.finalResult;
 
-    if (result == null)
+    if (result == null) {
       return const Scaffold(backgroundColor: AppColors.bgDark);
+    }
 
-    return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      body: Stack(
-        children: [
-          // ── Explosion Background ──
-          Positioned.fill(
-            child: PointsExplosionAnimation(points: result.totalPoints),
-          ),
+    return Consumer(
+      builder: (context, ref, _) {
+        final currency = ref.watch(activeBusinessCurrencyProvider) ?? 'ALL';
+        return Scaffold(
+          backgroundColor: AppColors.bgDark,
+          body: Stack(
+            children: [
+              // ── Explosion Background ──
+              Positioned.fill(
+                child: PointsExplosionAnimation(points: result.totalPoints),
+              ),
 
-          // ── Main Content ──
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                children: [
-                  const SizedBox(height: 60),
-
-                  // ── Success Icon / Header ──
-                  const Center(
-                    child: Hero(
-                      tag: 'success_icon',
-                      child: Icon(
-                        Icons.stars_rounded,
-                        color: AppColors.accent,
-                        size: 80,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'TRANSACTION SUCCESSFUL',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Points Count ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+              // ── Main Content ──
+              SafeArea(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Column(
                     children: [
-                      Text(
-                        '+${result.totalPoints}',
-                        style: const TextStyle(
-                          color: AppColors.textOnDark,
-                          fontSize: 64,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -1,
+                      const SizedBox(height: 60),
+
+                      // ── Success Icon / Header ──
+                      const Center(
+                        child: Hero(
+                          tag: 'success_icon',
+                          child: Icon(
+                            Icons.stars_rounded,
+                            color: AppColors.accent,
+                            size: 80,
+                          ),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 12, left: 8),
-                        child: Text(
-                          'PTS',
-                          style: TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1,
+                      const SizedBox(height: 24),
+                      const Text(
+                        'TRANSACTION SUCCESSFUL',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Points Count ──
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '+${result.totalPoints}',
+                            style: const TextStyle(
+                              color: AppColors.textOnDark,
+                              fontSize: 64,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1,
+                            ),
                           ),
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 12, left: 8),
+                            child: Text(
+                              'PTS',
+                              style: TextStyle(
+                                color: AppColors.accent,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 48),
+
+                      // ── Details Card ──
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          children: [
+                            _ResultSection(
+                              title: 'BILL DETAILS',
+                              children: [
+                                _InfoRow(
+                                  label: 'Reference',
+                                  value: result.transactionReference ?? 'N/A',
+                                  isSecondary: true,
+                                ),
+                                _InfoRow(
+                                  label: 'Total Bill',
+                                  value:
+                                      '${result.billAmount?.toStringAsFixed(0) ?? "--"} $currency',
+                                ),
+                                if (result.note != null && result.note!.isNotEmpty)
+                                  _InfoRow(label: 'Note', value: result.note!),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _ResultSection(
+                              title: 'GUEST EARNINGS',
+                              children: [
+                                for (final gResult in result.guestPointsResults)
+                                  _GuestResultTile(
+                                    gResult: gResult,
+                                    guest: draft.guests.firstWhere(
+                                      (g) => g.customerId == gResult.customerId,
+                                      orElse: () => ResolvedGuest(
+                                        customerId: gResult.customerId,
+                                        firstName: '—',
+                                        lastName: '',
+                                        email: '',
+                                        currentPoints: gResult.projectedBalance,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 100), // Space for button
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 48),
-
-                  // ── Details Card ──
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      children: [
-                        _ResultSection(
-                          title: 'BILL DETAILS',
-                          children: [
-                            _InfoRow(
-                              label: 'Reference',
-                              value: result.transactionReference ?? 'N/A',
-                              isSecondary: true,
-                            ),
-                            _InfoRow(
-                              label: 'Total Bill',
-                              value:
-                                  '${result.billAmount?.toStringAsFixed(0) ?? "--"} ALL',
-                            ),
-                            if (result.note != null && result.note!.isNotEmpty)
-                              _InfoRow(label: 'Note', value: result.note!),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        _ResultSection(
-                          title: 'GUEST EARNINGS',
-                          children: [
-                            for (final gResult in result.guestPointsResults)
-                              _GuestResultTile(
-                                gResult: gResult,
-                                guest: draft.guests.firstWhere(
-                                  (g) => g.customerId == gResult.customerId,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 100), // Space for button
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // ── Bottom Action ──
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: MediaQuery.of(context).padding.bottom + 20,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ref.read(earnPointsControllerProvider.notifier).reset();
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.bgDark,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              // ── Bottom Action ──
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref.read(earnPointsControllerProvider.notifier).reset();
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.bgDark,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                      ),
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

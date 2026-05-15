@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
+import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../controllers/earn_points_controller.dart';
 import '../../data/models/resolved_guest.dart';
 import '../widgets/points_calculating_indicator.dart';
@@ -85,6 +86,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
         elevation: 0,
         leading: IconButton(
           onPressed: () {
+            FocusScope.of(context).unfocus();
             ref
                 .read(earnPointsControllerProvider.notifier)
                 .goToStep(WizardStep.guestIdentification);
@@ -120,163 +122,172 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Guest summary strip ──
-            SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: draft.guests.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final guest = draft.guests[index];
-                  return _GuestChip(guest: guest);
-                },
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Guest summary strip ──
+              SizedBox(
+                height: 44,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: draft.guests.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final guest = draft.guests[index];
+                    return _GuestChip(guest: guest);
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Amount input ──
-            GlassCard(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Bill Amount',
+              // ── Amount input ──
+              GlassCard(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Bill Amount',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final currency =
+                            ref.watch(activeBusinessCurrencyProvider) ?? 'ALL';
+                        return TextField(
+                          controller: _amountController,
+                          focusNode: _amountFocus,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}'),
+                            ),
+                          ],
+                          onChanged: _onAmountChanged,
+                          style: const TextStyle(
+                            color: AppColors.textOnDark,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '0',
+                            hintStyle: TextStyle(
+                              color: AppColors.textMuted.withValues(alpha: 0.3),
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            suffixText: currency,
+                            suffixStyle: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        );
+                      },
+                    ),
+                    if (draft.billAmount != null && draft.billAmount! > 500000)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Maximum amount is 500,000 ALL',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Points preview ──
+              _PointsPreviewCard(draft: draft),
+              const SizedBox(height: 16),
+
+              // ── Optional details ──
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+                  title: const Text(
+                    'More details (optional)',
                     style: TextStyle(
                       color: AppColors.textMuted,
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _amountController,
-                    focusNode: _amountFocus,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}'),
+                  iconColor: AppColors.textMuted,
+                  collapsedIconColor: AppColors.textMuted,
+                  children: [
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _invoiceController,
+                      onChanged: (v) => ref
+                          .read(earnPointsControllerProvider.notifier)
+                          .updateInvoiceNumber(v),
+                      style: const TextStyle(
+                        color: AppColors.textOnDark,
+                        fontSize: 14,
                       ),
-                    ],
-                    onChanged: _onAmountChanged,
-                    style: const TextStyle(
-                      color: AppColors.textOnDark,
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: '0',
-                      hintStyle: TextStyle(
-                        color: AppColors.textMuted.withValues(alpha: 0.3),
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      suffixText: 'ALL',
-                      suffixStyle: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  if (draft.billAmount != null && draft.billAmount! > 500000)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Text(
-                        'Maximum amount is 500,000 ALL',
-                        style: TextStyle(
-                          color: AppColors.error,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      maxLength: 50,
+                      decoration: const InputDecoration(
+                        labelText: 'Invoice Number',
+                        hintText: 'INV-2026-0001',
+                        counterStyle: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 10,
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Points preview ──
-            _PointsPreviewCard(draft: draft),
-            const SizedBox(height: 16),
-
-            // ── Optional details ──
-            Theme(
-              data: Theme.of(
-                context,
-              ).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-                title: const Text(
-                  'More details (optional)',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _noteController,
+                      onChanged: (v) => ref
+                          .read(earnPointsControllerProvider.notifier)
+                          .updateNote(v),
+                      style: const TextStyle(
+                        color: AppColors.textOnDark,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      maxLength: 200,
+                      decoration: const InputDecoration(
+                        labelText: 'Note',
+                        hintText: 'Table 7 split bill...',
+                        counterStyle: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ),
-                iconColor: AppColors.textMuted,
-                collapsedIconColor: AppColors.textMuted,
-                children: [
-                  const SizedBox(height: 4),
-                  TextField(
-                    controller: _invoiceController,
-                    onChanged: (v) => ref
-                        .read(earnPointsControllerProvider.notifier)
-                        .updateInvoiceNumber(v),
-                    style: const TextStyle(
-                      color: AppColors.textOnDark,
-                      fontSize: 14,
-                    ),
-                    maxLength: 50,
-                    decoration: const InputDecoration(
-                      labelText: 'Invoice Number',
-                      hintText: 'INV-2026-0001',
-                      counterStyle: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _noteController,
-                    onChanged: (v) => ref
-                        .read(earnPointsControllerProvider.notifier)
-                        .updateNote(v),
-                    style: const TextStyle(
-                      color: AppColors.textOnDark,
-                      fontSize: 14,
-                    ),
-                    maxLines: 2,
-                    maxLength: 200,
-                    decoration: const InputDecoration(
-                      labelText: 'Note',
-                      hintText: 'Table 7 split bill...',
-                      counterStyle: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _StickyCtaBar(

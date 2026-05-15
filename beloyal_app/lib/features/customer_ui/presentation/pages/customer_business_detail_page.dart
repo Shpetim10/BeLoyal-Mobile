@@ -7,6 +7,7 @@ import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_data_source.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_helpers.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_detail_sheet.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_menu_item_detail_sheet.dart';
@@ -1471,28 +1472,6 @@ class _FancyMenuItemCard extends StatelessWidget {
               ),
             ),
           ),
-        ] else if (anyEarnedPoints &&
-            itemEarnedPoints != null &&
-            itemEarnedPoints > 0) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppColors.success.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Text(
-              '+$itemEarnedPoints pts',
-              style: AppTypography.dmSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.success,
-              ),
-            ),
-          ),
         ],
       ],
     );
@@ -1677,34 +1656,16 @@ class _DetailCouponCard extends StatelessWidget {
   final CustomerCoupon coupon;
   final VoidCallback? onTap;
 
-  Color get _statusColor => switch (coupon.status) {
-    'active' => AppColors.success,
-    'expiring' => AppColors.error,
-    'used' => AppColors.textMutedDark,
-    'expired' => AppColors.textMutedDark,
-    _ => AppColors.textMutedDark,
-  };
-
-  String get _statusLabel => switch (coupon.status) {
-    'active' => 'Active',
-    'expiring' => 'Expiring',
-    'used' => 'Used',
-    'expired' => 'Expired',
-    _ => coupon.status,
-  };
-
-  IconData get _typeIcon => switch (coupon.type) {
-    'FREE_PRODUCT' => Icons.card_giftcard_rounded,
-    'PERCENTAGE_DISCOUNT' => Icons.percent_rounded,
-    'FIXED_AMOUNT_DISCOUNT' => Icons.discount_rounded,
-    _ => Icons.confirmation_number_rounded,
-  };
+  Color get _statusColor => couponStatusColor(coupon.status);
+  String get _statusLabel => couponStatusLabel(coupon.status);
+  IconData get _typeIcon => couponTypeIcon(coupon.type);
 
   @override
   Widget build(BuildContext context) {
-    final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
-    final expiresIn = coupon.expiresIn ?? 'Expires soon';
+    final expiresAt = coupon.expiresAt != null
+        ? DateFormat('MMM d').format(coupon.expiresAt!)
+        : 'No expiry';
+    final expiresIn = coupon.expiresIn ?? coupon.expiryLabel;
 
     return GestureDetector(
       onTap: onTap,
@@ -1876,30 +1837,13 @@ class _DetailCouponCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              if (isActive)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        AppColors.primaryDark,
-                                        AppColors.primary,
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    'Use Now',
-                                    style: AppTypography.dmSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
+                              // Claim/Buy More taps fall through to the card's
+                              // onTap, which opens the detail sheet that owns
+                              // the real validate → confirm → redeem flow.
+                              CouponActionChipRow(
+                                coupon: coupon,
+                                onClaim: onTap ?? () {},
+                              ),
                             ],
                           ),
                           if (coupon.pointCost > 0) ...[

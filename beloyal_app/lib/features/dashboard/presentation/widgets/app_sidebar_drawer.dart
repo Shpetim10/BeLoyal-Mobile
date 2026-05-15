@@ -234,14 +234,6 @@ class _DrawerContent extends ConsumerWidget {
                           },
                           delay: 7,
                         ),
-                        _SidebarItem(
-                          icon: Icons.analytics_rounded,
-                          label: 'Analytics',
-                          color: AppColors.error,
-                          onTap: () {},
-                          delay: 8,
-                          badge: 'Soon',
-                        ),
                       ],
 
                       // ── Staff-only ───────────────────────────────────────

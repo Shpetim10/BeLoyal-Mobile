@@ -303,78 +303,101 @@ class CustomerDataSource {
 
     final businesses = dto.businesses.map(_mapBusiness).toList();
 
-    final hasExplicitOwnership = dto.promotions.any(
-      (promotion) => promotion.hasOwnershipSignal,
-    );
+    // Trust backend `isOwned`. Build QR overrides keyed by couponId so they
+    // attach to the right /promotions row when merging.
     final mappedCoupons = dto.promotions
         .map(
           (p) => _mapPromotion(
             p,
             bizCategoryMap,
-            qrCodeOverride: qrCodeOverrides[p.id],
+            qrCodeOverride: qrCodeOverrides[p.couponId],
           ),
         )
         .toList();
-    final normalizedCoupons = hasExplicitOwnership
-        ? mappedCoupons
-        : mappedCoupons
-              .map(
-                (coupon) => CustomerCoupon(
-                  id: coupon.id,
-                  businessId: coupon.businessId,
-                  businessName: coupon.businessName,
-                  title: coupon.title,
-                  discountValue: coupon.discountValue,
-                  discountDisplay: coupon.discountDisplay,
-                  status: coupon.status,
-                  expiresAt: coupon.expiresAt,
-                  pointCost: coupon.pointCost,
-                  gradientColors: coupon.gradientColors,
-                  type: coupon.type,
-                  isUsed: coupon.isUsed,
-                  description: coupon.description,
-                  expiresIn: coupon.expiresIn,
-                  termsAndConditions: coupon.termsAndConditions,
-                  usageLimit: coupon.usageLimit,
-                  usageCount: coupon.usageCount,
-                  customerRedemptionCount: coupon.customerRedemptionCount,
-                  isHot: coupon.isHot,
-                  multiplierLabel: coupon.multiplierLabel,
-                  isOwned: true,
-                  imageUrl: coupon.imageUrl,
-                  currency: coupon.currency,
-                  isFeatured: coupon.isFeatured,
-                  totalRedemptions: coupon.totalRedemptions,
-                  totalRedemptionLimit: coupon.totalRedemptionLimit,
-                  startDate: coupon.startDate,
-                  customerCouponId: coupon.customerCouponId,
-                  minimumOrderAmount: coupon.minimumOrderAmount,
-                  maximumDiscountAmount: coupon.maximumDiscountAmount,
-                  freeProductCategory: coupon.freeProductCategory,
-                  freeProductName: coupon.freeProductName,
-                  freeProductVariant: coupon.freeProductVariant,
-                  freeProductQuantity: coupon.freeProductQuantity,
-                  redeemedAt: coupon.redeemedAt,
-                  usedAt: coupon.usedAt,
-                  orderId: coupon.orderId,
-                  qrCode: coupon.qrCode,
-                  canRedeem: coupon.canRedeem,
-                  cannotRedeemReason: coupon.cannotRedeemReason,
-                ),
-              )
-              .toList();
 
     return CustomerDataSource(
       summary: CustomerProfile.fromSummaryDto(dto.summary),
       categories: dto.categories.map(_mapCategory).toList(),
       businesses: businesses,
-      coupons: normalizedCoupons,
+      coupons: mappedCoupons,
       rewards: businesses.map(_mapRewardFromBusiness).toList(),
       transactions: dto.transactions
           .map((t) => _mapTransaction(t, bizCategoryMap))
           .toList(),
     );
   }
+}
+
+// ─── Post-redeem mapper ───────────────────────────────────────────────────────
+// Builds an "owned" CustomerCoupon from the /redeem response, preserving fields
+// from the source coupon that the response doesn't echo back. Centralized here
+// so every redeem call site (rewards tab, detail sheet, view-all) builds the
+// same QR coupon shape.
+CustomerCoupon buildOwnedCouponFromRedemption(
+  CustomerCoupon source,
+  CustomerCouponRedemptionDto result,
+) {
+  final responseExpiresAt = result.expiresAt != null
+      ? DateTime.tryParse(result.expiresAt!)
+      : null;
+  final expiresAt = responseExpiresAt ?? source.expiresAt;
+  String? expiresIn;
+  if (expiresAt != null) {
+    final now = DateTime.now();
+    if (expiresAt.isAfter(now)) {
+      final hours = expiresAt.difference(now).inHours;
+      expiresIn = hours < 24
+          ? 'Expires in ${hours}h'
+          : 'Expires in ${expiresAt.difference(now).inDays}d';
+    }
+  }
+  final canonicalType = CustomerCouponType.canonical(result.snapshotCouponType);
+  final canonicalStatus = canonicalCouponStatus(
+    result.status,
+    expiresAt: expiresAt,
+  );
+  return CustomerCoupon(
+    couponId: result.couponId,
+    sourceId: result.customerCouponId,
+    businessId: source.businessId,
+    businessName: source.businessName,
+    title: result.snapshotTitle.isNotEmpty
+        ? result.snapshotTitle
+        : source.title,
+    discountValue: source.discountValue,
+    discountDisplay: source.discountDisplay,
+    status: canonicalStatus,
+    expiresAt: expiresAt,
+    pointCost: result.pointsSpent,
+    gradientColors: source.gradientColors,
+    type: canonicalType,
+    isUsed: false,
+    description: result.snapshotDescription.isNotEmpty
+        ? result.snapshotDescription
+        : source.description,
+    expiresIn: expiresIn,
+    termsAndConditions: source.termsAndConditions,
+    usageLimit: source.usageLimit,
+    usageCount: source.usageCount,
+    customerRedemptionCount: source.customerRedemptionCount + 1,
+    isOwned: true,
+    imageUrl: result.snapshotImageUrl ?? source.imageUrl,
+    currency: result.currency ?? source.currency,
+    customerCouponId: result.customerCouponId,
+    isFeatured: source.isFeatured,
+    totalRedemptions: source.totalRedemptions + 1,
+    totalRedemptionLimit: source.totalRedemptionLimit,
+    minimumOrderAmount: source.minimumOrderAmount,
+    maximumDiscountAmount: source.maximumDiscountAmount,
+    freeProductName: source.freeProductName,
+    freeProductVariant: source.freeProductVariant,
+    freeProductCategory: source.freeProductCategory,
+    freeProductQuantity: source.freeProductQuantity,
+    redeemedAt: result.redeemedAt != null
+        ? DateTime.tryParse(result.redeemedAt!)
+        : DateTime.now(),
+    qrCode: result.qrCode.isNotEmpty ? result.qrCode : null,
+  );
 }
 
 // ─── Mapper helpers ───────────────────────────────────────────────────────────
@@ -466,21 +489,26 @@ CustomerCoupon _mapPromotion(
   String? qrCodeOverride,
 }) {
   final categoryKey = bizCategoryMap[dto.businessId] ?? '';
-  final expires = dto.expiresAt ?? DateTime.now().add(const Duration(days: 30));
-  final expiresIn = dto.expiresIn ?? _calculateExpiresInTime(expires);
+  final expires = dto.expiresAt;
+  final expiresIn =
+      dto.expiresIn ??
+      (expires != null ? _calculateExpiresInTime(expires) : null);
+  final canonicalType = CustomerCouponType.canonical(dto.promotionType);
+  final canonicalStatus = canonicalCouponStatus(dto.status, expiresAt: expires);
 
   return CustomerCoupon(
-    id: dto.id,
+    couponId: dto.couponId,
+    sourceId: dto.sourceId,
     businessId: dto.businessId,
     businessName: dto.businessName,
     title: dto.title,
     discountValue: dto.discountValue ?? 0,
     discountDisplay: dto.discountDisplay,
-    status: dto.status.toLowerCase(),
+    status: canonicalStatus,
     expiresAt: expires,
     pointCost: dto.pointCost,
     gradientColors: _gradientFromKey(categoryKey),
-    type: dto.promotionType,
+    type: canonicalType,
     isUsed: dto.isUsed,
     description: dto.description,
     expiresIn: expiresIn,

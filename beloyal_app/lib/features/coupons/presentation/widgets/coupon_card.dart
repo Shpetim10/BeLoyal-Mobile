@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_summary.dart';
 import 'coupon_status_chip.dart';
 
@@ -11,19 +10,11 @@ class CouponCard extends StatelessWidget {
     super.key,
     required this.coupon,
     required this.onTap,
-    required this.onStatusChange,
-    required this.onVisibilityChange,
-    required this.onDelete,
-    required this.onArchive,
     this.readOnly = false,
   });
 
   final CouponSummary coupon;
   final VoidCallback onTap;
-  final void Function(CouponStatus) onStatusChange;
-  final void Function(CouponVisibility) onVisibilityChange;
-  final VoidCallback onDelete;
-  final VoidCallback onArchive;
   final bool readOnly;
 
   @override
@@ -71,14 +62,6 @@ class CouponCard extends StatelessWidget {
                         const Icon(Icons.star, size: 14, color: AppColors.gold),
                       ],
                       const Spacer(),
-                      if (!readOnly)
-                        _ContextMenu(
-                          coupon: coupon,
-                          onStatusChange: onStatusChange,
-                          onVisibilityChange: onVisibilityChange,
-                          onDelete: onDelete,
-                          onArchive: onArchive,
-                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -170,79 +153,3 @@ class CouponCard extends StatelessWidget {
   }
 }
 
-class _ContextMenu extends StatelessWidget {
-  const _ContextMenu({
-    required this.coupon,
-    required this.onStatusChange,
-    required this.onVisibilityChange,
-    required this.onDelete,
-    required this.onArchive,
-  });
-
-  final CouponSummary coupon;
-  final void Function(CouponStatus) onStatusChange;
-  final void Function(CouponVisibility) onVisibilityChange;
-  final VoidCallback onDelete;
-  final VoidCallback onArchive;
-
-  @override
-  Widget build(BuildContext context) {
-    final transitions = coupon.status.allowedTransitions;
-    final nextVisibility = coupon.visibility == CouponVisibility.public
-        ? CouponVisibility.hidden
-        : CouponVisibility.public;
-    final visibilityActionLabel = nextVisibility == CouponVisibility.hidden
-        ? 'Hide'
-        : 'Show';
-
-    return PopupMenuButton<String>(
-      icon: const Icon(
-        Icons.more_vert,
-        size: 18,
-        color: AppColors.textMutedDark,
-      ),
-      color: AppColors.elevDark,
-      itemBuilder: (_) => [
-        if (transitions.contains(CouponStatus.active))
-          const PopupMenuItem(value: 'activate', child: Text('Activate')),
-        if (transitions.contains(CouponStatus.paused))
-          const PopupMenuItem(value: 'pause', child: Text('Pause')),
-        if (transitions.contains(CouponStatus.draft))
-          const PopupMenuItem(value: 'restore', child: Text('Restore to Draft')),
-        if (transitions.contains(CouponStatus.archived))
-          const PopupMenuItem(value: 'archive', child: Text('Archive')),
-        PopupMenuItem(
-          value: 'toggleVisibility',
-          child: Text(visibilityActionLabel),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete', style: TextStyle(color: AppColors.error)),
-        ),
-      ],
-      onSelected: (value) {
-        switch (value) {
-          case 'activate':
-            onStatusChange(CouponStatus.active);
-            return;
-          case 'pause':
-            onStatusChange(CouponStatus.paused);
-            return;
-          case 'restore':
-            onStatusChange(CouponStatus.draft);
-            return;
-          case 'archive':
-            onArchive();
-            return;
-          case 'toggleVisibility':
-            onVisibilityChange(nextVisibility);
-            return;
-          case 'delete':
-            onDelete();
-            return;
-        }
-      },
-    );
-  }
-}

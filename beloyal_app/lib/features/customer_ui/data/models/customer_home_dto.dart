@@ -301,7 +301,8 @@ class CustomerBusinessDto {
 
 class CustomerPromotionDto {
   const CustomerPromotionDto({
-    required this.id,
+    required this.sourceId,
+    required this.couponId,
     required this.businessId,
     required this.businessName,
     required this.title,
@@ -342,7 +343,12 @@ class CustomerPromotionDto {
     this.cannotRedeemReason,
   });
 
-  final int id;
+  // sourceId is the raw `id` value from the payload row (customer-coupon row id
+  // for owned my-coupons rows; coupon id for public rows). Use for list keys.
+  final int sourceId;
+  // couponId is the underlying loyalty coupon id. Authoritative for redeem,
+  // validate, and detail endpoints.
+  final int couponId;
   final int businessId;
   final String businessName;
   final String title;
@@ -394,22 +400,35 @@ class CustomerPromotionDto {
         json.containsKey('belongsToCustomer') ||
         json.containsKey('claimedByCustomer');
 
-    // perCustomerRedemptionLimit (available-coupons) is the same concept as usageLimit.
+    // Backend canonical name is `perCustomerRedemptionLimit` (R3). Kept
+    // `usageLimit` as a defensive fallback for any legacy payload during
+    // rollout.
     final rawUsageLimit =
-        json['usageLimit'] ?? json['perCustomerRedemptionLimit'];
+        json['perCustomerRedemptionLimit'] ?? json['usageLimit'];
+
+    // Identity resolution: trust an explicit `couponId` first (always points to
+    // the underlying coupon template). Fall back to `id` only when the row
+    // doesn't carry a separate couponId.
+    final hasCouponIdField = json.containsKey('couponId');
+    final rawSourceId = _asInt(json['id'] ?? json['couponId']);
+    final rawCouponId = hasCouponIdField
+        ? _asInt(json['couponId'])
+        : rawSourceId;
 
     return CustomerPromotionDto(
-      id: _asInt(json['id'] ?? json['couponId']),
+      sourceId: rawSourceId,
+      couponId: rawCouponId,
       businessId: _asInt(json['businessId']),
       businessName: _asString(json['businessName']),
       title: _asString(json['title']),
       description: _asString(json['description']),
       promotionType: _asString(
-        json['promotionType'] ?? json['type'],
+        json['promotionType'] ?? json['type'] ?? json['snapshotCouponType'],
         'FREE_PRODUCT',
       ),
       status: _asString(json['status'], 'ACTIVE'),
       discountDisplay: _asString(json['discountDisplay']),
+      // Canonical name is `pointCost` (R3); `pointsCost` retained as fallback.
       pointCost: _asInt(json['pointCost'] ?? json['pointsCost']),
       isHot: _asBool(json['isHot']),
       isUsed: _asBool(json['isUsed']),
@@ -428,6 +447,7 @@ class CustomerPromotionDto {
           : _asInt(json['customerCouponId']),
       discountValue: _asDoubleOrNull(json['discountValue']),
       usageLimit: rawUsageLimit == null ? null : _asInt(rawUsageLimit),
+      // Canonical is `expiresAt` (R3); `endDate` retained as fallback.
       expiresAt: _parseLocalDateTime(json['expiresAt'] ?? json['endDate']),
       expiresIn: json['expiresIn']?.toString(),
       termsAndConditions: json['termsAndConditions']?.toString(),
@@ -439,12 +459,19 @@ class CustomerPromotionDto {
       startDate: json['startDate']?.toString(),
       minimumOrderAmount: _asDoubleOrNull(json['minimumOrderAmount']),
       maximumDiscountAmount: _asDoubleOrNull(json['maximumDiscountAmount']),
-      freeProductCategory: json['freeProductCategory']?.toString(),
+      // Canonical names are `freeProductCategory` / `freeProductVariant` /
+      // `freeProductQuantity` (R3); legacy `*Name` / `freeQuantity` retained
+      // as fallback during rollout.
+      freeProductCategory:
+          (json['freeProductCategory'] ?? json['freeProductCategoryName'])
+              ?.toString(),
       freeProductName: json['freeProductName']?.toString(),
-      freeProductVariant: json['freeProductVariant']?.toString(),
-      freeProductQuantity: json['freeProductQuantity'] == null
+      freeProductVariant:
+          (json['freeProductVariant'] ?? json['freeVariantName'])?.toString(),
+      freeProductQuantity:
+          (json['freeProductQuantity'] ?? json['freeQuantity']) == null
           ? null
-          : _asInt(json['freeProductQuantity']),
+          : _asInt(json['freeProductQuantity'] ?? json['freeQuantity']),
       redeemedAt: json['redeemedAt']?.toString(),
       usedAt: json['usedAt']?.toString(),
       orderId: json['orderId']?.toString(),
@@ -987,31 +1014,6 @@ class ValidateRedemptionDto {
       ),
       customerBalance: _asInt(json['customerBalance']),
       reason: json['reason']?.toString(),
-    );
-  }
-}
-
-// ─── Available Coupons Response DTO ──────────────────────────────────────────
-// Returned by GET /api/besahub/customer/businesses/{businessId}/available-coupons
-
-class AvailableCouponsDto {
-  const AvailableCouponsDto({
-    required this.customerPointBalance,
-    required this.businessCurrency,
-    required this.coupons,
-  });
-
-  final int customerPointBalance;
-  final String businessCurrency;
-  final List<CustomerPromotionDto> coupons;
-
-  factory AvailableCouponsDto.fromJson(Map<String, dynamic> json) {
-    return AvailableCouponsDto(
-      customerPointBalance: _asInt(json['customerPointBalance']),
-      businessCurrency: _asString(json['businessCurrency'], 'ALL'),
-      coupons: _asList(
-        json['coupons'],
-      ).map((e) => CustomerPromotionDto.fromJson(_asMap(e))).toList(),
     );
   }
 }

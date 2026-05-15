@@ -69,7 +69,8 @@ class CustomerBusiness {
 
 class CustomerCoupon {
   const CustomerCoupon({
-    required this.id,
+    required this.couponId,
+    required this.sourceId,
     required this.businessId,
     required this.businessName,
     required this.title,
@@ -89,7 +90,7 @@ class CustomerCoupon {
     this.customerRedemptionCount = 0,
     this.isHot = false,
     this.multiplierLabel,
-    this.isOwned = true,
+    this.isOwned = false,
     this.imageUrl,
     this.currency,
     this.isFeatured = false,
@@ -111,14 +112,19 @@ class CustomerCoupon {
     this.cannotRedeemReason,
   });
 
-  final int id;
+  // Underlying loyalty coupon id. Used for redeem / validate / detail endpoints.
+  final int couponId;
+  // Raw `id` value from the source row (e.g. CustomerCoupon row id for owned
+  // /my-coupons rows, coupon id for public /promotions rows). Kept for stable
+  // list keys; never use this for backend redeem/validate calls.
+  final int sourceId;
   final int businessId;
   final String businessName;
   final String title;
   final double discountValue;
   final String discountDisplay;
   final String status;
-  final DateTime expiresAt;
+  final DateTime? expiresAt;
   final int pointCost;
   final List<Color> gradientColors;
   final String type;
@@ -195,6 +201,90 @@ class CustomerCoupon {
   String? get redemptionCountLabel {
     if (usageLimit == null) return null;
     return '$customerRedemptionCount of $usageLimit purchased';
+  }
+
+  String get expiryLabel {
+    final exp = expiresAt;
+    if (exp == null) return 'No expiry provided';
+    final expiresInLabel = expiresIn;
+    if (expiresInLabel != null && expiresInLabel.isNotEmpty) {
+      return expiresInLabel;
+    }
+    final now = DateTime.now();
+    if (exp.isBefore(now)) {
+      return 'Expired ${now.difference(exp).inDays}d ago';
+    }
+    final hours = exp.difference(now).inHours;
+    return hours < 24
+        ? 'Expires in ${hours}h'
+        : 'Expires in ${exp.difference(now).inDays}d';
+  }
+}
+
+// Canonical UI status values used after normalization.
+class CustomerCouponStatus {
+  static const active = 'active';
+  static const expiring = 'expiring';
+  static const used = 'used';
+  static const expired = 'expired';
+  static const cancelled = 'cancelled';
+}
+
+// Canonical UI coupon type values used after normalization.
+class CustomerCouponType {
+  static const freeProduct = 'FREE_PRODUCT';
+  static const percentageDiscount = 'PERCENTAGE_DISCOUNT';
+  static const fixedAmountDiscount = 'FIXED_AMOUNT_DISCOUNT';
+
+  /// Maps any backend variant (`DISCOUNT_PERCENT`, `DISCOUNT_FIXED`, lowercase,
+  /// etc.) to canonical UI type.
+  static String canonical(String raw) {
+    final v = raw.trim().toUpperCase();
+    switch (v) {
+      case 'FREE_PRODUCT':
+        return freeProduct;
+      case 'PERCENTAGE_DISCOUNT':
+      case 'DISCOUNT_PERCENT':
+        return percentageDiscount;
+      case 'FIXED_AMOUNT_DISCOUNT':
+      case 'DISCOUNT_FIXED':
+        return fixedAmountDiscount;
+      default:
+        return v.isEmpty ? freeProduct : v;
+    }
+  }
+}
+
+/// Normalizes any backend coupon/customer-coupon status string into one of the
+/// canonical UI statuses. `REDEEMED` becomes `active`, and is upgraded to
+/// `expiring` when `expiresAt` is within 3 days.
+String canonicalCouponStatus(String raw, {DateTime? expiresAt}) {
+  final v = raw.trim().toLowerCase();
+  final now = DateTime.now();
+
+  switch (v) {
+    case 'used':
+      return CustomerCouponStatus.used;
+    case 'expired':
+      return CustomerCouponStatus.expired;
+    case 'cancelled':
+    case 'canceled':
+      return CustomerCouponStatus.cancelled;
+    case 'expiring':
+      return CustomerCouponStatus.expiring;
+    case 'redeemed':
+    case 'active':
+    case 'draft':
+    case 'paused':
+    case 'archived':
+    default:
+      if (expiresAt != null) {
+        if (expiresAt.isBefore(now)) return CustomerCouponStatus.expired;
+        if (expiresAt.isBefore(now.add(const Duration(days: 3)))) {
+          return CustomerCouponStatus.expiring;
+        }
+      }
+      return CustomerCouponStatus.active;
   }
 }
 

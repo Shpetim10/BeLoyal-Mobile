@@ -23,6 +23,7 @@ class _CouponArchivedPageState extends ConsumerState<CouponArchivedPage> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _isSearchVisible = false;
+  bool _isRefreshingFromTop = false;
 
   static const _indigo = Color(0xFF6366F1);
   static const _violet = Color(0xFF8B5CF6);
@@ -49,7 +50,16 @@ class _CouponArchivedPageState extends ConsumerState<CouponArchivedPage> {
   void _onScroll() {
     final ctrl = ref.read(couponArchivedControllerProvider.notifier);
     final state = ref.read(couponArchivedControllerProvider);
-    if (_scrollCtrl.position.pixels >=
+
+    if (_scrollCtrl.position.pixels <=
+            50 &&
+        !_isRefreshingFromTop &&
+        !state.isLoading) {
+      _isRefreshingFromTop = true;
+      ctrl.fetchCoupons(widget.businessId).then((_) {
+        _isRefreshingFromTop = false;
+      });
+    } else if (_scrollCtrl.position.pixels >=
             _scrollCtrl.position.maxScrollExtent - 200 &&
         state.hasMore &&
         !state.isLoadingMore) {

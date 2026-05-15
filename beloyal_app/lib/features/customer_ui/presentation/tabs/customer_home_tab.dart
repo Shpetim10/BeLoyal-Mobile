@@ -1924,8 +1924,10 @@ class _ExpiringCouponRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
-    final expiresIn = coupon.expiresIn ?? 'Expires soon';
+    final expiresAt = coupon.expiresAt != null
+        ? DateFormat('MMM d').format(coupon.expiresAt!)
+        : 'No expiry';
+    final expiresIn = coupon.expiresIn ?? coupon.expiryLabel;
 
     return GestureDetector(
       onTap: () => _push(

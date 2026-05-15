@@ -23,6 +23,7 @@ class _CouponTrashPageState extends ConsumerState<CouponTrashPage> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _isSearchVisible = false;
+  bool _isRefreshingFromTop = false;
 
   static const _red = Color(0xFFDC2626);
   static const _redLight = Color(0xFFF87171);
@@ -48,7 +49,16 @@ class _CouponTrashPageState extends ConsumerState<CouponTrashPage> {
   void _onScroll() {
     final ctrl = ref.read(couponTrashControllerProvider.notifier);
     final state = ref.read(couponTrashControllerProvider);
-    if (_scrollCtrl.position.pixels >=
+
+    if (_scrollCtrl.position.pixels <=
+            50 &&
+        !_isRefreshingFromTop &&
+        !state.isLoading) {
+      _isRefreshingFromTop = true;
+      ctrl.fetchCoupons(widget.businessId).then((_) {
+        _isRefreshingFromTop = false;
+      });
+    } else if (_scrollCtrl.position.pixels >=
             _scrollCtrl.position.maxScrollExtent - 200 &&
         state.hasMore &&
         !state.isLoadingMore) {

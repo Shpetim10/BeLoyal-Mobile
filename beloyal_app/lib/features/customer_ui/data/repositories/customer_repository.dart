@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:besahub_app/core/network/api_client.dart';
 import '../models/customer_home_dto.dart';
 export '../models/customer_home_dto.dart'
-    show
-        CustomerCouponRedemptionDto,
-        ValidateRedemptionDto,
-        AvailableCouponsDto;
+    show CustomerCouponRedemptionDto, ValidateRedemptionDto;
 
 class CustomerRepository {
   const CustomerRepository(this._dio);
@@ -98,22 +95,8 @@ class CustomerRepository {
     final response = await _dio.get('/customer/coupons/$couponId');
     return CustomerPromotionDto.fromJson(response.data as Map<String, dynamic>);
   }
-
-  Future<AvailableCouponsDto> fetchAvailableCoupons(int businessId) async {
-    final response = await _dio.get(
-      '/customer/businesses/$businessId/available-coupons',
-    );
-    return AvailableCouponsDto.fromJson(response.data as Map<String, dynamic>);
-  }
 }
 
 final customerRepositoryProvider = Provider<CustomerRepository>((ref) {
   return CustomerRepository(ref.watch(dioProvider));
 });
-
-final availableCouponsProvider = FutureProvider.autoDispose
-    .family<AvailableCouponsDto, int>((ref, businessId) async {
-      return ref
-          .read(customerRepositoryProvider)
-          .fetchAvailableCoupons(businessId);
-    });
