@@ -86,6 +86,7 @@ class CustomerCoupon {
     this.termsAndConditions = '',
     this.usageLimit,
     this.usageCount = 0,
+    this.customerRedemptionCount = 0,
     this.isHot = false,
     this.multiplierLabel,
     this.isOwned = true,
@@ -106,6 +107,8 @@ class CustomerCoupon {
     this.usedAt,
     this.orderId,
     this.qrCode,
+    this.canRedeem,
+    this.cannotRedeemReason,
   });
 
   final int id;
@@ -123,8 +126,12 @@ class CustomerCoupon {
   final String description;
   final String? expiresIn;
   final String termsAndConditions;
+  // usageLimit: per-customer purchase cap (null = unlimited).
   final int? usageLimit;
+  // usageCount: scan/use count for a specific owned coupon instance.
   final int usageCount;
+  // customerRedemptionCount: how many times THIS customer has purchased this coupon.
+  final int customerRedemptionCount;
   final bool isHot;
   final String? multiplierLabel;
   final bool isOwned;
@@ -147,13 +154,48 @@ class CustomerCoupon {
   final String? orderId;
   // UUID QR code returned by the backend after redemption or from my-coupons list
   final String? qrCode;
+  // Backend-computed gate from the available-coupons endpoint.
+  final bool? canRedeem;
+  final String? cannotRedeemReason;
 
   bool get isFreeProduct => type == 'FREE_PRODUCT';
   bool get isDiscountCoupon =>
       type == 'PERCENTAGE_DISCOUNT' || type == 'FIXED_AMOUNT_DISCOUNT';
   bool get canShowQr =>
       isOwned && !isUsed && qrCode != null && qrCode!.isNotEmpty;
-  bool get canClaim => !isOwned;
+
+  // Per-customer limit is checked against customerRedemptionCount (total purchases by this
+  // customer for this coupon template), NOT usageCount (which tracks scans of one instance).
+  bool get isPerCustomerLimitReached =>
+      usageLimit != null && customerRedemptionCount >= usageLimit!;
+  bool get isOverallLimitReached =>
+      totalRedemptionLimit != null && totalRedemptions >= totalRedemptionLimit!;
+  bool get isLimitReached => isPerCustomerLimitReached || isOverallLimitReached;
+
+  bool get canBuyMore {
+    // Trust the backend gate when explicitly provided.
+    if (canRedeem == false) return false;
+    if (isLimitReached) return false;
+    // Allow buying more even when the current owned instance is already used at
+    // the business (isUsed=true), as long as the per-customer limit allows it.
+    final s = status.toLowerCase();
+    return s == 'active' || s == 'expiring';
+  }
+
+  String get limitReachedReason {
+    if (cannotRedeemReason?.isNotEmpty == true) return cannotRedeemReason!;
+    if (isPerCustomerLimitReached) {
+      return 'You\'ve reached your personal limit for this coupon';
+    }
+    if (isOverallLimitReached) return 'This coupon is sold out';
+    return 'No more coupons available';
+  }
+
+  // Human-friendly "X of Y purchased" label using the authoritative redemption count.
+  String? get redemptionCountLabel {
+    if (usageLimit == null) return null;
+    return '$customerRedemptionCount of $usageLimit purchased';
+  }
 }
 
 class CustomerReward {
@@ -225,6 +267,7 @@ class CustomerTransaction {
   final double? moneyAmount;
   final double? ruleAmountPer;
   final int? rulePointsPer;
+
   /// Currency code for this transaction (e.g. 'ALL', 'EUR'). Null falls back to 'ALL'.
   final String? currency;
 }
@@ -416,6 +459,7 @@ class CustomerBusinessDetail {
   final int? monthsToExpire;
   final int pointsPer;
   final double amountPer;
+
   /// Currency code for this business (e.g. 'ALL', 'EUR', 'USD'). Defaults to 'ALL'.
   final String currency;
   // Lifetime stats

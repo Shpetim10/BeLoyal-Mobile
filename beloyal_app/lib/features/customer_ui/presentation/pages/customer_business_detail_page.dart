@@ -17,16 +17,21 @@ class CustomerBusinessDetailPage extends ConsumerStatefulWidget {
   final CustomerBusiness business;
 
   @override
-  ConsumerState<CustomerBusinessDetailPage> createState() => _CustomerBusinessDetailPageState();
+  ConsumerState<CustomerBusinessDetailPage> createState() =>
+      _CustomerBusinessDetailPageState();
 }
 
-class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDetailPage> {
+class _CustomerBusinessDetailPageState
+    extends ConsumerState<CustomerBusinessDetailPage> {
   int _selectedTab = 0;
 
   static const _tabs = [
     _TabItem(icon: Icons.home_rounded, label: 'Overview'),
     _TabItem(icon: Icons.restaurant_menu_rounded, label: 'Menu'),
-    _TabItem(icon: Icons.confirmation_number_rounded, label: 'Coupons & Offers'),
+    _TabItem(
+      icon: Icons.confirmation_number_rounded,
+      label: 'Coupons & Offers',
+    ),
     _TabItem(icon: Icons.receipt_long_rounded, label: 'Transactions'),
     _TabItem(icon: Icons.location_on_rounded, label: 'Location'),
     _TabItem(icon: Icons.info_outline_rounded, label: 'Info'),
@@ -44,7 +49,9 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
       backgroundColor: const Color(0xFF0A0812),
       body: customerData.when(
         loading: () => const CustomerLoadingState(),
-        error: (_, __) => CustomerErrorState(onRetry: () => ref.read(customerDataProvider.notifier).refresh()),
+        error: (_, __) => CustomerErrorState(
+          onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
+        ),
         data: (data) => RefreshIndicator(
           onRefresh: () async {
             await ref.read(customerDataProvider.notifier).refresh();
@@ -53,7 +60,9 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
           color: AppColors.primary,
           backgroundColor: const Color(0xFF1A0535),
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
             slivers: [
               _buildSliverAppBar(topPad),
               SliverToBoxAdapter(child: _buildBusinessInfo()),
@@ -63,7 +72,10 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   switchInCurve: Curves.easeOut,
-                  child: KeyedSubtree(key: ValueKey(_selectedTab), child: _buildTabContent(data, detail)),
+                  child: KeyedSubtree(
+                    key: ValueKey(_selectedTab),
+                    child: _buildTabContent(data, detail),
+                  ),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 60)),
@@ -88,7 +100,11 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
         ),
       ),
       actions: const [],
@@ -112,7 +128,10 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
               child: Container(
                 width: 200,
                 height: 200,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.04)),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.04),
+                ),
               ),
             ),
             Positioned(
@@ -134,9 +153,16 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white.withValues(alpha: 0.12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
                   boxShadow: [
-                    BoxShadow(color: _b.gradientColors.last.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 2),
+                    BoxShadow(
+                      color: _b.gradientColors.last.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
                   ],
                 ),
                 child: ClipOval(
@@ -144,10 +170,19 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
                       ? Image.network(
                           _b.logoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              Center(child: Text(_b.logoEmoji, style: const TextStyle(fontSize: 36))),
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(
+                              _b.logoEmoji,
+                              style: const TextStyle(fontSize: 36),
+                            ),
+                          ),
                         )
-                      : Center(child: Text(_b.logoEmoji, style: const TextStyle(fontSize: 36))),
+                      : Center(
+                          child: Text(
+                            _b.logoEmoji,
+                            style: const TextStyle(fontSize: 36),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -168,16 +203,28 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
               Expanded(
                 child: Text(
                   _b.name,
-                  style: AppTypography.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.textOnDark),
+                  style: AppTypography.outfit(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textOnDark,
+                  ),
                 ),
               ),
               Row(
                 children: [
-                  const Icon(Icons.star_rounded, color: AppColors.gold, size: 16),
+                  const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.gold,
+                    size: 16,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     _b.rating.toStringAsFixed(2),
-                    style: AppTypography.dmMono(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.gold),
+                    style: AppTypography.dmMono(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold,
+                    ),
                   ),
                 ],
               ),
@@ -187,21 +234,37 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Text(
                   _b.category,
-                  style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(_b.description, style: AppTypography.dmSans(fontSize: 13, color: AppColors.textMutedDark, height: 1.5)),
+          Text(
+            _b.description,
+            style: AppTypography.dmSans(
+              fontSize: 13,
+              color: AppColors.textMutedDark,
+              height: 1.5,
+            ),
+          ),
         ],
       ),
     );
@@ -212,8 +275,12 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
     final points = detailVal?.currentPoints ?? _b.points;
     final nextReward = detailVal?.nextRewardPoints ?? _b.nextRewardPoints;
     // Prefer backend-computed pointsToNextReward when available
-    final remaining = detailVal?.pointsToNextReward ?? (nextReward - points).clamp(0, nextReward);
-    final progress = nextReward > 0 ? ((nextReward - remaining) / nextReward).clamp(0.0, 1.0) : 0.0;
+    final remaining =
+        detailVal?.pointsToNextReward ??
+        (nextReward - points).clamp(0, nextReward);
+    final progress = nextReward > 0
+        ? ((nextReward - remaining) / nextReward).clamp(0.0, 1.0)
+        : 0.0;
     final memberCode = detailVal?.memberCode ?? '';
 
     return Container(
@@ -221,14 +288,23 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [_b.gradientColors.first.withValues(alpha: 0.8), _b.gradientColors.last.withValues(alpha: 0.6)],
+          colors: [
+            _b.gradientColors.first.withValues(alpha: 0.8),
+            _b.gradientColors.last.withValues(alpha: 0.6),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _b.gradientColors.last.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: _b.gradientColors.last.withValues(alpha: 0.3),
+        ),
         boxShadow: [
-          BoxShadow(color: _b.gradientColors.last.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 6)),
+          BoxShadow(
+            color: _b.gradientColors.last.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
@@ -242,12 +318,19 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
                   children: [
                     Text(
                       'Your Points',
-                      style: AppTypography.dmSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.7)),
+                      style: AppTypography.dmSans(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '$points pts',
-                      style: AppTypography.dmMono(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
+                      style: AppTypography.dmMono(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     ClipRRect(
@@ -266,7 +349,10 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
                           : remaining > 0
                           ? '$remaining pts to reward'
                           : 'Ready to redeem!',
-                      style: AppTypography.dmSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.7)),
+                      style: AppTypography.dmSans(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
                     ),
                   ],
                 ),
@@ -277,9 +363,19 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.badge_outlined, size: 13, color: Colors.white60),
+                const Icon(
+                  Icons.badge_outlined,
+                  size: 13,
+                  color: Colors.white60,
+                ),
                 const SizedBox(width: 6),
-                Text('Member Code', style: AppTypography.dmSans(fontSize: 10, color: Colors.white60)),
+                Text(
+                  'Member Code',
+                  style: AppTypography.dmSans(
+                    fontSize: 10,
+                    color: Colors.white60,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -301,22 +397,34 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
                       SnackBar(
                         content: Text(
                           'Member code copied',
-                          style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+                          style: AppTypography.dmSans(
+                            fontSize: 13,
+                            color: Colors.white,
+                          ),
                         ),
                         backgroundColor: AppColors.cardDark,
                         duration: const Duration(seconds: 2),
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.copy_rounded, size: 12, color: Colors.white),
+                    child: const Icon(
+                      Icons.copy_rounded,
+                      size: 12,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
@@ -346,12 +454,19 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 gradient: isSelected
-                    ? LinearGradient(colors: [_b.gradientColors.first.withValues(alpha: 0.8), _b.gradientColors.last])
+                    ? LinearGradient(
+                        colors: [
+                          _b.gradientColors.first.withValues(alpha: 0.8),
+                          _b.gradientColors.last,
+                        ],
+                      )
                     : null,
                 color: isSelected ? null : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected ? _b.gradientColors.last.withValues(alpha: 0.5) : AppColors.glassBorder,
+                  color: isSelected
+                      ? _b.gradientColors.last.withValues(alpha: 0.5)
+                      : AppColors.glassBorder,
                   width: isSelected ? 1.5 : 1,
                 ),
                 boxShadow: isSelected
@@ -367,14 +482,22 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(tab.icon, size: 14, color: isSelected ? Colors.white : AppColors.textMutedDark),
+                  Icon(
+                    tab.icon,
+                    size: 14,
+                    color: isSelected ? Colors.white : AppColors.textMutedDark,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     tab.label,
                     style: AppTypography.dmSans(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textMutedDark,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textMutedDark,
                     ),
                   ),
                 ],
@@ -386,7 +509,10 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
     );
   }
 
-  Widget _buildTabContent(CustomerDataSource data, AsyncValue<CustomerBusinessDetail> detail) {
+  Widget _buildTabContent(
+    CustomerDataSource data,
+    AsyncValue<CustomerBusinessDetail> detail,
+  ) {
     final detailData = detail.asData?.value;
     return switch (_selectedTab) {
       0 => _OverviewTab(
@@ -396,8 +522,12 @@ class _CustomerBusinessDetailPageState extends ConsumerState<CustomerBusinessDet
         onDirectionsTap: () => setState(() => _selectedTab = 4),
       ),
       1 => _MenuTab(business: _b, detail: detail),
-      2 => _CouponsTab(coupons: detailData?.coupons ?? data.couponsForBusiness(_b.id)),
-      3 => _TransactionsTab(txs: detailData?.transactions ?? data.transactionsForBusiness(_b.id)),
+      2 => _CouponsTab(
+        coupons: detailData?.coupons ?? data.couponsForBusiness(_b.id),
+      ),
+      3 => _TransactionsTab(
+        txs: detailData?.transactions ?? data.transactionsForBusiness(_b.id),
+      ),
       4 => _LocationTab(business: _b, location: detailData?.location),
       5 => _InfoTab(business: _b, detail: detailData),
       _ => const SizedBox.shrink(),
@@ -433,7 +563,10 @@ class _OverviewTab extends StatelessWidget {
         .take(3)
         .toList();
     // Only show hot offers that are genuinely backed by isHot backend field
-    final offers = data.offersForBusiness(business.id).where((c) => c.isHot).toList();
+    final offers = data
+        .offersForBusiness(business.id)
+        .where((c) => c.isHot)
+        .toList();
     final rewards = data.rewardsForBusiness(business.id).take(3).toList();
 
     return Padding(
@@ -455,7 +588,10 @@ class _OverviewTab extends StatelessWidget {
           ],
           if (rewards.isNotEmpty) ...[
             const SizedBox(height: 22),
-            _SubSectionHeader(title: 'Available Rewards', count: rewards.length),
+            _SubSectionHeader(
+              title: 'Available Rewards',
+              count: rewards.length,
+            ),
             const SizedBox(height: 10),
             ...rewards.map((r) => _OverviewRewardRow(reward: r)),
           ],
@@ -483,7 +619,11 @@ class _SubSectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppTypography.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textOnDark),
+          style: AppTypography.outfit(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textOnDark,
+          ),
         ),
         const SizedBox(width: 8),
         Container(
@@ -494,7 +634,11 @@ class _SubSectionHeader extends StatelessWidget {
           ),
           child: Text(
             '$count',
-            style: AppTypography.dmMono(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+            style: AppTypography.dmMono(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
           ),
         ),
       ],
@@ -508,7 +652,9 @@ class _OverviewCouponRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = coupon.status == 'expiring' ? AppColors.error : AppColors.success;
+    final color = coupon.status == 'expiring'
+        ? AppColors.error
+        : AppColors.success;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -516,7 +662,9 @@ class _OverviewCouponRow extends StatelessWidget {
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: coupon.status == 'expiring' ? AppColors.error.withValues(alpha: 0.3) : AppColors.glassBorder,
+          color: coupon.status == 'expiring'
+              ? AppColors.error.withValues(alpha: 0.3)
+              : AppColors.glassBorder,
         ),
       ),
       child: Row(
@@ -539,7 +687,11 @@ class _OverviewCouponRow extends StatelessWidget {
                     : coupon.type == 'FREE_PRODUCT'
                     ? '🎁'
                     : '%',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -550,21 +702,35 @@ class _OverviewCouponRow extends StatelessWidget {
               children: [
                 Text(
                   coupon.title,
-                  style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
                 ),
                 Text(
                   '${coupon.pointCost} pts',
-                  style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
                 ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Text(
               coupon.status == 'expiring' ? 'Expiring' : 'Active',
-              style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+              style: AppTypography.dmSans(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -584,12 +750,16 @@ class _OverviewOfferRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: offer.gradientColors.map((c) => c.withValues(alpha: 0.15)).toList(),
+          colors: offer.gradientColors
+              .map((c) => c.withValues(alpha: 0.15))
+              .toList(),
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: offer.gradientColors.last.withValues(alpha: 0.25)),
+        border: Border.all(
+          color: offer.gradientColors.last.withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         children: [
@@ -607,7 +777,11 @@ class _OverviewOfferRow extends StatelessWidget {
             child: Center(
               child: Text(
                 offer.multiplierLabel ?? offer.discountDisplay,
-                style: AppTypography.dmMono(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                style: AppTypography.dmMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -618,11 +792,18 @@ class _OverviewOfferRow extends StatelessWidget {
               children: [
                 Text(
                   offer.title,
-                  style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
                 ),
                 Text(
                   offer.description,
-                  style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -639,11 +820,19 @@ class _OverviewOfferRow extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.local_fire_department_rounded, size: 10, color: AppColors.error),
+                  const Icon(
+                    Icons.local_fire_department_rounded,
+                    size: 10,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(width: 3),
                   Text(
                     'HOT',
-                    style: AppTypography.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.error),
+                    style: AppTypography.dmSans(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
               ),
@@ -667,7 +856,11 @@ class _OverviewRewardRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: canRedeem ? AppColors.gold.withValues(alpha: 0.3) : AppColors.glassBorder),
+        border: Border.all(
+          color: canRedeem
+              ? AppColors.gold.withValues(alpha: 0.3)
+              : AppColors.glassBorder,
+        ),
       ),
       child: Row(
         children: [
@@ -682,7 +875,11 @@ class _OverviewRewardRow extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 18),
+            child: const Icon(
+              Icons.card_giftcard_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -691,11 +888,18 @@ class _OverviewRewardRow extends StatelessWidget {
               children: [
                 Text(
                   reward.title,
-                  style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textOnDark),
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
                 ),
                 Text(
                   '${reward.pointCost} pts required',
-                  style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
                 ),
               ],
             ),
@@ -704,18 +908,27 @@ class _OverviewRewardRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryDark, AppColors.primary],
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 'Redeem',
-                style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                style: AppTypography.dmSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             )
           else
             Text(
               '${reward.pointCost - reward.currentPoints} pts away',
-              style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+              style: AppTypography.dmSans(
+                fontSize: 11,
+                color: AppColors.textMutedDark,
+              ),
             ),
         ],
       ),
@@ -743,13 +956,19 @@ class _MenuTabState extends State<_MenuTab> {
       loading: () => _buildMenuSkeleton(),
       error: (_, __) => Padding(
         padding: const EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.restaurant_menu_outlined, message: 'Could not load menu.\nPull to refresh.'),
+        child: _EmptyState(
+          icon: Icons.restaurant_menu_outlined,
+          message: 'Could not load menu.\nPull to refresh.',
+        ),
       ),
       data: (detail) {
         if (detail.menuItems.isEmpty) {
           return const Padding(
             padding: EdgeInsets.only(top: 40),
-            child: _EmptyState(icon: Icons.restaurant_menu_outlined, message: 'No menu available yet.'),
+            child: _EmptyState(
+              icon: Icons.restaurant_menu_outlined,
+              message: 'No menu available yet.',
+            ),
           );
         }
         final items = detail.itemsForCategory(_selectedCategoryId);
@@ -768,7 +987,10 @@ class _MenuTabState extends State<_MenuTab> {
                   if (_selectedCategoryId != null) ...[
                     Text(
                       detail.menuCategories
-                          .firstWhere((c) => c.id == _selectedCategoryId, orElse: () => detail.menuCategories.first)
+                          .firstWhere(
+                            (c) => c.id == _selectedCategoryId,
+                            orElse: () => detail.menuCategories.first,
+                          )
                           .name,
                       style: AppTypography.outfit(
                         fontSize: 16,
@@ -782,7 +1004,11 @@ class _MenuTabState extends State<_MenuTab> {
                     (item) => _FancyMenuItemCard(
                       item: item,
                       accentColors: widget.business.gradientColors,
-                      onTap: () => CustomerMenuItemDetailSheet.show(context, item, widget.business.gradientColors),
+                      onTap: () => CustomerMenuItemDetailSheet.show(
+                        context,
+                        item,
+                        widget.business.gradientColors,
+                      ),
                     ),
                   ),
                 ],
@@ -812,7 +1038,11 @@ class _MenuTabState extends State<_MenuTab> {
               label: c.name,
               isSelected: _selectedCategoryId == c.id,
               accentColors: widget.business.gradientColors,
-              onTap: () => setState(() => _selectedCategoryId = _selectedCategoryId == c.id ? null : c.id),
+              onTap: () => setState(
+                () => _selectedCategoryId = _selectedCategoryId == c.id
+                    ? null
+                    : c.id,
+              ),
             ),
           ),
         ],
@@ -834,7 +1064,10 @@ class _MenuTabState extends State<_MenuTab> {
                 width: 80,
                 height: 36,
                 margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(color: AppColors.cardDark, borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
             ),
           ),
@@ -844,7 +1077,10 @@ class _MenuTabState extends State<_MenuTab> {
             (_) => Container(
               height: 110,
               margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: AppColors.cardDark, borderRadius: BorderRadius.circular(18)),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
           ),
         ],
@@ -875,16 +1111,29 @@ class _MenuCategoryChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
           gradient: isSelected
-              ? LinearGradient(colors: [accentColors.first.withValues(alpha: 0.8), accentColors.last])
+              ? LinearGradient(
+                  colors: [
+                    accentColors.first.withValues(alpha: 0.8),
+                    accentColors.last,
+                  ],
+                )
               : null,
           color: isSelected ? null : AppColors.cardDark,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSelected ? accentColors.last.withValues(alpha: 0.5) : AppColors.glassBorder,
+            color: isSelected
+                ? accentColors.last.withValues(alpha: 0.5)
+                : AppColors.glassBorder,
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: accentColors.last.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3))]
+              ? [
+                  BoxShadow(
+                    color: accentColors.last.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
               : null,
         ),
         child: Text(
@@ -901,7 +1150,11 @@ class _MenuCategoryChip extends StatelessWidget {
 }
 
 class _FancyMenuItemCard extends StatelessWidget {
-  const _FancyMenuItemCard({required this.item, required this.accentColors, this.onTap});
+  const _FancyMenuItemCard({
+    required this.item,
+    required this.accentColors,
+    this.onTap,
+  });
   final CustomerMenuItem item;
   final List<Color> accentColors;
   final VoidCallback? onTap;
@@ -919,9 +1172,19 @@ class _FancyMenuItemCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: item.isPopular ? AppColors.gold.withValues(alpha: 0.25) : AppColors.glassBorder),
+            border: Border.all(
+              color: item.isPopular
+                  ? AppColors.gold.withValues(alpha: 0.25)
+                  : AppColors.glassBorder,
+            ),
             boxShadow: item.isPopular
-                ? [BoxShadow(color: AppColors.gold.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]
+                ? [
+                    BoxShadow(
+                      color: AppColors.gold.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
                 : null,
           ),
           child: Padding(
@@ -967,15 +1230,24 @@ class _FancyMenuItemCard extends StatelessWidget {
                           if (item.isPopular) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(colors: [Color(0xFFB8860B), AppColors.gold]),
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFB8860B), AppColors.gold],
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.star_rounded, size: 9, color: Colors.white),
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 9,
+                                    color: Colors.white,
+                                  ),
                                   const SizedBox(width: 3),
                                   Text(
                                     'Popular',
@@ -995,7 +1267,11 @@ class _FancyMenuItemCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           item.description,
-                          style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark, height: 1.4),
+                          style: AppTypography.dmSans(
+                            fontSize: 12,
+                            color: AppColors.textMutedDark,
+                            height: 1.4,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1021,7 +1297,8 @@ class _FancyMenuItemCard extends StatelessWidget {
 
   Widget _buildBasePriceRow() {
     final earnLabel = _earnLabelFromItem();
-    final displayLabel = earnLabel ?? (item.pointsLabel.isNotEmpty ? item.pointsLabel : null);
+    final displayLabel =
+        earnLabel ?? (item.pointsLabel.isNotEmpty ? item.pointsLabel : null);
     final symbol = item.baseCurrency.isEmpty ? 'L' : item.baseCurrency;
     final hasBasePrice = item.basePrice != null;
     return Row(
@@ -1036,7 +1313,11 @@ class _FancyMenuItemCard extends StatelessWidget {
             ),
             child: Text(
               '${item.basePrice!.toStringAsFixed(0)} $symbol${item.unit.isNotEmpty ? ' / ${item.unit}' : ''}',
-              style: AppTypography.dmMono(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textOnDark),
+              style: AppTypography.dmMono(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textOnDark,
+              ),
             ),
           ),
         if (hasBasePrice && displayLabel != null) const Spacer(),
@@ -1046,11 +1327,17 @@ class _FancyMenuItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: AppColors.success.withValues(alpha: 0.2),
+              ),
             ),
             child: Text(
               displayLabel,
-              style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+              style: AppTypography.dmSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.success,
+              ),
             ),
           ),
       ],
@@ -1060,7 +1347,8 @@ class _FancyMenuItemCard extends StatelessWidget {
   Widget _buildSingleVariantRow() {
     final variant = item.variants.first;
     final earnLabel = _earnLabelFromItem() ?? _earnLabel(variant);
-    final displayLabel = earnLabel ?? (item.pointsLabel.isNotEmpty ? item.pointsLabel : null);
+    final displayLabel =
+        earnLabel ?? (item.pointsLabel.isNotEmpty ? item.pointsLabel : null);
     return Row(
       children: [
         Container(
@@ -1072,7 +1360,11 @@ class _FancyMenuItemCard extends StatelessWidget {
           ),
           child: Text(
             '${variant.formattedPrice}${item.unit.isNotEmpty ? ' / ${item.unit}' : ''}',
-            style: AppTypography.dmMono(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textOnDark),
+            style: AppTypography.dmMono(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textOnDark,
+            ),
           ),
         ),
         const Spacer(),
@@ -1082,11 +1374,17 @@ class _FancyMenuItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: AppColors.success.withValues(alpha: 0.2),
+              ),
             ),
             child: Text(
               displayLabel,
-              style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+              style: AppTypography.dmSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.success,
+              ),
             ),
           ),
       ],
@@ -1095,7 +1393,8 @@ class _FancyMenuItemCard extends StatelessWidget {
 
   Widget _buildMultiVariantRow() {
     final itemEarnedPoints = item.earnedPoints;
-    final anyEarnedPoints = itemEarnedPoints != null && itemEarnedPoints > 0 ||
+    final anyEarnedPoints =
+        itemEarnedPoints != null && itemEarnedPoints > 0 ||
         item.variants.any((v) => v.earnedPoints != null && v.earnedPoints! > 0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1111,12 +1410,19 @@ class _FancyMenuItemCard extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: isDefault
                     ? LinearGradient(
-                        colors: [accentColors.first.withValues(alpha: 0.4), accentColors.last.withValues(alpha: 0.3)],
+                        colors: [
+                          accentColors.first.withValues(alpha: 0.4),
+                          accentColors.last.withValues(alpha: 0.3),
+                        ],
                       )
                     : null,
                 color: isDefault ? null : AppColors.elevDark,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDefault ? accentColors.last.withValues(alpha: 0.4) : AppColors.glassBorder),
+                border: Border.all(
+                  color: isDefault
+                      ? accentColors.last.withValues(alpha: 0.4)
+                      : AppColors.glassBorder,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1133,7 +1439,11 @@ class _FancyMenuItemCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       earn,
-                      style: AppTypography.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success),
+                      style: AppTypography.dmSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.success,
+                      ),
                     ),
                   ],
                 ],
@@ -1148,25 +1458,39 @@ class _FancyMenuItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: AppColors.success.withValues(alpha: 0.2),
+              ),
             ),
             child: Text(
               item.pointsLabel,
-              style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+              style: AppTypography.dmSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.success,
+              ),
             ),
           ),
-        ] else if (anyEarnedPoints && itemEarnedPoints != null && itemEarnedPoints > 0) ...[
+        ] else if (anyEarnedPoints &&
+            itemEarnedPoints != null &&
+            itemEarnedPoints > 0) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: AppColors.success.withValues(alpha: 0.2),
+              ),
             ),
             child: Text(
               '+$itemEarnedPoints pts',
-              style: AppTypography.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+              style: AppTypography.dmSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.success,
+              ),
             ),
           ),
         ],
@@ -1192,12 +1516,17 @@ class _FancyMenuItemCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [accentColors.first.withValues(alpha: 0.6), accentColors.last.withValues(alpha: 0.4)],
+          colors: [
+            accentColors.first.withValues(alpha: 0.6),
+            accentColors.last.withValues(alpha: 0.4),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
-      child: Center(child: Text(item.emoji, style: const TextStyle(fontSize: 30))),
+      child: Center(
+        child: Text(item.emoji, style: const TextStyle(fontSize: 30)),
+      ),
     );
   }
 }
@@ -1261,12 +1590,17 @@ class _CouponsTabState extends State<_CouponsTab> {
               padding: const EdgeInsets.only(top: 20),
               child: _EmptyState(
                 icon: Icons.confirmation_number_outlined,
-                message: _showMyCoupons ? 'No coupons found in your wallet.' : 'No coupons for this business yet.',
+                message: _showMyCoupons
+                    ? 'No coupons found in your wallet.'
+                    : 'No coupons for this business yet.',
               ),
             )
           else
             ...displayedCoupons.map(
-              (c) => _DetailCouponCard(coupon: c, onTap: () => CustomerCouponDetailSheet.show(context, c)),
+              (c) => _DetailCouponCard(
+                coupon: c,
+                onTap: () => CustomerCouponDetailSheet.show(context, c),
+              ),
             ),
         ],
       ),
@@ -1275,7 +1609,12 @@ class _CouponsTabState extends State<_CouponsTab> {
 }
 
 class _CouponsTabButton extends StatelessWidget {
-  const _CouponsTabButton({required this.label, required this.count, required this.isSelected, required this.onTap});
+  const _CouponsTabButton({
+    required this.label,
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final String label;
   final int count;
@@ -1312,7 +1651,9 @@ class _CouponsTabButton extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withValues(alpha: 0.18) : AppColors.glassBorder,
+                color: isSelected
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : AppColors.glassBorder,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -1375,7 +1716,9 @@ class _DetailCouponCard extends StatelessWidget {
             color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: coupon.status == 'expiring' ? AppColors.error.withValues(alpha: 0.35) : AppColors.glassBorder,
+              color: coupon.status == 'expiring'
+                  ? AppColors.error.withValues(alpha: 0.35)
+                  : AppColors.glassBorder,
             ),
           ),
           child: Column(
@@ -1404,18 +1747,27 @@ class _DetailCouponCard extends StatelessWidget {
                         Text(
                           coupon.discountDisplay,
                           style: AppTypography.outfit(
-                            fontSize: coupon.discountDisplay.length > 6 ? 12 : 15,
+                            fontSize: coupon.discountDisplay.length > 6
+                                ? 12
+                                : 15,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 6),
-                        Icon(_typeIcon, color: Colors.white.withValues(alpha: 0.7), size: 16),
+                        Icon(
+                          _typeIcon,
+                          color: Colors.white.withValues(alpha: 0.7),
+                          size: 16,
+                        ),
                       ],
                     ),
                   ),
-                  CustomPaint(size: const Size(1, 110), painter: _DashedPainter()),
+                  CustomPaint(
+                    size: const Size(1, 110),
+                    painter: _DashedPainter(),
+                  ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(14),
@@ -1438,9 +1790,14 @@ class _DetailCouponCard extends StatelessWidget {
                               ),
                               if (coupon.isFeatured) ...[
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.gold.withValues(alpha: 0.15),
+                                    color: AppColors.gold.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -1455,7 +1812,10 @@ class _DetailCouponCard extends StatelessWidget {
                                 const SizedBox(width: 4),
                               ],
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _statusColor.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
@@ -1475,7 +1835,11 @@ class _DetailCouponCard extends StatelessWidget {
                           if (coupon.description.isNotEmpty)
                             Text(
                               coupon.description,
-                              style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark, height: 1.4),
+                              style: AppTypography.dmSans(
+                                fontSize: 11,
+                                color: AppColors.textMutedDark,
+                                height: 1.4,
+                              ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1483,17 +1847,29 @@ class _DetailCouponCard extends StatelessWidget {
                           Row(
                             children: [
                               if (coupon.status == 'expiring')
-                                Icon(Icons.local_fire_department_rounded, size: 11, color: AppColors.error)
+                                Icon(
+                                  Icons.local_fire_department_rounded,
+                                  size: 11,
+                                  color: AppColors.error,
+                                )
                               else
-                                const Icon(Icons.calendar_today_rounded, size: 11, color: AppColors.textMutedDark),
+                                const Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 11,
+                                  color: AppColors.textMutedDark,
+                                ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   '$expiresAt • $expiresIn',
                                   style: AppTypography.dmSans(
                                     fontSize: 11,
-                                    fontWeight: coupon.status == 'expiring' ? FontWeight.w600 : FontWeight.w400,
-                                    color: coupon.status == 'expiring' ? AppColors.error : AppColors.textMutedDark,
+                                    fontWeight: coupon.status == 'expiring'
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: coupon.status == 'expiring'
+                                        ? AppColors.error
+                                        : AppColors.textMutedDark,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1502,9 +1878,17 @@ class _DetailCouponCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               if (isActive)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(colors: [AppColors.primaryDark, AppColors.primary]),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        AppColors.primaryDark,
+                                        AppColors.primary,
+                                      ],
+                                    ),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
@@ -1522,7 +1906,11 @@ class _DetailCouponCard extends StatelessWidget {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                const Icon(Icons.stars_rounded, size: 12, color: AppColors.gold),
+                                const Icon(
+                                  Icons.stars_rounded,
+                                  size: 12,
+                                  color: AppColors.gold,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${coupon.pointCost} pts',
@@ -1536,13 +1924,20 @@ class _DetailCouponCard extends StatelessWidget {
                                   const SizedBox(width: 10),
                                   Text(
                                     '${coupon.usageCount}/${coupon.usageLimit} used',
-                                    style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                                    style: AppTypography.dmSans(
+                                      fontSize: 11,
+                                      color: AppColors.textMutedDark,
+                                    ),
                                   ),
-                                ] else if (coupon.totalRedemptionLimit != null) ...[
+                                ] else if (coupon.totalRedemptionLimit !=
+                                    null) ...[
                                   const SizedBox(width: 10),
                                   Text(
                                     '${coupon.totalRedemptions}/${coupon.totalRedemptionLimit} redeemed',
-                                    style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                                    style: AppTypography.dmSans(
+                                      fontSize: 11,
+                                      color: AppColors.textMutedDark,
+                                    ),
                                   ),
                                 ],
                               ],
@@ -1603,7 +1998,10 @@ class _TransactionsTab extends StatelessWidget {
     if (txs.isEmpty) {
       return const Padding(
         padding: EdgeInsets.only(top: 40),
-        child: _EmptyState(icon: Icons.receipt_long_outlined, message: 'No transactions at this business yet.'),
+        child: _EmptyState(
+          icon: Icons.receipt_long_outlined,
+          message: 'No transactions at this business yet.',
+        ),
       );
     }
 
@@ -1644,7 +2042,10 @@ class _TransactionsTab extends StatelessWidget {
                   Container(
                     width: 40,
                     height: 40,
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
                     child: Icon(icon, color: color, size: 18),
                   ),
                   const SizedBox(width: 12),
@@ -1667,46 +2068,70 @@ class _TransactionsTab extends StatelessWidget {
                           children: [
                             Text(
                               dateFmt.format(tx.date),
-                              style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark),
+                              style: AppTypography.dmSans(
+                                fontSize: 11,
+                                color: AppColors.textMutedDark,
+                              ),
                             ),
                             if (tx.billAmount > 0) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.elevDark,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   '${(tx.currency ?? 'L')} ${tx.billAmount.toStringAsFixed(0)}',
-                                  style: AppTypography.dmMono(fontSize: 10, color: AppColors.textMutedDark),
+                                  style: AppTypography.dmMono(
+                                    fontSize: 10,
+                                    color: AppColors.textMutedDark,
+                                  ),
                                 ),
                               ),
                             ] else if (tx.netAmount > 0) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.elevDark,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   '${(tx.currency ?? 'L')} ${tx.netAmount.toStringAsFixed(0)}',
-                                  style: AppTypography.dmMono(fontSize: 10, color: AppColors.textMutedDark),
+                                  style: AppTypography.dmMono(
+                                    fontSize: 10,
+                                    color: AppColors.textMutedDark,
+                                  ),
                                 ),
                               ),
                             ],
-                            if (tx.discountAmount != null && tx.discountAmount! > 0) ...[
+                            if (tx.discountAmount != null &&
+                                tx.discountAmount! > 0) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.12),
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.12,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   '-${(tx.currency ?? 'L')} ${tx.discountAmount!.toStringAsFixed(0)}',
-                                  style: AppTypography.dmMono(fontSize: 10, color: AppColors.success),
+                                  style: AppTypography.dmMono(
+                                    fontSize: 10,
+                                    color: AppColors.success,
+                                  ),
                                 ),
                               ),
                             ],
@@ -1715,7 +2140,10 @@ class _TransactionsTab extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   tx.invoiceReference!,
-                                  style: AppTypography.dmMono(fontSize: 10, color: AppColors.textMutedDark),
+                                  style: AppTypography.dmMono(
+                                    fontSize: 10,
+                                    color: AppColors.textMutedDark,
+                                  ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -1730,9 +2158,19 @@ class _TransactionsTab extends StatelessWidget {
                     children: [
                       Text(
                         '${isPositive ? '+' : ''}${tx.points}',
-                        style: AppTypography.dmMono(fontSize: 16, fontWeight: FontWeight.w700, color: color),
+                        style: AppTypography.dmMono(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
                       ),
-                      Text('pts', style: AppTypography.dmSans(fontSize: 10, color: AppColors.textMutedDark)),
+                      Text(
+                        'pts',
+                        style: AppTypography.dmSans(
+                          fontSize: 10,
+                          color: AppColors.textMutedDark,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1757,8 +2195,12 @@ class _LocationTab extends StatelessWidget {
     final loc = location;
 
     // Determine the address string to show.
-    final mapLabel = loc?.mapLabel.isNotEmpty == true ? loc!.mapLabel : business.address;
-    final addressLine1 = loc?.addressLine1.isNotEmpty == true ? loc!.addressLine1 : business.address;
+    final mapLabel = loc?.mapLabel.isNotEmpty == true
+        ? loc!.mapLabel
+        : business.address;
+    final addressLine1 = loc?.addressLine1.isNotEmpty == true
+        ? loc!.addressLine1
+        : business.address;
     final city = loc?.city ?? '';
     final country = loc?.country ?? '';
     final postalCode = loc?.postalCode ?? '';
@@ -1770,7 +2212,9 @@ class _LocationTab extends StatelessWidget {
       if (postalCode.isNotEmpty) postalCode,
       if (country.isNotEmpty) country,
     ];
-    final fullAddress = addressParts.isNotEmpty ? addressParts.join(', ') : mapLabel;
+    final fullAddress = addressParts.isNotEmpty
+        ? addressParts.join(', ')
+        : mapLabel;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -1790,14 +2234,19 @@ class _LocationTab extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: business.gradientColors.last.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: business.gradientColors.last.withValues(alpha: 0.3),
+              ),
             ),
             child: Stack(
               children: [
                 // Decorative grid pattern
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: CustomPaint(size: const Size(double.infinity, 200), painter: _MapGridPainter()),
+                  child: CustomPaint(
+                    size: const Size(double.infinity, 200),
+                    painter: _MapGridPainter(),
+                  ),
                 ),
                 // Content
                 Center(
@@ -1816,18 +2265,28 @@ class _LocationTab extends StatelessWidget {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: business.gradientColors.last.withValues(alpha: 0.5),
+                              color: business.gradientColors.last.withValues(
+                                alpha: 0.5,
+                              ),
                               blurRadius: 16,
                               spreadRadius: 2,
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 26),
+                        child: const Icon(
+                          Icons.location_on_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         business.name,
-                        style: AppTypography.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                        style: AppTypography.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 4),
@@ -1874,14 +2333,24 @@ class _LocationTab extends StatelessWidget {
                         color: AppColors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 20),
+                      child: const Icon(
+                        Icons.location_on_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Address', style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                          Text(
+                            'Address',
+                            style: AppTypography.dmSans(
+                              fontSize: 11,
+                              color: AppColors.textMutedDark,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           if (addressLine1.isNotEmpty)
                             Text(
@@ -1896,10 +2365,14 @@ class _LocationTab extends StatelessWidget {
                             Text(
                               [
                                 if (city.isNotEmpty) city,
-                                if (loc?.postalCode.isNotEmpty == true) loc!.postalCode,
+                                if (loc?.postalCode.isNotEmpty == true)
+                                  loc!.postalCode,
                                 if (country.isNotEmpty) country,
                               ].join(', '),
-                              style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark),
+                              style: AppTypography.dmSans(
+                                fontSize: 12,
+                                color: AppColors.textMutedDark,
+                              ),
                             ),
                         ],
                       ),
@@ -1912,27 +2385,41 @@ class _LocationTab extends StatelessWidget {
                             SnackBar(
                               content: Text(
                                 'Address copied',
-                                style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+                                style: AppTypography.dmSans(
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
                               ),
                               backgroundColor: AppColors.cardDark,
                               duration: const Duration(seconds: 2),
                               behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           );
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.copy_rounded, size: 13, color: AppColors.primary),
+                            const Icon(
+                              Icons.copy_rounded,
+                              size: 13,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 5),
                             Text(
                               'Copy',
@@ -1962,12 +2449,17 @@ class _LocationTab extends StatelessWidget {
                   SnackBar(
                     content: Text(
                       'Address copied — paste in Maps to get directions',
-                      style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+                      style: AppTypography.dmSans(
+                        fontSize: 13,
+                        color: Colors.white,
+                      ),
                     ),
                     backgroundColor: AppColors.cardDark,
                     duration: const Duration(seconds: 3),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 );
               },
@@ -1976,12 +2468,17 @@ class _LocationTab extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [business.gradientColors.first.withValues(alpha: 0.7), business.gradientColors.last],
+                    colors: [
+                      business.gradientColors.first.withValues(alpha: 0.7),
+                      business.gradientColors.last,
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: business.gradientColors.last.withValues(alpha: 0.3),
+                      color: business.gradientColors.last.withValues(
+                        alpha: 0.3,
+                      ),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -1990,11 +2487,19 @@ class _LocationTab extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.directions_rounded, color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.directions_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Get Directions',
-                      style: AppTypography.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                      style: AppTypography.dmSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -2035,22 +2540,50 @@ class _InfoTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveAbout = detail?.about.isNotEmpty == true ? detail!.about : business.description;
+    final effectiveAbout = detail?.about.isNotEmpty == true
+        ? detail!.about
+        : business.description;
     final effectivePolicy = detail?.loyaltyPolicy ?? '';
-    final effectivePhone = detail?.phone.isNotEmpty == true ? detail!.phone : business.phone;
-    final effectiveEmail = detail?.email.isNotEmpty == true ? detail!.email : business.email;
-    final effectiveCategory = detail?.categoryLabel.isNotEmpty == true ? detail!.categoryLabel : business.category;
+    final effectivePhone = detail?.phone.isNotEmpty == true
+        ? detail!.phone
+        : business.phone;
+    final effectiveEmail = detail?.email.isNotEmpty == true
+        ? detail!.email
+        : business.email;
+    final effectiveCategory = detail?.categoryLabel.isNotEmpty == true
+        ? detail!.categoryLabel
+        : business.category;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoRow(icon: Icons.info_outline_rounded, label: 'About', value: effectiveAbout),
-          _InfoRow(icon: Icons.phone_outlined, label: 'Phone', value: effectivePhone),
-          _InfoRow(icon: Icons.email_outlined, label: 'Email', value: effectiveEmail),
-          _InfoRow(icon: Icons.category_outlined, label: 'Category', value: effectiveCategory),
-          _InfoRow(icon: Icons.language_rounded, label: 'Website', value: detail?.websiteUrl ?? ''),
+          _InfoRow(
+            icon: Icons.info_outline_rounded,
+            label: 'About',
+            value: effectiveAbout,
+          ),
+          _InfoRow(
+            icon: Icons.phone_outlined,
+            label: 'Phone',
+            value: effectivePhone,
+          ),
+          _InfoRow(
+            icon: Icons.email_outlined,
+            label: 'Email',
+            value: effectiveEmail,
+          ),
+          _InfoRow(
+            icon: Icons.category_outlined,
+            label: 'Category',
+            value: effectiveCategory,
+          ),
+          _InfoRow(
+            icon: Icons.language_rounded,
+            label: 'Website',
+            value: detail?.websiteUrl ?? '',
+          ),
           if (effectivePolicy.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(14),
@@ -2071,7 +2604,11 @@ class _InfoTab extends StatelessWidget {
                           color: AppColors.gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.stars_rounded, color: AppColors.gold, size: 16),
+                        child: const Icon(
+                          Icons.stars_rounded,
+                          color: AppColors.gold,
+                          size: 16,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -2110,20 +2647,33 @@ class _InfoTab extends StatelessWidget {
                 children: [
                   Text(
                     'Loyalty Summary',
-                    style: AppTypography.dmSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textOnDark),
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textOnDark,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Lifetime earned: ${detail!.lifetimeEarned} pts',
-                    style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark),
+                    style: AppTypography.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textMutedDark,
+                    ),
                   ),
                   Text(
                     'Lifetime redeemed: ${detail!.lifetimeRedeemed} pts',
-                    style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark),
+                    style: AppTypography.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textMutedDark,
+                    ),
                   ),
                   Text(
                     'Lifetime expired: ${detail!.lifetimeExpired} pts',
-                    style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark),
+                    style: AppTypography.dmSans(
+                      fontSize: 12,
+                      color: AppColors.textMutedDark,
+                    ),
                   ),
                 ],
               ),
@@ -2136,7 +2686,11 @@ class _InfoTab extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -2169,9 +2723,22 @@ class _InfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTypography.dmSans(fontSize: 11, color: AppColors.textMutedDark)),
+                Text(
+                  label,
+                  style: AppTypography.dmSans(
+                    fontSize: 11,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: AppTypography.dmSans(fontSize: 13, color: AppColors.textOnDark, height: 1.4)),
+                Text(
+                  value,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    color: AppColors.textOnDark,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
@@ -2194,12 +2761,20 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 56, color: AppColors.textMutedDark.withValues(alpha: 0.3)),
+          Icon(
+            icon,
+            size: 56,
+            color: AppColors.textMutedDark.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: AppTypography.dmSans(fontSize: 14, color: AppColors.textMutedDark, height: 1.6),
+            style: AppTypography.dmSans(
+              fontSize: 14,
+              color: AppColors.textMutedDark,
+              height: 1.6,
+            ),
           ),
         ],
       ),

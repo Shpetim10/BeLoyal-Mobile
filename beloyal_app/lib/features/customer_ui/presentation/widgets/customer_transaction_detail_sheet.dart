@@ -80,7 +80,10 @@ class CustomerTransactionDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 24)),
+                  child: Text(
+                    tx.logoEmoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -147,7 +150,10 @@ class CustomerTransactionDetailSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -179,13 +185,15 @@ class CustomerTransactionDetailSheet extends StatelessWidget {
               if (tx.moneyAmount != null && tx.moneyAmount! > 0)
                 _DetailRow(
                   label: 'Amount',
-                  value: '${currencySymbol(tx.currency)} ${tx.moneyAmount!.toStringAsFixed(0)}',
+                  value:
+                      '${currencySymbol(tx.currency)} ${tx.moneyAmount!.toStringAsFixed(0)}',
                   mono: true,
                 ),
               if (tx.billAmount > 0)
                 _DetailRow(
                   label: 'Bill Amount',
-                  value: '${currencySymbol(tx.currency)} ${tx.billAmount.toStringAsFixed(0)}',
+                  value:
+                      '${currencySymbol(tx.currency)} ${tx.billAmount.toStringAsFixed(0)}',
                   mono: true,
                 ),
               if (tx.netAmount > 0)
@@ -204,7 +212,8 @@ class CustomerTransactionDetailSheet extends StatelessWidget {
               if (tx.ruleAmountPer != null && tx.rulePointsPer != null)
                 _DetailRow(
                   label: 'Earning Rule',
-                  value: '${tx.rulePointsPer} pts / ${formatCurrency(tx.ruleAmountPer!, tx.currency)}',
+                  value:
+                      '${tx.rulePointsPer} pts / ${formatCurrency(tx.ruleAmountPer!, tx.currency)}',
                   mono: true,
                 ),
               if (tx.scanMethod?.isNotEmpty == true)
@@ -226,7 +235,11 @@ class CustomerTransactionDetailSheet extends StatelessWidget {
                   value: tx.referenceId!,
                   mono: true,
                 ),
-              _DetailRow(label: 'Transaction ID', value: '#${tx.id}', mono: true),
+              _DetailRow(
+                label: 'Transaction ID',
+                value: '#${tx.id}',
+                mono: true,
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -246,7 +259,9 @@ class _DetailCard extends StatelessWidget {
     for (var i = 0; i < children.length; i++) {
       rows.add(children[i]);
       if (i < children.length - 1) {
-        rows.add(const Divider(height: 1, thickness: 1, color: AppColors.glassBorder));
+        rows.add(
+          const Divider(height: 1, thickness: 1, color: AppColors.glassBorder),
+        );
       }
     }
     return Container(
@@ -282,7 +297,10 @@ class _DetailRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTypography.dmSans(fontSize: 12, color: AppColors.textMutedDark),
+            style: AppTypography.dmSans(
+              fontSize: 12,
+              color: AppColors.textMutedDark,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

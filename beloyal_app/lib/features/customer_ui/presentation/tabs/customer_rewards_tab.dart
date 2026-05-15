@@ -1,15 +1,19 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
+import 'package:besahub_app/features/customer_ui/data/repositories/customer_repository.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_detail_sheet.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_qr_sheet.dart';
 
 enum _RewardTab { all, available, coupons, used }
+
+enum _CouponOwnerTab { myCoupons, allCoupons }
 
 class CustomerRewardsTab extends ConsumerStatefulWidget {
   const CustomerRewardsTab({super.key});
@@ -20,6 +24,7 @@ class CustomerRewardsTab extends ConsumerStatefulWidget {
 
 class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
   _RewardTab _selectedTab = _RewardTab.all;
+  _CouponOwnerTab _couponOwnerTab = _CouponOwnerTab.myCoupons;
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
@@ -71,10 +76,11 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
       next,
     ) {
       if (next is CouponRedemptionSuccess) {
+        final remaining = next.result.remainingBalance;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Coupon added to your wallet! Tap "Use Now" when ready.',
+              'Coupon purchased! $remaining pts remaining',
               style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
             ),
             backgroundColor: AppColors.success,
@@ -113,15 +119,19 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
         onRetry: () => ref.read(customerDataProvider.notifier).refresh(),
       ),
       data: (data) {
-        final filteredCoupons = _filteredCoupons(data.coupons);
+        final couponSource = _couponOwnerTab == _CouponOwnerTab.myCoupons
+            ? data.myCoupons
+            : data.allCoupons;
+        final filteredCoupons = _filteredCoupons(couponSource);
         final filteredRewards = _filteredRewards(data.rewards);
-        final expiringCount = data.coupons
+        final expiringCount = couponSource
             .where((c) => c.status == 'expiring')
             .length;
 
         return Column(
           children: [
             _buildSearchBar(),
+            _buildOwnerTabSwitcher(data.myCoupons.length, data.allCoupons.length),
             _buildFilterTabs(),
             Expanded(
               child: RefreshIndicator(
@@ -197,6 +207,44 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOwnerTabSwitcher(int myCount, int allCount) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _OwnerTabButton(
+                label: 'My Coupons',
+                count: myCount,
+                isSelected: _couponOwnerTab == _CouponOwnerTab.myCoupons,
+                onTap: () =>
+                    setState(() => _couponOwnerTab = _CouponOwnerTab.myCoupons),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _OwnerTabButton(
+                label: 'All Coupons',
+                count: allCount,
+                isSelected: _couponOwnerTab == _CouponOwnerTab.allCoupons,
+                onTap: () => setState(
+                  () => _couponOwnerTab = _CouponOwnerTab.allCoupons,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -482,10 +530,20 @@ class _RewardCard extends StatelessWidget {
 
 // ─── Coupon Card ──────────────────────────────────────────────────────────────
 
-class _CouponCard extends ConsumerWidget {
+class _CouponCard extends ConsumerStatefulWidget {
   const _CouponCard({required this.coupon, this.onDetailTap});
   final CustomerCoupon coupon;
   final VoidCallback? onDetailTap;
+
+  @override
+  ConsumerState<_CouponCard> createState() => _CouponCardState();
+}
+
+class _CouponCardState extends ConsumerState<_CouponCard> {
+  bool _isValidating = false;
+  bool _isWaitingForResult = false;
+
+  CustomerCoupon get coupon => widget.coupon;
 
   Color get _statusColor => switch (coupon.status) {
     'active' => AppColors.success,
@@ -512,17 +570,38 @@ class _CouponCard extends ConsumerWidget {
   };
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    ref.listen<CouponRedemptionState>(customerCouponRedemptionProvider, (
+      _,
+      next,
+    ) {
+      if (!_isWaitingForResult) return;
+      if (next is CouponRedemptionSuccess) {
+        if (mounted) setState(() => _isWaitingForResult = false);
+        CustomerCouponQrSheet.show(
+          context,
+          _buildQrCoupon(coupon, next.result),
+        );
+      } else if (next is CouponRedemptionIdle || next is CouponRedemptionError) {
+        if (mounted) setState(() => _isWaitingForResult = false);
+      }
+    });
+
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
     final expiresAt = DateFormat('MMM d').format(coupon.expiresAt);
     final expiresIn = coupon.expiresIn ?? 'Expires soon';
     final redemptionState = ref.watch(customerCouponRedemptionProvider);
-    final isClaimLoading = redemptionState is CouponRedemptionLoading;
+    final isClaimLoading =
+        (redemptionState is CouponRedemptionLoading) || _isValidating;
 
     return GestureDetector(
-      onTap: onDetailTap,
+      onTap: widget.onDetailTap,
       child: Opacity(
-        opacity: coupon.isUsed || coupon.status == 'expired' ? 0.55 : 1.0,
+        opacity: coupon.canBuyMore
+            ? 1.0
+            : coupon.isUsed || coupon.status == 'expired'
+            ? 0.55
+            : 1.0,
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.cardDark,
@@ -541,7 +620,8 @@ class _CouponCard extends ConsumerWidget {
                 height: 100,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: coupon.isUsed || coupon.status == 'expired'
+                    colors: !coupon.canBuyMore &&
+                            (coupon.isUsed || coupon.status == 'expired')
                         ? [const Color(0xFF374151), const Color(0xFF6B7280)]
                         : coupon.gradientColors,
                     begin: Alignment.topCenter,
@@ -646,11 +726,17 @@ class _CouponCard extends ConsumerWidget {
                       Row(
                         children: [
                           if (coupon.status == 'expiring')
-                            Icon(Icons.local_fire_department_rounded,
-                                size: 11, color: AppColors.error)
+                            Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 11,
+                              color: AppColors.error,
+                            )
                           else
-                            const Icon(Icons.calendar_today_rounded,
-                                size: 11, color: AppColors.textMutedDark),
+                            const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 11,
+                              color: AppColors.textMutedDark,
+                            ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -669,24 +755,43 @@ class _CouponCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          if (isActive)
+                          // "Use Now" — show QR for an owned, not-yet-used instance
+                          if (isActive && coupon.isOwned && !coupon.isUsed) ...[
                             GestureDetector(
-                              onTap: coupon.isOwned
-                                  ? () => CustomerCouponQrSheet.show(
-                                      context,
-                                      coupon,
-                                    )
-                                  : isClaimLoading
+                              onTap: () =>
+                                  CustomerCouponQrSheet.show(context, coupon),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      AppColors.primaryDark,
+                                      AppColors.primary,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'Use Now',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (coupon.canBuyMore) const SizedBox(width: 6),
+                          ],
+                          // "Buy More" — shown whenever per-customer limit allows it
+                          if (coupon.canBuyMore)
+                            GestureDetector(
+                              onTap: isClaimLoading
                                   ? null
-                                  : () => ref
-                                        .read(
-                                          customerCouponRedemptionProvider
-                                              .notifier,
-                                        )
-                                        .redeemCoupon(
-                                          couponId: coupon.id,
-                                          couponTitle: coupon.title,
-                                        ),
+                                  : () => _confirmAndClaim(context),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 150),
                                 padding: const EdgeInsets.symmetric(
@@ -694,20 +799,23 @@ class _CouponCard extends ConsumerWidget {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  gradient: (isClaimLoading && !coupon.isOwned)
+                                  gradient: isClaimLoading
                                       ? null
                                       : const LinearGradient(
                                           colors: [
-                                            AppColors.primaryDark,
-                                            AppColors.primary,
+                                            Color(0xFF1D4ED8),
+                                            Color(0xFF2563EB),
                                           ],
                                         ),
-                                  color: (isClaimLoading && !coupon.isOwned)
+                                  color: isClaimLoading
                                       ? AppColors.cardDark
                                       : null,
                                   borderRadius: BorderRadius.circular(10),
+                                  border: isClaimLoading
+                                      ? Border.all(color: AppColors.glassBorder)
+                                      : null,
                                 ),
-                                child: isClaimLoading && !coupon.isOwned
+                                child: isClaimLoading
                                     ? const SizedBox(
                                         width: 12,
                                         height: 12,
@@ -719,7 +827,57 @@ class _CouponCard extends ConsumerWidget {
                                         ),
                                       )
                                     : Text(
-                                        coupon.isOwned ? 'Use Now' : 'Claim',
+                                        coupon.isOwned ? 'Buy More' : 'Claim',
+                                        style: AppTypography.dmSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                              ),
+                            )
+                          // "Claim" — unowned coupon, not yet purchased
+                          else if (isActive && !coupon.isOwned)
+                            GestureDetector(
+                              onTap: isClaimLoading
+                                  ? null
+                                  : () => _confirmAndClaim(context),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: isClaimLoading
+                                      ? null
+                                      : const LinearGradient(
+                                          colors: [
+                                            AppColors.primaryDark,
+                                            AppColors.primary,
+                                          ],
+                                        ),
+                                  color: isClaimLoading
+                                      ? AppColors.cardDark
+                                      : null,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: isClaimLoading
+                                      ? Border.all(color: AppColors.glassBorder)
+                                      : null,
+                                ),
+                                child: isClaimLoading
+                                    ? const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                          valueColor: AlwaysStoppedAnimation(
+                                            AppColors.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        'Claim',
                                         style: AppTypography.dmSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
@@ -738,6 +896,455 @@ class _CouponCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmAndClaim(BuildContext context) async {
+    if (_isValidating) return;
+    setState(() => _isValidating = true);
+
+    final messenger = ScaffoldMessenger.of(context);
+
+    ValidateRedemptionDto? validation;
+    String? networkError;
+    try {
+      validation = await ref
+          .read(customerRepositoryProvider)
+          .validateRedemption(coupon.id);
+      if (!mounted) return;
+      if (validation.canRedeem == false) {
+        setState(() => _isValidating = false);
+        final reason = validation.reason?.isNotEmpty == true
+            ? validation.reason!
+            : 'This coupon is no longer available.';
+        final isInsufficientPoints =
+            reason.toLowerCase().contains('insufficient') ||
+            reason.toLowerCase().contains('points') ||
+            reason.toLowerCase().contains('balance');
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              isInsufficientPoints
+                  ? '$reason Earn more points by visiting this business.'
+                  : reason,
+              style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        ref.read(customerDataProvider.notifier).refresh();
+        return;
+      }
+    } on DioException {
+      networkError =
+          'Could not verify eligibility. Please check your connection.';
+    } catch (_) {
+      networkError =
+          'Could not verify eligibility. Please check your connection.';
+    }
+
+    if (!mounted) return;
+    setState(() => _isValidating = false);
+
+    final confirmed = await _RewardsClaimDialog.show(
+      context, // ignore: use_build_context_synchronously
+      coupon,
+      validation: validation,
+      networkError: networkError,
+    );
+    if (confirmed == true && mounted) {
+      setState(() => _isWaitingForResult = true);
+      ref
+          .read(customerCouponRedemptionProvider.notifier)
+          .redeemCoupon(couponId: coupon.id, couponTitle: coupon.title);
+    }
+  }
+
+  CustomerCoupon _buildQrCoupon(
+    CustomerCoupon original,
+    CustomerCouponRedemptionDto result,
+  ) {
+    final expiresAt = result.expiresAt != null
+        ? DateTime.tryParse(result.expiresAt!) ?? original.expiresAt
+        : original.expiresAt;
+    final now = DateTime.now();
+    String? expiresIn;
+    if (expiresAt.isAfter(now)) {
+      final hours = expiresAt.difference(now).inHours;
+      expiresIn = hours < 24
+          ? 'Expires in ${hours}h'
+          : 'Expires in ${expiresAt.difference(now).inDays}d';
+    }
+    return CustomerCoupon(
+      id: result.couponId,
+      businessId: original.businessId,
+      businessName: original.businessName,
+      title: result.snapshotTitle,
+      discountValue: original.discountValue,
+      discountDisplay: original.discountDisplay,
+      status: 'active',
+      expiresAt: expiresAt,
+      pointCost: result.pointsSpent,
+      gradientColors: original.gradientColors,
+      type: result.snapshotCouponType,
+      isUsed: false,
+      description: result.snapshotDescription,
+      expiresIn: expiresIn,
+      termsAndConditions: original.termsAndConditions,
+      usageLimit: original.usageLimit,
+      usageCount: original.usageCount,
+      customerRedemptionCount: original.customerRedemptionCount + 1,
+      isOwned: true,
+      imageUrl: result.snapshotImageUrl ?? original.imageUrl,
+      currency: result.currency ?? original.currency,
+      customerCouponId: result.customerCouponId,
+      isFeatured: original.isFeatured,
+      totalRedemptions: original.totalRedemptions,
+      totalRedemptionLimit: original.totalRedemptionLimit,
+      minimumOrderAmount: original.minimumOrderAmount,
+      maximumDiscountAmount: original.maximumDiscountAmount,
+      freeProductName: original.freeProductName,
+      freeProductVariant: original.freeProductVariant,
+      freeProductCategory: original.freeProductCategory,
+      freeProductQuantity: original.freeProductQuantity,
+      redeemedAt: result.redeemedAt != null
+          ? DateTime.tryParse(result.redeemedAt!)
+          : null,
+      qrCode: result.qrCode,
+    );
+  }
+}
+
+// ─── Rewards Claim Confirmation Dialog ───────────────────────────────────────
+
+class _RewardsClaimDialog {
+  const _RewardsClaimDialog._();
+
+  static Future<bool?> show(
+    BuildContext context,
+    CustomerCoupon coupon, {
+    ValidateRedemptionDto? validation,
+    String? networkError,
+  }) {
+    final balanceBefore = validation?.customerBalance;
+    final cost = validation?.pointsRequired ?? coupon.pointCost;
+    final balanceAfter =
+        balanceBefore != null ? balanceBefore - cost : null;
+
+    return showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: 28,
+          vertical: 40,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.glassBorder),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                blurRadius: 32,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 5,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryDark, AppColors.primary],
+                  ),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 22, 22, 26),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primaryDark, AppColors.primary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.confirmation_number_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Confirm Purchase',
+                      style: AppTypography.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textOnDark,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      coupon.title,
+                      style: AppTypography.dmSans(
+                        fontSize: 13,
+                        color: AppColors.textMutedDark,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 18),
+                    // Cost row
+                    _DialogRow(
+                      icon: Icons.toll_rounded,
+                      label: 'Cost',
+                      value: '$cost pts',
+                      valueColor: AppColors.primary,
+                      valueBold: true,
+                    ),
+                    if (balanceBefore != null) ...[
+                      const SizedBox(height: 8),
+                      _DialogRow(
+                        icon: Icons.account_balance_wallet_rounded,
+                        label: 'Balance',
+                        value:
+                            '$balanceBefore pts → ${balanceAfter! < 0 ? 0 : balanceAfter} pts',
+                        valueColor: AppColors.textMutedDark,
+                      ),
+                    ],
+                    if (coupon.usageLimit != null) ...[
+                      const SizedBox(height: 8),
+                      _DialogRow(
+                        icon: Icons.repeat_rounded,
+                        label: 'Your usage',
+                        value:
+                            '${coupon.customerRedemptionCount}/${coupon.usageLimit}',
+                        valueColor: AppColors.textMutedDark,
+                      ),
+                    ],
+                    if (coupon.termsAndConditions.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Terms: ${coupon.termsAndConditions}',
+                        style: AppTypography.dmSans(
+                          fontSize: 11,
+                          color: AppColors.textMutedDark,
+                          height: 1.4,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (coupon.isOwned) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 13,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'You already own this coupon. Buying again adds another.',
+                              style: AppTypography.dmSans(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (networkError != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.warning.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.wifi_off_rounded,
+                              size: 13,
+                              color: AppColors.warning,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                networkError,
+                                style: AppTypography.dmSans(
+                                  fontSize: 11,
+                                  color: AppColors.warning,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(false),
+                            child: Container(
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: AppColors.cardDark,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: AppColors.glassBorder,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Cancel',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textMutedDark,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: networkError != null
+                                ? null
+                                : () => Navigator.of(context).pop(true),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              height: 46,
+                              decoration: BoxDecoration(
+                                gradient: networkError != null
+                                    ? null
+                                    : const LinearGradient(
+                                        colors: [
+                                          AppColors.primaryDark,
+                                          AppColors.primary,
+                                        ],
+                                      ),
+                                color: networkError != null
+                                    ? AppColors.cardDark
+                                    : null,
+                                borderRadius: BorderRadius.circular(14),
+                                border: networkError != null
+                                    ? Border.all(color: AppColors.glassBorder)
+                                    : null,
+                                boxShadow: networkError != null
+                                    ? null
+                                    : [
+                                        BoxShadow(
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Confirm Buy',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: networkError != null
+                                        ? AppColors.textMutedDark
+                                        : Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogRow extends StatelessWidget {
+  const _DialogRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.valueBold = false,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool valueBold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.textMutedDark),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: AppTypography.dmSans(
+            fontSize: 13,
+            color: AppColors.textMutedDark,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: AppTypography.dmSans(
+            fontSize: 13,
+            fontWeight: valueBold ? FontWeight.w700 : FontWeight.w500,
+            color: valueColor ?? AppColors.textOnDark,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -759,6 +1366,71 @@ class _DashedLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _OwnerTabButton extends StatelessWidget {
+  const _OwnerTabButton({
+    required this.label,
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color:
+                      isSelected ? Colors.white : AppColors.textMutedDark,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : AppColors.glassBorder,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: AppTypography.dmSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.textMutedDark,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyCoupons extends StatelessWidget {

@@ -53,8 +53,11 @@ final customerCouponDetailProvider = FutureProvider.autoDispose
       final promotionDto = await repo.fetchCouponDetails(couponId);
 
       // Map the DTO to CustomerCoupon with the full detail data
-      final expiresAt = promotionDto.expiresAt ?? DateTime.now().add(const Duration(days: 30));
-      final expiresIn = promotionDto.expiresIn ?? _calculateExpiresIn(expiresAt);
+      final expiresAt =
+          promotionDto.expiresAt ??
+          DateTime.now().add(const Duration(days: 30));
+      final expiresIn =
+          promotionDto.expiresIn ?? _calculateExpiresIn(expiresAt);
 
       return CustomerCoupon(
         id: promotionDto.id,
@@ -74,6 +77,7 @@ final customerCouponDetailProvider = FutureProvider.autoDispose
         termsAndConditions: promotionDto.termsAndConditions ?? '',
         usageLimit: promotionDto.usageLimit,
         usageCount: promotionDto.usageCount,
+        customerRedemptionCount: promotionDto.customerRedemptionCount,
         isHot: promotionDto.isHot,
         isOwned: promotionDto.isOwned,
         imageUrl: promotionDto.imageUrl,
@@ -89,10 +93,16 @@ final customerCouponDetailProvider = FutureProvider.autoDispose
         freeProductName: promotionDto.freeProductName,
         freeProductVariant: promotionDto.freeProductVariant,
         freeProductQuantity: promotionDto.freeProductQuantity,
-        redeemedAt: promotionDto.redeemedAt != null ? DateTime.tryParse(promotionDto.redeemedAt!) : null,
-        usedAt: promotionDto.usedAt != null ? DateTime.tryParse(promotionDto.usedAt!) : null,
+        redeemedAt: promotionDto.redeemedAt != null
+            ? DateTime.tryParse(promotionDto.redeemedAt!)
+            : null,
+        usedAt: promotionDto.usedAt != null
+            ? DateTime.tryParse(promotionDto.usedAt!)
+            : null,
         orderId: promotionDto.orderId,
         qrCode: promotionDto.qrCode,
+        canRedeem: promotionDto.canRedeem,
+        cannotRedeemReason: promotionDto.cannotRedeemReason,
       );
     });
 
@@ -258,7 +268,54 @@ class CustomerCouponRedemptionNotifier extends Notifier<CouponRedemptionState> {
       }
       return 'This coupon is no longer available.';
     }
-    if (status == 400) return 'Invalid request. Please try again.';
+    if (status == 400) {
+      final body = e.response?.data;
+      final errorKey = body is Map<String, dynamic>
+          ? (body['errorKey']?.toString() ?? body['code']?.toString() ?? '')
+          : '';
+      final rawPts = body is Map<String, dynamic>
+          ? (body['pointsRequired'] ?? body['pointsCost'] ?? body['pointCost'])
+          : null;
+      final pts = rawPts is num ? rawPts.toInt() : 0;
+      switch (errorKey) {
+        case 'CouponNotActive':
+          return 'This coupon is no longer available.';
+        case 'CouponExpired':
+          return 'This coupon has expired.';
+        case 'CouponSoldOut':
+          return 'This coupon is sold out.';
+        case 'CustomerRedemptionLimitReached':
+          return "You've reached your purchase limit for this coupon.";
+        case 'InsufficientPoints':
+          return pts > 0
+              ? "You don't have enough points. Required: $pts pts."
+              : "You don't have enough points.";
+        default:
+          if (message != null) {
+            if (message.contains('sold out') || message.contains('SoldOut')) {
+              return 'This coupon is sold out.';
+            }
+            if (message.contains('limit') &&
+                (message.contains('customer') ||
+                    message.contains('personal'))) {
+              return "You've reached your purchase limit for this coupon.";
+            }
+            if (message.contains('expired') || message.contains('Expired')) {
+              return 'This coupon has expired.';
+            }
+            if (message.contains('not active') ||
+                message.contains('NotActive')) {
+              return 'This coupon is no longer available.';
+            }
+            if (message.contains('points') || message.contains('balance')) {
+              return pts > 0
+                  ? "You don't have enough points. Required: $pts pts."
+                  : "You don't have enough points.";
+            }
+          }
+          return 'Invalid request. Please try again.';
+      }
+    }
     if (status == 404) return 'Coupon not found.';
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||

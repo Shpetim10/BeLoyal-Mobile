@@ -83,12 +83,11 @@ CustomerBusinessDetail mapBusinessDetailDto(CustomerBusinessDetailDto dto) {
   final coupons = dto.coupons.map((p) => _mapPromotion(p, bizMap)).toList();
 
   // Derive business currency early so transactions carry it.
-  final businessCurrencyEarly =
-      dto.catalog.variants.isNotEmpty
-          ? dto.catalog.variants.first.currency
-          : dto.catalog.items.isNotEmpty
-          ? dto.catalog.items.first.currency
-          : 'ALL';
+  final businessCurrencyEarly = dto.catalog.variants.isNotEmpty
+      ? dto.catalog.variants.first.currency
+      : dto.catalog.items.isNotEmpty
+      ? dto.catalog.items.first.currency
+      : 'ALL';
 
   final transactions = dto.transactions
       .map((t) => _mapTransaction(t, bizMap, businessCurrencyEarly))
@@ -338,6 +337,7 @@ class CustomerDataSource {
                   termsAndConditions: coupon.termsAndConditions,
                   usageLimit: coupon.usageLimit,
                   usageCount: coupon.usageCount,
+                  customerRedemptionCount: coupon.customerRedemptionCount,
                   isHot: coupon.isHot,
                   multiplierLabel: coupon.multiplierLabel,
                   isOwned: true,
@@ -358,6 +358,8 @@ class CustomerDataSource {
                   usedAt: coupon.usedAt,
                   orderId: coupon.orderId,
                   qrCode: coupon.qrCode,
+                  canRedeem: coupon.canRedeem,
+                  cannotRedeemReason: coupon.cannotRedeemReason,
                 ),
               )
               .toList();
@@ -485,6 +487,7 @@ CustomerCoupon _mapPromotion(
     termsAndConditions: dto.termsAndConditions ?? '',
     usageLimit: dto.usageLimit,
     usageCount: dto.usageCount,
+    customerRedemptionCount: dto.customerRedemptionCount,
     isHot: dto.isHot,
     isOwned: dto.isOwned,
     imageUrl: dto.imageUrl,
@@ -506,6 +509,8 @@ CustomerCoupon _mapPromotion(
     usedAt: dto.usedAt != null ? DateTime.tryParse(dto.usedAt!) : null,
     orderId: dto.orderId,
     qrCode: (qrCodeOverride?.isNotEmpty == true) ? qrCodeOverride : dto.qrCode,
+    canRedeem: dto.canRedeem,
+    cannotRedeemReason: dto.cannotRedeemReason,
   );
 }
 

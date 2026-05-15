@@ -317,6 +317,7 @@ class CustomerPromotionDto {
     required this.usageCount,
     required this.isFeatured,
     required this.totalRedemptions,
+    required this.customerRedemptionCount,
     this.customerCouponId,
     this.discountValue,
     this.usageLimit,
@@ -337,6 +338,8 @@ class CustomerPromotionDto {
     this.usedAt,
     this.orderId,
     this.qrCode,
+    this.canRedeem,
+    this.cannotRedeemReason,
   });
 
   final int id;
@@ -352,12 +355,16 @@ class CustomerPromotionDto {
   final bool isUsed;
   final bool isOwned;
   final bool hasOwnershipSignal;
+  // usageCount: how many times a specific owned coupon instance has been scanned/used.
   final int usageCount;
   final bool isFeatured;
   final int totalRedemptions;
+  // customerRedemptionCount: how many times THIS customer has PURCHASED this coupon template.
+  final int customerRedemptionCount;
   // customerCouponId is the customer-specific coupon record ID; used for redeem/use endpoints
   final int? customerCouponId;
   final double? discountValue;
+  // usageLimit = per-customer purchase limit (also returned as perCustomerRedemptionLimit).
   final int? usageLimit;
   final DateTime? expiresAt;
   final String? expiresIn;
@@ -376,6 +383,9 @@ class CustomerPromotionDto {
   final String? usedAt;
   final String? orderId;
   final String? qrCode;
+  // canRedeem / cannotRedeemReason: backend-computed gate (available-coupons endpoint only).
+  final bool? canRedeem;
+  final String? cannotRedeemReason;
 
   factory CustomerPromotionDto.fromJson(Map<String, dynamic> json) {
     final hasOwnershipSignal =
@@ -384,16 +394,23 @@ class CustomerPromotionDto {
         json.containsKey('belongsToCustomer') ||
         json.containsKey('claimedByCustomer');
 
+    // perCustomerRedemptionLimit (available-coupons) is the same concept as usageLimit.
+    final rawUsageLimit =
+        json['usageLimit'] ?? json['perCustomerRedemptionLimit'];
+
     return CustomerPromotionDto(
-      id: _asInt(json['id']),
+      id: _asInt(json['id'] ?? json['couponId']),
       businessId: _asInt(json['businessId']),
       businessName: _asString(json['businessName']),
       title: _asString(json['title']),
       description: _asString(json['description']),
-      promotionType: _asString(json['promotionType'], 'FREE_PRODUCT'),
+      promotionType: _asString(
+        json['promotionType'] ?? json['type'],
+        'FREE_PRODUCT',
+      ),
       status: _asString(json['status'], 'ACTIVE'),
       discountDisplay: _asString(json['discountDisplay']),
-      pointCost: _asInt(json['pointCost']),
+      pointCost: _asInt(json['pointCost'] ?? json['pointsCost']),
       isHot: _asBool(json['isHot']),
       isUsed: _asBool(json['isUsed']),
       isOwned:
@@ -405,14 +422,13 @@ class CustomerPromotionDto {
       usageCount: _asInt(json['usageCount']),
       isFeatured: _asBool(json['isFeatured']),
       totalRedemptions: _asInt(json['totalRedemptions']),
+      customerRedemptionCount: _asInt(json['customerRedemptionCount']),
       customerCouponId: json['customerCouponId'] == null
           ? null
           : _asInt(json['customerCouponId']),
       discountValue: _asDoubleOrNull(json['discountValue']),
-      usageLimit: json['usageLimit'] == null
-          ? null
-          : _asInt(json['usageLimit']),
-      expiresAt: _parseLocalDateTime(json['expiresAt']),
+      usageLimit: rawUsageLimit == null ? null : _asInt(rawUsageLimit),
+      expiresAt: _parseLocalDateTime(json['expiresAt'] ?? json['endDate']),
       expiresIn: json['expiresIn']?.toString(),
       termsAndConditions: json['termsAndConditions']?.toString(),
       imageUrl: json['imageUrl']?.toString(),
@@ -433,6 +449,10 @@ class CustomerPromotionDto {
       usedAt: json['usedAt']?.toString(),
       orderId: json['orderId']?.toString(),
       qrCode: json['qrCode']?.toString(),
+      canRedeem: json.containsKey('canRedeem')
+          ? _asBool(json['canRedeem'], true)
+          : null,
+      cannotRedeemReason: json['cannotRedeemReason']?.toString(),
     );
   }
 }
@@ -485,7 +505,7 @@ class CustomerTransactionDto {
       if (v == null) return null;
       if (v is String) return DateTime.tryParse(v);
       if (v is List && v.isNotEmpty) {
-        int year = v.length > 0 ? (v[0] as num).toInt() : 1970;
+        int year = (v[0] as num).toInt();
         int month = v.length > 1 ? (v[1] as num).toInt() : 1;
         int day = v.length > 2 ? (v[2] as num).toInt() : 1;
         int hour = v.length > 3 ? (v[3] as num).toInt() : 0;
@@ -939,6 +959,59 @@ class CustomerBusinessDetailDto {
         json['transactions'],
       ).map((e) => CustomerTransactionDto.fromJson(_asMap(e))).toList(),
       details: CustomerBusinessDetailsInfoDto.fromJson(_asMap(json['details'])),
+    );
+  }
+}
+
+// ─── Validate Redemption DTO ─────────────────────────────────────────────────
+// Returned by POST /api/besahub/customer/coupons/{couponId}/validate-redemption
+
+class ValidateRedemptionDto {
+  const ValidateRedemptionDto({
+    required this.canRedeem,
+    required this.pointsRequired,
+    required this.customerBalance,
+    this.reason,
+  });
+
+  final bool canRedeem;
+  final int pointsRequired;
+  final int customerBalance;
+  final String? reason;
+
+  factory ValidateRedemptionDto.fromJson(Map<String, dynamic> json) {
+    return ValidateRedemptionDto(
+      canRedeem: _asBool(json['canRedeem'], true),
+      pointsRequired: _asInt(
+        json['pointsRequired'] ?? json['pointsCost'] ?? json['pointCost'],
+      ),
+      customerBalance: _asInt(json['customerBalance']),
+      reason: json['reason']?.toString(),
+    );
+  }
+}
+
+// ─── Available Coupons Response DTO ──────────────────────────────────────────
+// Returned by GET /api/besahub/customer/businesses/{businessId}/available-coupons
+
+class AvailableCouponsDto {
+  const AvailableCouponsDto({
+    required this.customerPointBalance,
+    required this.businessCurrency,
+    required this.coupons,
+  });
+
+  final int customerPointBalance;
+  final String businessCurrency;
+  final List<CustomerPromotionDto> coupons;
+
+  factory AvailableCouponsDto.fromJson(Map<String, dynamic> json) {
+    return AvailableCouponsDto(
+      customerPointBalance: _asInt(json['customerPointBalance']),
+      businessCurrency: _asString(json['businessCurrency'], 'ALL'),
+      coupons: _asList(
+        json['coupons'],
+      ).map((e) => CustomerPromotionDto.fromJson(_asMap(e))).toList(),
     );
   }
 }

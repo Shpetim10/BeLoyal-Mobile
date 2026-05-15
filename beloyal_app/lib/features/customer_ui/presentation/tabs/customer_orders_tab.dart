@@ -249,9 +249,13 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
                                   // business detail cache if already loaded;
                                   // the home endpoint returns sparse fields.
                                   final detailState = ref.read(
-                                    customerBusinessDetailProvider(tx.businessId),
+                                    customerBusinessDetailProvider(
+                                      tx.businessId,
+                                    ),
                                   );
-                                  final richTx = detailState.asData?.value
+                                  final richTx = detailState
+                                      .asData
+                                      ?.value
                                       .transactions
                                       .where((t) => t.id == tx.id)
                                       .firstOrNull;
@@ -364,124 +368,124 @@ class _TxCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _typeColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _typeColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 20)),
+              ),
             ),
-            child: Center(
-              child: Text(tx.logoEmoji, style: const TextStyle(fontSize: 20)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tx.businessName,
-                  style: AppTypography.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textOnDark,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tx.businessName,
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textOnDark,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  tx.description,
-                  style: AppTypography.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textMutedDark,
-                    height: 1.3,
+                  const SizedBox(height: 2),
+                  Text(
+                    tx.description,
+                    style: AppTypography.dmSans(
+                      fontSize: 11,
+                      color: AppColors.textMutedDark,
+                      height: 1.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _typeColor.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(_typeIcon, size: 9, color: _typeColor),
-                          const SizedBox(width: 3),
-                          Text(
-                            _typeLabel,
-                            style: AppTypography.dmSans(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: _typeColor,
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _typeColor.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_typeIcon, size: 9, color: _typeColor),
+                            const SizedBox(width: 3),
+                            Text(
+                              _typeLabel,
+                              style: AppTypography.dmSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: _typeColor,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      timeFmt.format(tx.date),
-                      style: AppTypography.dmSans(
-                        fontSize: 10,
-                        color: AppColors.textMutedDark,
-                      ),
-                    ),
-                    if (tx.billAmount > 0) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Text(
-                        '· ${formatCurrency(tx.billAmount, tx.currency)}',
-                        style: AppTypography.dmMono(
+                        timeFmt.format(tx.date),
+                        style: AppTypography.dmSans(
                           fontSize: 10,
                           color: AppColors.textMutedDark,
                         ),
                       ),
+                      if (tx.billAmount > 0) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '· ${formatCurrency(tx.billAmount, tx.currency)}',
+                          style: AppTypography.dmMono(
+                            fontSize: 10,
+                            color: AppColors.textMutedDark,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${isPositive ? '+' : ''}${tx.points}',
+                  style: AppTypography.dmMono(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: _typeColor,
+                  ),
+                ),
+                Text(
+                  'pts',
+                  style: AppTypography.dmSans(
+                    fontSize: 10,
+                    color: AppColors.textMutedDark,
+                  ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${isPositive ? '+' : ''}${tx.points}',
-                style: AppTypography.dmMono(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: _typeColor,
-                ),
-              ),
-              Text(
-                'pts',
-                style: AppTypography.dmSans(
-                  fontSize: 10,
-                  color: AppColors.textMutedDark,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 }
