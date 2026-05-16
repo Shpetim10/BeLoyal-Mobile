@@ -341,6 +341,10 @@ class CustomerPromotionDto {
     this.qrCode,
     this.canRedeem,
     this.cannotRedeemReason,
+    this.currencyCode,
+    this.currencySymbol,
+    this.canUse,
+    this.cannotUseReason,
   });
 
   // sourceId is the raw `id` value from the payload row (customer-coupon row id
@@ -392,6 +396,13 @@ class CustomerPromotionDto {
   // canRedeem / cannotRedeemReason: backend-computed gate (available-coupons endpoint only).
   final bool? canRedeem;
   final String? cannotRedeemReason;
+  // Structured currency fields — prefer currencySymbol for display when set.
+  final String? currencyCode;
+  final String? currencySymbol;
+  // canUse / cannotUseReason: backend gate for whether an owned coupon instance
+  // can be used at checkout (distinct from canRedeem which gates new purchases).
+  final bool? canUse;
+  final String? cannotUseReason;
 
   factory CustomerPromotionDto.fromJson(Map<String, dynamic> json) {
     final hasOwnershipSignal =
@@ -423,10 +434,11 @@ class CustomerPromotionDto {
       title: _asString(json['title']),
       description: _asString(json['description']),
       promotionType: _asString(
-        json['promotionType'] ?? json['type'] ?? json['snapshotCouponType'],
+        json['type'] ?? json['promotionType'] ?? json['snapshotCouponType'],
         'FREE_PRODUCT',
       ),
-      status: _asString(json['status'], 'ACTIVE'),
+      // Prefer backend-computed displayStatus (canonical) over raw status.
+      status: _asString(json['displayStatus'] ?? json['status'], 'ACTIVE'),
       discountDisplay: _asString(json['discountDisplay']),
       // Canonical name is `pointCost` (R3); `pointsCost` retained as fallback.
       pointCost: _asInt(json['pointCost'] ?? json['pointsCost']),
@@ -480,6 +492,14 @@ class CustomerPromotionDto {
           ? _asBool(json['canRedeem'], true)
           : null,
       cannotRedeemReason: json['cannotRedeemReason']?.toString(),
+      // Prefer explicit currencyCode; fall back to generic currency field.
+      currencyCode:
+          json['currencyCode']?.toString() ?? json['currency']?.toString(),
+      currencySymbol: json['currencySymbol']?.toString(),
+      canUse: json.containsKey('canUse')
+          ? _asBool(json['canUse'], true)
+          : null,
+      cannotUseReason: json['cannotUseReason']?.toString(),
     );
   }
 }

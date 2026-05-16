@@ -87,8 +87,11 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
 
   String get _typeLabel => couponTypeLabel(_coupon.type);
 
-  String _formatCouponMoney(double value, String? currency) {
-    final symbol = currencySymbol(currency);
+  // Prefer backend-provided currencySymbol (e.g. "€") over utility conversion.
+  String _formatCouponMoney(double value) {
+    final symbol = _coupon.currencySymbol?.isNotEmpty == true
+        ? _coupon.currencySymbol!
+        : currencySymbol(_coupon.currencyCode ?? _coupon.currency);
     final fixed = value % 1 == 0
         ? value.toStringAsFixed(0)
         : value.toStringAsFixed(2);
@@ -223,7 +226,45 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            // ── canUse warning ─────────────────────────────────────────────
+            if (_coupon.canUse == false &&
+                _coupon.cannotUseReason?.isNotEmpty == true)
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.28),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 15,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _coupon.cannotUseReason!,
+                        style: AppTypography.dmSans(
+                          fontSize: 12,
+                          color: AppColors.warning,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
             // ── Discount / free-product details ────────────────────────────
             _buildDetailsCard(),
             const SizedBox(height: 16),
@@ -260,40 +301,8 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
   }
 
   Widget _buildQrPanel(bool hasQr) {
-    if (!hasQr || _coupon.qrCode?.isEmpty != false) {
-      return Container(
-        width: 220,
-        height: 220,
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.qr_code_rounded,
-              size: 48,
-              color: AppColors.textMutedDark,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'QR code unavailable.\nPlease show your coupon\ndetails to staff.',
-              textAlign: TextAlign.center,
-              style: AppTypography.dmSans(
-                fontSize: 12,
-                color: AppColors.textMutedDark,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     final qrCode = _coupon.qrCode;
-    if (qrCode == null || qrCode.isEmpty) {
+    if (!hasQr || qrCode == null || qrCode.isEmpty) {
       return Container(
         width: 220,
         height: 220,
@@ -412,10 +421,7 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
             _DetailRow(
               icon: Icons.shopping_cart_outlined,
               label: 'Min. Order',
-              value: _formatCouponMoney(
-                _coupon.minimumOrderAmount!,
-                _coupon.currency,
-              ),
+              value: _formatCouponMoney(_coupon.minimumOrderAmount!),
             ),
           ],
           if (!isFreeProduct &&
@@ -425,10 +431,7 @@ class _CustomerCouponQrSheetState extends ConsumerState<CustomerCouponQrSheet>
             _DetailRow(
               icon: Icons.calculate_outlined,
               label: 'Max Discount',
-              value: _formatCouponMoney(
-                _coupon.maximumDiscountAmount!,
-                _coupon.currency,
-              ),
+              value: _formatCouponMoney(_coupon.maximumDiscountAmount!),
               valueColor: AppColors.success,
             ),
           ],

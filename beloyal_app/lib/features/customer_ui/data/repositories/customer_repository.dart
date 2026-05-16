@@ -67,6 +67,11 @@ class CustomerRepository {
     await _dio.patch('/customer/me', data: {'notificationEnabled': enabled});
   }
 
+  // NOTE: /customer/my-coupons, /customer/home promotions, and
+  // /customer/businesses/{id} coupons all return plain List<> arrays.
+  // Pagination is not yet implemented on the backend; these endpoints return
+  // the full result set. When pagination is added, a cursor/page parameter will
+  // be introduced and these callers will need to be updated.
   Future<List<CustomerPromotionDto>> fetchMyCoupons() async {
     final response = await _dio.get('/customer/my-coupons');
     final list = response.data as List? ?? [];
@@ -93,6 +98,15 @@ class CustomerRepository {
 
   Future<CustomerPromotionDto> fetchCouponDetails(int couponId) async {
     final response = await _dio.get('/customer/coupons/$couponId');
+    return CustomerPromotionDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CustomerPromotionDto> fetchCustomerCouponById(
+    int customerCouponId,
+  ) async {
+    final response = await _dio.get(
+      '/customer/customer-coupons/$customerCouponId',
+    );
     return CustomerPromotionDto.fromJson(response.data as Map<String, dynamic>);
   }
 }

@@ -244,6 +244,7 @@ class CustomerDataSource {
     required this.categories,
     required this.businesses,
     required this.coupons,
+    required this.ownedCoupons,
     required this.rewards,
     required this.transactions,
   });
@@ -251,15 +252,21 @@ class CustomerDataSource {
   final CustomerProfile summary;
   final List<CustomerCategory> categories;
   final List<CustomerBusiness> businesses;
+  // Home promotions (template/public view, with deduplication). Used for the
+  // "All Coupons" tab, home carousels, and hot offers.
   final List<CustomerCoupon> coupons;
+  // Individual owned instances from /my-coupons — each customerCouponId is
+  // preserved. No deduplication by couponId; the customer may own several copies.
+  final List<CustomerCoupon> ownedCoupons;
   final List<CustomerReward> rewards;
   final List<CustomerTransaction> transactions;
 
   List<CustomerBusiness> get businessesWithPoints =>
       businesses.where((b) => b.points > 0).toList();
 
-  List<CustomerCoupon> get myCoupons =>
-      coupons.where((c) => c.isOwned).toList();
+  // Returns each individually-owned coupon instance from /my-coupons so the
+  // customer sees every copy they purchased, each with its own QR and status.
+  List<CustomerCoupon> get myCoupons => ownedCoupons;
 
   List<CustomerCoupon> get allCoupons => coupons;
 
@@ -288,6 +295,7 @@ class CustomerDataSource {
       categories: const [],
       businesses: const [],
       coupons: const [],
+      ownedCoupons: const [],
       rewards: const [],
       transactions: const [],
     );
@@ -295,6 +303,11 @@ class CustomerDataSource {
 
   factory CustomerDataSource.fromDto(
     CustomerHomeDto dto, {
+    // Individual owned instances from /my-coupons. Preserved without dedup so
+    // each customerCouponId is a separate entry in myCoupons.
+    List<CustomerPromotionDto> myCouponDtos = const [],
+    // QR override map keyed by couponId — used to attach QR codes to home
+    // promotions rows (for backward compat with home screen display).
     Map<int, String> qrCodeOverrides = const {},
   }) {
     final bizCategoryMap = <int, String>{
@@ -303,9 +316,9 @@ class CustomerDataSource {
 
     final businesses = dto.businesses.map(_mapBusiness).toList();
 
-    // Trust backend `isOwned`. Build QR overrides keyed by couponId so they
-    // attach to the right /promotions row when merging.
-    final mappedCoupons = dto.promotions
+    // Map home promotions (template/public view). QR overrides attach the best
+    // available QR to each coupon template row for display on the home screen.
+    final rawCoupons = dto.promotions
         .map(
           (p) => _mapPromotion(
             p,
@@ -315,11 +328,24 @@ class CustomerDataSource {
         )
         .toList();
 
+    // Deduplicate home-promotion rows only (template level). This collapses
+    // duplicate rows from the home API — it does NOT affect owned instances,
+    // which come through myCouponDtos below.
+    final homeCoupons = _deduplicateCoupons(rawCoupons);
+
+    // Map each /my-coupons row as an independent owned instance. One customer
+    // can own multiple copies of the same coupon (different customerCouponIds),
+    // each with its own QR code, expiry, and status — never deduplicate here.
+    final ownedCoupons = myCouponDtos
+        .map((p) => _mapPromotion(p, bizCategoryMap))
+        .toList();
+
     return CustomerDataSource(
       summary: CustomerProfile.fromSummaryDto(dto.summary),
       categories: dto.categories.map(_mapCategory).toList(),
       businesses: businesses,
-      coupons: mappedCoupons,
+      coupons: homeCoupons,
+      ownedCoupons: ownedCoupons,
       rewards: businesses.map(_mapRewardFromBusiness).toList(),
       transactions: dto.transactions
           .map((t) => _mapTransaction(t, bizCategoryMap))
@@ -397,6 +423,10 @@ CustomerCoupon buildOwnedCouponFromRedemption(
         ? DateTime.tryParse(result.redeemedAt!)
         : DateTime.now(),
     qrCode: result.qrCode.isNotEmpty ? result.qrCode : null,
+    currencyCode: result.currency ?? source.currencyCode,
+    currencySymbol: source.currencySymbol,
+    canUse: null,   // reset — backend will re-compute on next fetch
+    cannotUseReason: null,
   );
 }
 
@@ -483,6 +513,37 @@ CustomerReward _mapRewardFromBusiness(CustomerBusiness business) {
   );
 }
 
+// Deduplicates owned coupon instances: when the backend returns multiple
+// CustomerCoupon rows for the same template (e.g. one USED + one REDEEMED after
+// a repeat purchase), keep the instance with the best status (active > expiring
+// > used > expired) so card surfaces show the most actionable state.
+// Unowned (public template) rows are kept as-is since they have no instances.
+List<CustomerCoupon> _deduplicateCoupons(List<CustomerCoupon> coupons) {
+  int statusRank(String s) => switch (s) {
+    CustomerCouponStatus.active => 0,
+    CustomerCouponStatus.expiring => 1,
+    CustomerCouponStatus.used => 2,
+    CustomerCouponStatus.expired => 3,
+    _ => 4,
+  };
+
+  final Map<String, CustomerCoupon> best = {};
+  for (final c in coupons) {
+    if (!c.isOwned) {
+      // Unowned coupons use couponId as their key; never deduplicated.
+      final key = 'public_${c.businessId}_${c.couponId}';
+      best[key] ??= c;
+      continue;
+    }
+    final key = 'owned_${c.businessId}_${c.couponId}';
+    final existing = best[key];
+    if (existing == null || statusRank(c.status) < statusRank(existing.status)) {
+      best[key] = c;
+    }
+  }
+  return best.values.toList();
+}
+
 CustomerCoupon _mapPromotion(
   CustomerPromotionDto dto,
   Map<int, String> bizCategoryMap, {
@@ -539,6 +600,10 @@ CustomerCoupon _mapPromotion(
     qrCode: (qrCodeOverride?.isNotEmpty == true) ? qrCodeOverride : dto.qrCode,
     canRedeem: dto.canRedeem,
     cannotRedeemReason: dto.cannotRedeemReason,
+    currencyCode: dto.currencyCode,
+    currencySymbol: dto.currencySymbol,
+    canUse: dto.canUse,
+    cannotUseReason: dto.cannotUseReason,
   );
 }
 
