@@ -19,16 +19,19 @@ class CustomerDataNotifier extends AsyncNotifier<CustomerDataSource> {
       repo.fetchMyCoupons().catchError((_) => <CustomerPromotionDto>[]),
     ]);
     final dto = results[0] as CustomerHomeDto;
-    final myCoupons = results[1] as List<CustomerPromotionDto>;
-    // Merge by underlying couponId (not by row `id`). For owned my-coupons rows
-    // the row `id` is the customer-coupon row id, not the coupon id — keying by
-    // couponId is the only reliable way to attach the QR to the right /home
-    // promotion row.
+    final myCouponDtos = results[1] as List<CustomerPromotionDto>;
+    // QR override map keyed by couponId so home-promotion rows get a QR code
+    // attached when the /my-coupons response carries one. Only the first QR per
+    // coupon template is used here (home view shows one template row per coupon).
     final qrCodeOverrides = <int, String>{
-      for (final c in myCoupons)
+      for (final c in myCouponDtos)
         if (c.qrCode?.isNotEmpty == true) c.couponId: c.qrCode!,
     };
-    return CustomerDataSource.fromDto(dto, qrCodeOverrides: qrCodeOverrides);
+    return CustomerDataSource.fromDto(
+      dto,
+      myCouponDtos: myCouponDtos,
+      qrCodeOverrides: qrCodeOverrides,
+    );
   }
 
   Future<void> refresh() async {
@@ -50,69 +53,94 @@ final customerBusinessDetailProvider = FutureProvider.autoDispose
       return mapBusinessDetailDto(dto);
     });
 
+/// Maps a [CustomerPromotionDto] to a [CustomerCoupon] for detail surfaces.
+/// [source] is an optional existing coupon to fall back to for gradient colors.
+CustomerCoupon couponFromPromotionDto(
+  CustomerPromotionDto dto, {
+  CustomerCoupon? source,
+}) {
+  final expiresAt = dto.expiresAt;
+  final expiresIn =
+      dto.expiresIn ??
+      (expiresAt != null ? _calculateExpiresIn(expiresAt) : null);
+  final canonicalType = CustomerCouponType.canonical(dto.promotionType);
+  final canonicalStatus = canonicalCouponStatus(
+    dto.status,
+    expiresAt: expiresAt,
+  );
+
+  return CustomerCoupon(
+    couponId: dto.couponId,
+    sourceId: dto.sourceId,
+    businessId: dto.businessId,
+    businessName: dto.businessName,
+    title: dto.title,
+    // Owned-instance endpoints (/customer/customer-coupons/{id}) may not echo
+    // back template-level fields. Fall back to source for any that are missing.
+    discountValue: dto.discountValue ?? source?.discountValue ?? 0,
+    discountDisplay: dto.discountDisplay.isNotEmpty
+        ? dto.discountDisplay
+        : (source?.discountDisplay ?? dto.discountDisplay),
+    status: canonicalStatus,
+    expiresAt: expiresAt,
+    pointCost: dto.pointCost != 0
+        ? dto.pointCost
+        : (source?.pointCost ?? dto.pointCost),
+    gradientColors:
+        source?.gradientColors ?? const [Color(0xFF1A0535), Color(0xFF9B5DE5)],
+    type: canonicalType,
+    isUsed: dto.isUsed,
+    description: dto.description.isNotEmpty
+        ? dto.description
+        : (source?.description ?? dto.description),
+    expiresIn: expiresIn,
+    termsAndConditions: dto.termsAndConditions?.isNotEmpty == true
+        ? dto.termsAndConditions!
+        : (source?.termsAndConditions ?? dto.termsAndConditions ?? ''),
+    usageLimit: dto.usageLimit ?? source?.usageLimit,
+    usageCount: dto.usageCount,
+    // customerRedemptionCount only increases; prefer the higher value so the
+    // limit check stays correct even when the instance endpoint omits this field.
+    customerRedemptionCount: dto.customerRedemptionCount > 0
+        ? dto.customerRedemptionCount
+        : (source?.customerRedemptionCount ?? dto.customerRedemptionCount),
+    isHot: dto.isHot,
+    // Once owned, a coupon cannot become un-owned from a fresh detail fetch.
+    isOwned: dto.isOwned || (source?.isOwned ?? false),
+    imageUrl: dto.imageUrl ?? source?.imageUrl,
+    currency: dto.currency ?? source?.currency,
+    isFeatured: dto.isFeatured,
+    totalRedemptions: dto.totalRedemptions,
+    totalRedemptionLimit: dto.totalRedemptionLimit ?? source?.totalRedemptionLimit,
+    startDate: DateTime.tryParse(dto.startDate ?? ''),
+    customerCouponId: dto.customerCouponId ?? source?.customerCouponId,
+    minimumOrderAmount: dto.minimumOrderAmount ?? source?.minimumOrderAmount,
+    maximumDiscountAmount:
+        dto.maximumDiscountAmount ?? source?.maximumDiscountAmount,
+    freeProductCategory: dto.freeProductCategory ?? source?.freeProductCategory,
+    freeProductName: dto.freeProductName ?? source?.freeProductName,
+    freeProductVariant: dto.freeProductVariant ?? source?.freeProductVariant,
+    freeProductQuantity: dto.freeProductQuantity ?? source?.freeProductQuantity,
+    redeemedAt: dto.redeemedAt != null
+        ? DateTime.tryParse(dto.redeemedAt!)
+        : null,
+    usedAt: dto.usedAt != null ? DateTime.tryParse(dto.usedAt!) : null,
+    orderId: dto.orderId,
+    qrCode: dto.qrCode,
+    canRedeem: dto.canRedeem,
+    cannotRedeemReason: dto.cannotRedeemReason ?? source?.cannotRedeemReason,
+    currencyCode: dto.currencyCode ?? source?.currencyCode,
+    currencySymbol: dto.currencySymbol ?? source?.currencySymbol,
+    canUse: dto.canUse,
+    cannotUseReason: dto.cannotUseReason ?? source?.cannotUseReason,
+  );
+}
+
 final customerCouponDetailProvider = FutureProvider.autoDispose
     .family<CustomerCoupon, int>((ref, couponId) async {
       final repo = ref.read(customerRepositoryProvider);
-      final promotionDto = await repo.fetchCouponDetails(couponId);
-
-      final expiresAt = promotionDto.expiresAt;
-      final expiresIn =
-          promotionDto.expiresIn ??
-          (expiresAt != null ? _calculateExpiresIn(expiresAt) : null);
-      final canonicalType = CustomerCouponType.canonical(
-        promotionDto.promotionType,
-      );
-      final canonicalStatus = canonicalCouponStatus(
-        promotionDto.status,
-        expiresAt: expiresAt,
-      );
-
-      return CustomerCoupon(
-        couponId: promotionDto.couponId,
-        sourceId: promotionDto.sourceId,
-        businessId: promotionDto.businessId,
-        businessName: promotionDto.businessName,
-        title: promotionDto.title,
-        discountValue: promotionDto.discountValue ?? 0,
-        discountDisplay: promotionDto.discountDisplay,
-        status: canonicalStatus,
-        expiresAt: expiresAt,
-        pointCost: promotionDto.pointCost,
-        gradientColors: const [Color(0xFF1A0535), Color(0xFF9B5DE5)],
-        type: canonicalType,
-        isUsed: promotionDto.isUsed,
-        description: promotionDto.description,
-        expiresIn: expiresIn,
-        termsAndConditions: promotionDto.termsAndConditions ?? '',
-        usageLimit: promotionDto.usageLimit,
-        usageCount: promotionDto.usageCount,
-        customerRedemptionCount: promotionDto.customerRedemptionCount,
-        isHot: promotionDto.isHot,
-        isOwned: promotionDto.isOwned,
-        imageUrl: promotionDto.imageUrl,
-        currency: promotionDto.currency,
-        isFeatured: promotionDto.isFeatured,
-        totalRedemptions: promotionDto.totalRedemptions,
-        totalRedemptionLimit: promotionDto.totalRedemptionLimit,
-        startDate: DateTime.tryParse(promotionDto.startDate ?? ''),
-        customerCouponId: promotionDto.customerCouponId,
-        minimumOrderAmount: promotionDto.minimumOrderAmount,
-        maximumDiscountAmount: promotionDto.maximumDiscountAmount,
-        freeProductCategory: promotionDto.freeProductCategory,
-        freeProductName: promotionDto.freeProductName,
-        freeProductVariant: promotionDto.freeProductVariant,
-        freeProductQuantity: promotionDto.freeProductQuantity,
-        redeemedAt: promotionDto.redeemedAt != null
-            ? DateTime.tryParse(promotionDto.redeemedAt!)
-            : null,
-        usedAt: promotionDto.usedAt != null
-            ? DateTime.tryParse(promotionDto.usedAt!)
-            : null,
-        orderId: promotionDto.orderId,
-        qrCode: promotionDto.qrCode,
-        canRedeem: promotionDto.canRedeem,
-        cannotRedeemReason: promotionDto.cannotRedeemReason,
-      );
+      final dto = await repo.fetchCouponDetails(couponId);
+      return couponFromPromotionDto(dto);
     });
 
 String _calculateExpiresIn(DateTime expiresAt) {

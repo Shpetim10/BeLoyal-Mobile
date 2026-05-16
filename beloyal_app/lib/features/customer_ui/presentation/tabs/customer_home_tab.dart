@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
@@ -10,6 +9,8 @@ import 'package:besahub_app/features/customer_ui/presentation/pages/customer_vie
 import 'package:besahub_app/features/customer_ui/presentation/pages/customer_view_all_coupons_page.dart';
 import 'package:besahub_app/features/customer_ui/presentation/pages/customer_view_all_transactions_page.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_detail_sheet.dart';
+import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_helpers.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_transaction_detail_sheet.dart';
 
 void _push(BuildContext context, Widget page) {
@@ -1341,12 +1342,7 @@ class _OfferCard extends StatelessWidget {
     final displayValue = coupon.multiplierLabel ?? coupon.discountDisplay;
 
     return GestureDetector(
-      onTap: () => _push(
-        context,
-        const CustomerViewAllCouponsPage(
-          initialTab: CustomerCouponsTab.allCoupons,
-        ),
-      ),
+      onTap: () => CustomerCouponDetailSheet.show(context, coupon),
       child: Container(
         width: 200,
         decoration: BoxDecoration(
@@ -1924,16 +1920,10 @@ class _ExpiringCouponRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expiresAt = coupon.expiresAt != null
-        ? DateFormat('MMM d').format(coupon.expiresAt!)
-        : 'No expiry';
-    final expiresIn = coupon.expiresIn ?? coupon.expiryLabel;
+    final expiryLabel = couponExpiryDateLabel(coupon);
 
     return GestureDetector(
-      onTap: () => _push(
-        context,
-        const CustomerViewAllCouponsPage(initialFilter: 'expiring'),
-      ),
+      onTap: () => CustomerCouponDetailSheet.show(context, coupon),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
@@ -2015,7 +2005,7 @@ class _ExpiringCouponRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$expiresAt • $expiresIn',
+                  expiryLabel,
                   style: AppTypography.dmSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,

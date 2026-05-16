@@ -110,6 +110,10 @@ class CustomerCoupon {
     this.qrCode,
     this.canRedeem,
     this.cannotRedeemReason,
+    this.currencyCode,
+    this.currencySymbol,
+    this.canUse,
+    this.cannotUseReason,
   });
 
   // Underlying loyalty coupon id. Used for redeem / validate / detail endpoints.
@@ -163,12 +167,43 @@ class CustomerCoupon {
   // Backend-computed gate from the available-coupons endpoint.
   final bool? canRedeem;
   final String? cannotRedeemReason;
+  // Structured currency fields — prefer currencySymbol over code for display.
+  final String? currencyCode;
+  final String? currencySymbol;
+  // Backend gate for whether this owned instance can be used at checkout.
+  final bool? canUse;
+  final String? cannotUseReason;
+
+  // Prefer backend-provided symbol; fall back to currency code (converted by utility).
+  String get displayCurrencySymbol =>
+      (currencySymbol?.isNotEmpty == true) ? currencySymbol! : (currencyCode ?? currency ?? '');
 
   bool get isFreeProduct => type == 'FREE_PRODUCT';
   bool get isDiscountCoupon =>
       type == 'PERCENTAGE_DISCOUNT' || type == 'FIXED_AMOUNT_DISCOUNT';
-  bool get canShowQr =>
-      isOwned && !isUsed && qrCode != null && qrCode!.isNotEmpty;
+  // QR is only meaningful for active/expiring owned instances. Expired or used
+  // coupons must not show the QR as a usable action.
+  bool get canShowQr {
+    if (!isOwned || isUsed || qrCode == null || qrCode!.isEmpty) return false;
+    return status == CustomerCouponStatus.active ||
+        status == CustomerCouponStatus.expiring;
+  }
+
+  // True when the coupon is owned and in a usable (active/expiring, not yet used) state.
+  bool get isUsable {
+    if (!isOwned || isUsed) return false;
+    final s = status.toLowerCase();
+    return s == 'active' || s == 'expiring';
+  }
+
+  // True when an unowned coupon can be claimed with points.
+  bool get canClaim {
+    if (isOwned) return false;
+    if (canRedeem == false) return false;
+    if (isLimitReached) return false;
+    final s = status.toLowerCase();
+    return s == 'active' || s == 'expiring';
+  }
 
   // Per-customer limit is checked against customerRedemptionCount (total purchases by this
   // customer for this coupon template), NOT usageCount (which tracks scans of one instance).
@@ -179,13 +214,16 @@ class CustomerCoupon {
   bool get isLimitReached => isPerCustomerLimitReached || isOverallLimitReached;
 
   bool get canBuyMore {
-    // Trust the backend gate when explicitly provided.
-    if (canRedeem == false) return false;
     if (isLimitReached) return false;
-    // Allow buying more even when the current owned instance is already used at
-    // the business (isUsed=true), as long as the per-customer limit allows it.
+    // Trust the backend canRedeem gate for both owned and unowned: it reflects
+    // template availability, point balance, and per-customer limits — NOT whether
+    // this specific instance has already been redeemed/used at the business.
+    if (canRedeem == false) return false;
     final s = status.toLowerCase();
-    return s == 'active' || s == 'expiring';
+    // An owned instance whose status is 'used' can be repurchased when the backend
+    // confirms canRedeem=true above (enough points, within limits, template active).
+    if (isOwned && (isUsed || s == CustomerCouponStatus.used)) return true;
+    return s == CustomerCouponStatus.active || s == CustomerCouponStatus.expiring;
   }
 
   String get limitReachedReason {

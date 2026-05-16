@@ -69,9 +69,18 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
     if (widget.fetchDetailed) {
       _detailedCouponFuture = Future.microtask(() async {
         try {
-          final detailed = await ref.read(
-            customerCouponDetailProvider(widget.coupon.couponId).future,
-          );
+          final repo = ref.read(customerRepositoryProvider);
+          final CustomerCoupon detailed;
+          final ccid = widget.coupon.customerCouponId;
+          if (ccid != null) {
+            // Owned instance — use the richer owned-instance endpoint.
+            final dto = await repo.fetchCustomerCouponById(ccid);
+            detailed = couponFromPromotionDto(dto, source: widget.coupon);
+          } else {
+            detailed = await ref.read(
+              customerCouponDetailProvider(widget.coupon.couponId).future,
+            );
+          }
           return detailed;
         } catch (_) {
           return widget.coupon;
@@ -107,9 +116,12 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
   Widget _buildContent(BuildContext context, CustomerCoupon coupon) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
+    final isUsedOrExpired = coupon.isUsed ||
+        coupon.status == CustomerCouponStatus.used ||
+        coupon.status == CustomerCouponStatus.expired;
     final expiryDate = coupon.expiresAt != null
         ? DateFormat('MMM d, yyyy').format(coupon.expiresAt!)
-        : 'No expiry provided';
+        : '—';
     final expiresIn = coupon.expiresIn ?? coupon.expiryLabel;
     final dateFmt = DateFormat('MMM d, yyyy');
     final gradientColors = coupon.isUsed || coupon.status == 'expired'
@@ -301,6 +313,12 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                       ],
                     ),
                   )
+                else if (isUsedOrExpired)
+                  _InfoRow(
+                    icon: Icons.calendar_today_rounded,
+                    label: 'Expired',
+                    value: expiryDate,
+                  )
                 else
                   _InfoRow(
                     icon: Icons.calendar_today_rounded,
@@ -339,10 +357,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                   value:
                       coupon.minimumOrderAmount != null &&
                           coupon.minimumOrderAmount! > 0
-                      ? _formatCouponMoney(
-                          coupon.minimumOrderAmount!,
-                          coupon.currency,
-                        )
+                      ? _formatCouponMoney(coupon.minimumOrderAmount!, coupon)
                       : 'None',
                 ),
                 if (coupon.maximumDiscountAmount != null &&
@@ -357,7 +372,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                     label: 'Max Discount',
                     value: _formatCouponMoney(
                       coupon.maximumDiscountAmount!,
-                      coupon.currency,
+                      coupon,
                     ),
                     valueColor: AppColors.success,
                   ),
@@ -372,18 +387,18 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                   _HighlightRow(
                     icon: Icons.person_off_rounded,
                     text:
-                        '${coupon.customerRedemptionCount}/${coupon.usageLimit} purchased • Personal limit reached',
+                        '${coupon.customerRedemptionCount}/${coupon.usageLimit} redeemed • Personal limit reached',
                     color: AppColors.warning,
                   )
                 else
                   _InfoRow(
                     icon: Icons.person_rounded,
-                    label: 'My Purchases',
+                    label: 'My redemptions',
                     value: coupon.usageLimit != null
                         ? '${coupon.customerRedemptionCount} / ${coupon.usageLimit}'
                         : coupon.customerRedemptionCount > 0
                         ? '${coupon.customerRedemptionCount} times'
-                        : 'Not yet purchased',
+                        : 'None yet',
                     valueColor: coupon.customerRedemptionCount > 0
                         ? AppColors.primary
                         : null,
@@ -518,8 +533,11 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
       coupon.usedAt != null ||
       coupon.orderId?.isNotEmpty == true;
 
-  String _formatCouponMoney(double value, String? currency) {
-    final symbol = currencySymbol(currency);
+  // Prefer the backend-provided symbol (e.g. "€") over utility conversion.
+  String _formatCouponMoney(double value, CustomerCoupon coupon) {
+    final symbol = coupon.currencySymbol?.isNotEmpty == true
+        ? coupon.currencySymbol!
+        : currencySymbol(coupon.currencyCode ?? coupon.currency);
     final fixed = value % 1 == 0
         ? value.toStringAsFixed(0)
         : value.toStringAsFixed(2);
@@ -752,18 +770,25 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
       );
     }
 
-    // ── Owned coupon — show QR + optionally buy more ──────────────────────────
+    // ── Owned coupon — show QR (only when active/not-used) + optionally buy more ─
     if (coupon.isOwned) {
       return Column(
         children: [
           if (redemptionState is CouponRedemptionError)
             _ErrorBanner(message: redemptionState.message),
-          _QrButton(
-            isLoading: isLoading,
-            onTap: () => CustomerCouponQrSheet.show(widget.rootContext, coupon),
-          ),
+          if (coupon.canUse == false &&
+              coupon.cannotUseReason?.isNotEmpty == true) ...[
+            _ErrorBanner(message: coupon.cannotUseReason!),
+            const SizedBox(height: 4),
+          ],
+          if (coupon.canShowQr)
+            _QrButton(
+              isLoading: isLoading,
+              onTap: () =>
+                  CustomerCouponQrSheet.show(widget.rootContext, coupon),
+            ),
           if (coupon.canBuyMore) ...[
-            const SizedBox(height: 10),
+            if (coupon.canShowQr) const SizedBox(height: 10),
             _ClaimButton(
               coupon: coupon,
               isLoading: isLoading,
@@ -846,7 +871,7 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
     if (!mounted) return;
     setState(() => _isValidating = false);
 
-    final confirmed = await _CouponPurchaseConfirmDialog.show(
+    final confirmed = await CouponPurchaseConfirmDialog.show(
       context, // ignore: use_build_context_synchronously
       coupon,
       validation: validation,
@@ -1053,444 +1078,6 @@ class _LimitReachedBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Purchase Confirmation Dialog ─────────────────────────────────────────────
-
-class _CouponPurchaseConfirmDialog extends StatelessWidget {
-  const _CouponPurchaseConfirmDialog({
-    required this.coupon,
-    this.validation,
-    this.networkError,
-  });
-  final CustomerCoupon coupon;
-  final ValidateRedemptionDto? validation;
-  final String? networkError;
-
-  static Future<bool?> show(
-    BuildContext context,
-    CustomerCoupon coupon, {
-    ValidateRedemptionDto? validation,
-    String? networkError,
-  }) {
-    return showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (_) => _CouponPurchaseConfirmDialog(
-        coupon: coupon,
-        validation: validation,
-        networkError: networkError,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.glassBorder),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              blurRadius: 32,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ── Header gradient band ────────────────────────────────────────
-            Container(
-              height: 6,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryDark, AppColors.primary],
-                ),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── Icon ─────────────────────────────────────────────────
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryDark, AppColors.primary],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.35),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.confirmation_number_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Confirm Purchase',
-                    style: AppTypography.outfit(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textOnDark,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'You\'re about to buy this coupon.',
-                    style: AppTypography.dmSans(
-                      fontSize: 13,
-                      color: AppColors.textMutedDark,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  // ── Coupon summary card ────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardDark,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.glassBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: coupon.gradientColors,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.local_offer_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    coupon.title,
-                                    style: AppTypography.dmSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textOnDark,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    coupon.businessName,
-                                    style: AppTypography.dmSans(
-                                      fontSize: 12,
-                                      color: AppColors.textMutedDark,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Container(height: 1, color: AppColors.glassBorder),
-                        const SizedBox(height: 14),
-                        // ── Cost row ─────────────────────────────────────
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Cost',
-                              style: AppTypography.dmSans(
-                                fontSize: 13,
-                                color: AppColors.textMutedDark,
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.stars_rounded,
-                                  size: 16,
-                                  color: AppColors.gold,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  '${coupon.pointCost} pts',
-                                  style: AppTypography.outfit(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.gold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        // ── Balance before → after (from validate result) ─
-                        if (validation != null && validation!.canRedeem) ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Balance',
-                                style: AppTypography.dmSans(
-                                  fontSize: 13,
-                                  color: AppColors.textMutedDark,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    '${validation!.customerBalance} pts',
-                                    style: AppTypography.dmSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textOnDark,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 13,
-                                    color: AppColors.textMutedDark,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '${(validation!.customerBalance - coupon.pointCost).clamp(0, validation!.customerBalance)} pts',
-                                    style: AppTypography.dmSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                        // ── Per-customer usage ────────────────────────────
-                        if (coupon.usageLimit != null) ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Your usage',
-                                style: AppTypography.dmSans(
-                                  fontSize: 12,
-                                  color: AppColors.textMutedDark,
-                                ),
-                              ),
-                              Text(
-                                "You've used ${coupon.customerRedemptionCount} of ${coupon.usageLimit} allowed",
-                                style: AppTypography.dmSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textOnDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ] else if (coupon.isOwned) ...[
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Already purchased',
-                                style: AppTypography.dmSans(
-                                  fontSize: 12,
-                                  color: AppColors.textMutedDark,
-                                ),
-                              ),
-                              Text(
-                                '${coupon.customerRedemptionCount} time${coupon.customerRedemptionCount == 1 ? '' : 's'}',
-                                style: AppTypography.dmSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textOnDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        // ── Terms & Conditions ────────────────────────────
-                        if (coupon.termsAndConditions.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Container(height: 1, color: AppColors.glassBorder),
-                          const SizedBox(height: 10),
-                          Text(
-                            coupon.termsAndConditions,
-                            style: AppTypography.dmSans(
-                              fontSize: 11,
-                              color: AppColors.textMutedDark,
-                              height: 1.4,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  // ── Network validation error ───────────────────────────
-                  if (networkError != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.warning.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.wifi_off_rounded,
-                            size: 14,
-                            color: AppColors.warning,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              networkError!,
-                              style: AppTypography.dmSans(
-                                fontSize: 12,
-                                color: AppColors.warning,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  // ── Buttons ───────────────────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).pop(false),
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.cardDark,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.glassBorder),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Cancel',
-                                style: AppTypography.dmSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textMutedDark,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: networkError != null
-                              ? null
-                              : () => Navigator.of(context).pop(true),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            height: 48,
-                            decoration: BoxDecoration(
-                              gradient: networkError != null
-                                  ? null
-                                  : const LinearGradient(
-                                      colors: [
-                                        AppColors.primaryDark,
-                                        AppColors.primary,
-                                      ],
-                                    ),
-                              color: networkError != null
-                                  ? AppColors.cardDark
-                                  : null,
-                              borderRadius: BorderRadius.circular(14),
-                              border: networkError != null
-                                  ? Border.all(color: AppColors.glassBorder)
-                                  : null,
-                              boxShadow: networkError != null
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Confirm Buy',
-                                style: AppTypography.dmSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: networkError != null
-                                      ? AppColors.textMutedDark
-                                      : Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
