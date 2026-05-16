@@ -56,7 +56,10 @@ class BusinessProfileRepository {
       if (logoPath != null) body['logoPath'] = logoPath;
       if (logoKey != null) body['logoKey'] = logoKey;
 
-      await _dio.patch('/business/$businessId', data: body);
+      final response = await _dio.patch('/business/$businessId', data: body);
+      if (response.data is Map<String, dynamic>) {
+        return AuthSuccess(BusinessProfile.fromJson(response.data as Map<String, dynamic>));
+      }
       return fetchMyBusiness(businessId);
     } on DioException catch (e) {
       return AuthError(_mapError(e));
@@ -78,7 +81,8 @@ class BusinessProfileRepository {
     }
   }
 
-  /// PATCH /admin/business/{businessId} — admin override update (all fields).
+  /// PATCH /admin/business/{businessId} — admin override update.
+  /// Does NOT allow updating: vatId, businessStatus (set server-side only).
   Future<AuthResult<BusinessProfile>> adminUpdateBusiness({
     required int businessId,
     String? businessName,
@@ -90,8 +94,6 @@ class BusinessProfileRepository {
     String? websiteUrl,
     String? contactEmail,
     String? contactPhone,
-    String? vatId,
-    String? status,
     String? logoPath,
     String? logoKey,
   }) async {
@@ -108,12 +110,13 @@ class BusinessProfileRepository {
       if (contactEmail != null) body['businessEmail'] = contactEmail.trim();
       if (contactPhone != null)
         body['businessPhoneNumber'] = contactPhone.trim();
-      if (vatId != null) body['vatId'] = vatId.trim();
-      if (status != null) body['businessStatus'] = status;
       if (logoPath != null) body['logoPath'] = logoPath;
       if (logoKey != null) body['logoKey'] = logoKey;
 
-      await _dio.patch('/admin/business/$businessId', data: body);
+      final response = await _dio.patch('/admin/business/$businessId', data: body);
+      if (response.data is Map<String, dynamic>) {
+        return AuthSuccess(BusinessProfile.fromJson(response.data as Map<String, dynamic>));
+      }
       return fetchBusiness(businessId);
     } on DioException catch (e) {
       return AuthError(_mapError(e));

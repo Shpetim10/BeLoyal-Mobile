@@ -66,8 +66,8 @@ class AdminOverrideController extends AsyncNotifier<AdminOverrideState> {
     }
   }
 
-  /// Save all fields including restricted ones (vatId, status, etc.)
-  /// via PATCH /admin/business/{businessId}.
+  /// Save editable business fields via PATCH /admin/business/{businessId}.
+  /// vatId and businessStatus are not editable and are managed server-side.
   Future<bool> updateAllFields({
     required int businessId,
     String? businessName,
@@ -79,8 +79,6 @@ class AdminOverrideController extends AsyncNotifier<AdminOverrideState> {
     String? websiteUrl,
     String? contactEmail,
     String? contactPhone,
-    String? vatId,
-    String? status,
     String? logoPath,
     String? logoKey,
   }) async {
@@ -106,8 +104,6 @@ class AdminOverrideController extends AsyncNotifier<AdminOverrideState> {
       websiteUrl: websiteUrl,
       contactEmail: contactEmail,
       contactPhone: contactPhone,
-      vatId: vatId,
-      status: status,
       logoPath: logoPath,
       logoKey: logoKey,
     );

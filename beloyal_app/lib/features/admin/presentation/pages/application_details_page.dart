@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../business_onboarding/data/models/business_registration_dto.dart';
-import '../../../business_onboarding/data/models/submit_application_models.dart';
 import '../../../profile/presentation/controllers/admin_override_controller.dart';
 import '../../domain/models/business_application.dart';
 import '../controllers/applications_controller.dart';
@@ -708,9 +707,7 @@ class _AdminBusinessEditPanelState
   late final TextEditingController _websiteCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _vatCtrl;
   BusinessType? _selectedType;
-  BusinessStatus? _selectedStatus;
 
   @override
   void initState() {
@@ -727,9 +724,7 @@ class _AdminBusinessEditPanelState
     _phoneCtrl = TextEditingController(
       text: widget.app.businessPhoneNumber ?? '',
     );
-    _vatCtrl = TextEditingController(text: widget.app.vatId);
     _selectedType = widget.app.businessType;
-    _selectedStatus = widget.app.businessStatus;
   }
 
   @override
@@ -743,7 +738,6 @@ class _AdminBusinessEditPanelState
       _websiteCtrl,
       _emailCtrl,
       _phoneCtrl,
-      _vatCtrl,
     ]) {
       c.dispose();
     }
@@ -779,11 +773,26 @@ class _AdminBusinessEditPanelState
           contactPhone: _phoneCtrl.text.trim().isEmpty
               ? null
               : _phoneCtrl.text.trim(),
-          vatId: _vatCtrl.text.trim().isEmpty ? null : _vatCtrl.text.trim(),
-          status: _selectedStatus?.value,
         );
 
     if (mounted && success) {
+      // Refresh applications list to update business details card
+      ref.invalidate(applicationsControllerProvider);
+
+      // Update form controllers with fresh data from the response
+      final updatedBusiness = ref.read(adminOverrideControllerProvider).value?.business;
+      if (updatedBusiness != null) {
+        _nameCtrl.text = updatedBusiness.businessName;
+        _descCtrl.text = updatedBusiness.publicDescription ?? '';
+        _addressCtrl.text = updatedBusiness.address ?? '';
+        _cityCtrl.text = updatedBusiness.city ?? '';
+        _countryCtrl.text = updatedBusiness.country ?? '';
+        _websiteCtrl.text = updatedBusiness.websiteUrl ?? '';
+        _emailCtrl.text = updatedBusiness.contactEmail ?? '';
+        _phoneCtrl.text = updatedBusiness.contactPhone ?? '';
+        _selectedType = updatedBusiness.businessType;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(
@@ -916,7 +925,7 @@ class _AdminBusinessEditPanelState
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'You are editing restricted business fields. Changes may affect compliance and visibility.',
+                              'VAT ID and business status are managed server-side and cannot be edited here.',
                               style: TextStyle(
                                 color: AppColors.warning,
                                 fontSize: 13,
@@ -1010,22 +1019,6 @@ class _AdminBusinessEditPanelState
                       Icons.phone_rounded,
                       keyboardType: TextInputType.phone,
                     ),
-                    const SizedBox(height: 14),
-                    const Divider(color: AppColors.glassBorder),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Restricted fields',
-                        style: TextStyle(
-                          color: AppColors.warning,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    _buildField(_vatCtrl, 'VAT ID', Icons.receipt_long_rounded),
-                    const SizedBox(height: 14),
-                    _buildStatusDropdown(),
                     const SizedBox(height: 24),
 
                     // Save button
@@ -1126,24 +1119,4 @@ class _AdminBusinessEditPanelState
     );
   }
 
-  Widget _buildStatusDropdown() {
-    return DropdownButtonFormField<BusinessStatus>(
-      value: _selectedStatus,
-      dropdownColor: AppColors.surfaceDark,
-      style: const TextStyle(color: AppColors.textOnDark, fontSize: 14),
-      decoration: _decoration('Business status', Icons.verified_rounded),
-      items: BusinessStatus.values
-          .map(
-            (s) => DropdownMenuItem(
-              value: s,
-              child: Text(
-                s.value,
-                style: const TextStyle(color: AppColors.textOnDark),
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (val) => setState(() => _selectedStatus = val),
-    );
-  }
 }
