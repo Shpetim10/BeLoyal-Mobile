@@ -116,7 +116,8 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
   Widget _buildContent(BuildContext context, CustomerCoupon coupon) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isActive = coupon.status == 'active' || coupon.status == 'expiring';
-    final isUsedOrExpired = coupon.isUsed ||
+    final isUsedOrExpired =
+        coupon.isUsed ||
         coupon.status == CustomerCouponStatus.used ||
         coupon.status == CustomerCouponStatus.expired;
     final expiryDate = coupon.expiresAt != null
@@ -800,17 +801,18 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
       );
     }
 
-    // ── Unowned coupon — show Claim button ────────────────────────────────────
+    // ── Unowned coupon — show Claim button only if customer can redeem ────────
     return Column(
       children: [
         if (redemptionState is CouponRedemptionError)
           _ErrorBanner(message: redemptionState.message),
-        _ClaimButton(
-          coupon: coupon,
-          isLoading: isLoading,
-          label: 'Claim Coupon  •  ${coupon.pointCost} pts',
-          onTap: () => _confirmAndClaim(context, coupon),
-        ),
+        if (coupon.canRedeem != false)
+          _ClaimButton(
+            coupon: coupon,
+            isLoading: isLoading,
+            label: 'Claim Coupon  •  ${coupon.pointCost} pts',
+            onTap: () => _confirmAndClaim(context, coupon),
+          ),
       ],
     );
   }
