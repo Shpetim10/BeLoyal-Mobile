@@ -563,12 +563,24 @@ class CustomerTransactionDto {
       return null;
     }
 
+    final type = _asString(json['type'], 'EARN');
+    // Backend sends points as 'pointsDelta' in the DTO
+    // Also check for alternative field names for compatibility
+    final points = _asInt(
+      json['pointsDelta'] ??
+          json['points'] ??
+          json['pointsSpent'] ??
+          json['pointsCost'] ??
+          json['pointsDeducted'],
+    );
+
+
     return CustomerTransactionDto(
       id: _asInt(json['id']),
       businessId: _asInt(json['businessId']),
       businessName: _asString(json['businessName']),
-      type: _asString(json['type'], 'EARN'),
-      points: _asInt(json['points']),
+      type: type,
+      points: points,
       date: parseDate(json['date']) ?? DateTime.now(),
       description: _asString(json['description']),
       netAmount: _asDoubleOrNull(json['netAmount']),

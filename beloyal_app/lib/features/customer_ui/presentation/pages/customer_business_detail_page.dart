@@ -199,37 +199,13 @@ class _CustomerBusinessDetailPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _b.name,
-                  style: AppTypography.outfit(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textOnDark,
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    color: AppColors.gold,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _b.rating.toStringAsFixed(2),
-                    style: AppTypography.dmMono(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.gold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          Text(
+            _b.name,
+            style: AppTypography.outfit(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textOnDark,
+            ),
           ),
           const SizedBox(height: 6),
           Row(

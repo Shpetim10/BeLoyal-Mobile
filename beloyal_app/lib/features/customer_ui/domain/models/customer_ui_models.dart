@@ -34,7 +34,6 @@ class CustomerBusiness {
     required this.address,
     required this.phone,
     required this.email,
-    this.distance = 'Unavailable',
     this.hasOffer = false,
     this.offerLabel,
     this.description = '',
@@ -57,7 +56,6 @@ class CustomerBusiness {
   final String address;
   final String phone;
   final String email;
-  final String distance;
   final bool hasOffer;
   final String? offerLabel;
   final String description;

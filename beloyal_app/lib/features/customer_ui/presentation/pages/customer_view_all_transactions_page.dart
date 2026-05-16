@@ -73,6 +73,12 @@ class _CustomerViewAllTransactionsPageState
         return false;
       }
       if (typeFilter == 'ALL') return true;
+      // For REDEEM filter, include REDEEM, COUPON_PURCHASE, and negative ADJUSTMENT
+      if (typeFilter == 'REDEEM') {
+        return t.type == 'REDEEM' ||
+            t.type == 'COUPON_PURCHASE' ||
+            (t.type == 'ADJUSTMENT' && t.points < 0);
+      }
       return t.type == typeFilter;
     }).toList();
   }
@@ -214,7 +220,10 @@ class _CustomerViewAllTransactionsPageState
         .where((t) => t.type == 'EARN')
         .fold(0, (s, t) => s + t.points);
     final totalSpent = allTxs
-        .where((t) => t.type == 'REDEEM')
+        .where((t) =>
+            t.type == 'REDEEM' ||
+            t.type == 'COUPON_PURCHASE' ||
+            (t.type == 'ADJUSTMENT' && t.points < 0))
         .fold(0, (s, t) => s + t.points.abs());
 
     return Column(

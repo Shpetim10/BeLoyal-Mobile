@@ -158,19 +158,6 @@ class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
                 ),
                 const SizedBox(height: 24),
                 _SectionHeader(
-                  title: 'Top Businesses',
-                  subtitle: 'Highest rated near you',
-                  onViewAll: () =>
-                      _push(context, const CustomerViewAllBusinessesPage()),
-                ),
-                const SizedBox(height: 12),
-                _HotBusinessesCarousel(
-                  businesses: data.hotBusinesses,
-                  onViewAll: () =>
-                      _push(context, const CustomerViewAllBusinessesPage()),
-                ),
-                const SizedBox(height: 24),
-                _SectionHeader(
                   title: 'Recent Activity',
                   subtitle: 'Your latest transactions',
                   onViewAll: () =>
@@ -1019,35 +1006,14 @@ class _BusinessCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            business.category,
-                            style: AppTypography.dmSans(
-                              fontSize: 10,
-                              color: AppColors.textMutedDark,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(
-                          Icons.star_rounded,
-                          color: AppColors.gold,
-                          size: 11,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          business.rating.toStringAsFixed(2),
-                          style: AppTypography.dmSans(
-                            fontSize: 10,
-                            color: AppColors.gold,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      business.category,
+                      style: AppTypography.dmSans(
+                        fontSize: 10,
+                        color: AppColors.textMutedDark,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
                     Text(
@@ -1221,36 +1187,15 @@ class _DiscoverCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 10,
-                        color: AppColors.gold,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        business.rating.toStringAsFixed(2),
-                        style: AppTypography.dmSans(
-                          fontSize: 10,
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '· ${business.distance}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.dmSans(
-                            fontSize: 10,
-                            color: AppColors.textMutedDark,
-                          ),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    business.category,
+                    style: AppTypography.dmSans(
+                      fontSize: 10,
+                      color: AppColors.textMutedDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -1625,140 +1570,6 @@ class _AlmostThereCard extends StatelessWidget {
                   color: AppColors.primary,
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Hot Businesses Carousel ──────────────────────────────────────────────────
-
-class _HotBusinessesCarousel extends StatelessWidget {
-  const _HotBusinessesCarousel({
-    required this.businesses,
-    required this.onViewAll,
-  });
-  final List<CustomerBusiness> businesses;
-  final VoidCallback onViewAll;
-
-  @override
-  Widget build(BuildContext context) {
-    const limit = 10;
-    final visibleBusinesses = businesses.take(limit).toList();
-    final hasMore = businesses.length > limit;
-
-    return Column(
-      children: [
-        SizedBox(
-          height: 110,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemCount: visibleBusinesses.length,
-            itemBuilder: (_, i) =>
-                _HotBusinessChip(business: visibleBusinesses[i]),
-          ),
-        ),
-        if (hasMore)
-          _ViewAllHint(
-            message:
-                'Showing ${visibleBusinesses.length} of ${businesses.length} businesses. Tap View All.',
-            onTap: onViewAll,
-          ),
-      ],
-    );
-  }
-}
-
-class _HotBusinessChip extends StatelessWidget {
-  const _HotBusinessChip({required this.business});
-  final CustomerBusiness business;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () =>
-          _push(context, CustomerBusinessDetailPage(business: business)),
-      child: Container(
-        width: 130,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: business.gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      business.logoEmoji,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: business.isOpen
-                        ? AppColors.success
-                        : AppColors.error,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              business.name,
-              style: AppTypography.dmSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textOnDark,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                const Icon(Icons.star_rounded, color: AppColors.gold, size: 11),
-                const SizedBox(width: 3),
-                Text(
-                  business.rating.toStringAsFixed(2),
-                  style: AppTypography.dmSans(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.gold,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  business.distance,
-                  style: AppTypography.dmSans(
-                    fontSize: 10,
-                    color: AppColors.textMutedDark,
-                  ),
-                ),
-              ],
             ),
           ],
         ),

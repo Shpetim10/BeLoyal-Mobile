@@ -218,7 +218,7 @@ abstract final class AppTypography {
     color: color,
   );
 
-  /// Small metadata (distance, category)
+  /// Small metadata (category)
   static TextStyle meta({Color? color}) => GoogleFonts.dmSans(
     fontSize: 11,
     fontWeight: FontWeight.w400,

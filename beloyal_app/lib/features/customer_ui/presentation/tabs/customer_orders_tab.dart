@@ -32,6 +32,15 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
   List<CustomerTransaction> _filtered(List<CustomerTransaction> transactions) {
     final all = [...transactions]..sort((a, b) => b.date.compareTo(a.date));
     if (_filter == _TxFilter.all) return all;
+
+    // For REDEEM filter, include REDEEM, COUPON_PURCHASE, and negative ADJUSTMENT
+    if (_filter == _TxFilter.redeem) {
+      return all.where((t) =>
+          t.type == 'REDEEM' ||
+          t.type == 'COUPON_PURCHASE' ||
+          (t.type == 'ADJUSTMENT' && t.points < 0)).toList();
+    }
+
     final typeStr = switch (_filter) {
       _TxFilter.earn => 'EARN',
       _TxFilter.redeem => 'REDEEM',
@@ -84,7 +93,10 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
             .where((t) => t.type == 'EARN')
             .fold(0, (s, t) => s + t.points);
         final totalSpent = txs
-            .where((t) => t.type == 'REDEEM')
+            .where((t) =>
+                t.type == 'REDEEM' ||
+                t.type == 'COUPON_PURCHASE' ||
+                (t.type == 'ADJUSTMENT' && t.points < 0))
             .fold(0, (s, t) => s + t.points.abs());
 
         return Column(

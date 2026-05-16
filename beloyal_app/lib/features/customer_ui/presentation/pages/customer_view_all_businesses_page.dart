@@ -553,57 +553,12 @@ class _BusinessListCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Text(
-                              business.category,
-                              style: AppTypography.dmSans(
-                                fontSize: 11,
-                                color: AppColors.textMutedDark,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 3,
-                              height: 3,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.textMutedDark,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.star_rounded,
-                              color: AppColors.gold,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              business.rating.toStringAsFixed(2),
-                              style: AppTypography.dmSans(
-                                fontSize: 11,
-                                color: AppColors.gold,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 3,
-                              height: 3,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.textMutedDark,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              business.distance,
-                              style: AppTypography.dmSans(
-                                fontSize: 11,
-                                color: AppColors.textMutedDark,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          business.category,
+                          style: AppTypography.dmSans(
+                            fontSize: 11,
+                            color: AppColors.textMutedDark,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         if (isDiscover) ...[

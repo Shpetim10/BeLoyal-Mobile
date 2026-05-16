@@ -630,12 +630,19 @@ CustomerTransaction _mapTransaction(
 ]) {
   final categoryKey = bizCategoryMap[dto.businessId] ?? '';
 
+  // Negate points for transaction types that represent deductions
+  final shouldNegate = switch (dto.type) {
+    'REDEEM' || 'COUPON_PURCHASE' || 'EXPIRED' => true,
+    _ => false,
+  };
+  final finalPoints = shouldNegate ? -dto.points.abs() : dto.points;
+
   return CustomerTransaction(
     id: dto.id,
     businessId: dto.businessId,
     businessName: dto.businessName,
     type: dto.type,
-    points: dto.points,
+    points: finalPoints,
     date: dto.date,
     description: dto.description,
     netAmount: dto.netAmount ?? 0.0,
