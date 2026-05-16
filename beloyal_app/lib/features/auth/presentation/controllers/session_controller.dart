@@ -24,19 +24,25 @@ class SessionController extends Notifier<Session?> {
   }
 
   /// Helper to set session from AuthUser, picking the first role as default.
-  /// Defaults to CUSTOMER if present, otherwise picks the first available business.
+  /// Prioritizes independent global roles (CUSTOMER, SUPERADMIN) over business-scoped roles.
   Future<void> setSession(AuthUser user) async {
     if (user.roles.isEmpty && user.businessProfiles.isEmpty) {
       return;
     }
 
-    // Default 1: Customer (if they have the role)
+    // Default 1: SuperAdmin (if they have the role) - independent global role
+    if (user.roles.contains(UserRole.superAdmin)) {
+      state = Session(user: user, activeRole: UserRole.superAdmin);
+      return;
+    }
+
+    // Default 2: Customer (if they have the role) - independent global role
     if (user.roles.contains(UserRole.customer)) {
       state = Session(user: user, activeRole: UserRole.customer);
       return;
     }
 
-    // Default 2: First active business profile
+    // Default 3: First active business profile (BUSINESSADMIN, STAFF)
     if (user.hasActiveBusinessProfiles) {
       final firstProfile = user.businessProfiles
           .where((p) => p.active)
@@ -52,7 +58,7 @@ class SessionController extends Notifier<Session?> {
       }
     }
 
-    // Default 3: Any business profile (even if inactive)
+    // Default 4: Any business profile (even if inactive)
     if (user.businessProfiles.isNotEmpty) {
       final firstProfile = user.businessProfiles.first;
       state = Session(
@@ -64,7 +70,7 @@ class SessionController extends Notifier<Session?> {
       return;
     }
 
-    // Default 4: First global role
+    // Default 5: Fallback to any global role
     if (user.roles.isNotEmpty) {
       state = Session(user: user, activeRole: user.roles.first);
       return;
@@ -131,6 +137,8 @@ class SessionController extends Notifier<Session?> {
           active: p.active,
           invitationAccepted: p.invitationAccepted,
           businessStatus: p.businessStatus,
+          statusDisplayName: p.statusDisplayName,
+          statusDescription: p.statusDescription,
           rejectionReason: p.rejectionReason,
           memberStatus: p.memberStatus,
           earningSettingsEnabled: enabled,
@@ -152,6 +160,8 @@ class SessionController extends Notifier<Session?> {
   void updateBusinessStatus({
     required int businessId,
     required String newStatus,
+    String? statusDisplayName,
+    String? statusDescription,
     String? rejectionReason,
   }) {
     final current = state;
@@ -166,6 +176,8 @@ class SessionController extends Notifier<Session?> {
           active: p.active,
           invitationAccepted: p.invitationAccepted,
           businessStatus: newStatus,
+          statusDisplayName: statusDisplayName,
+          statusDescription: statusDescription,
           rejectionReason: rejectionReason,
           memberStatus: p.memberStatus,
           earningSettingsEnabled: p.earningSettingsEnabled,
@@ -200,6 +212,8 @@ class SessionController extends Notifier<Session?> {
           active: p.active,
           invitationAccepted: p.invitationAccepted,
           businessStatus: p.businessStatus,
+          statusDisplayName: p.statusDisplayName,
+          statusDescription: p.statusDescription,
           rejectionReason: p.rejectionReason,
           memberStatus: p.memberStatus,
           earningSettingsEnabled: p.earningSettingsEnabled,

@@ -109,6 +109,9 @@ class _RoleSelectSheetState extends State<RoleSelectSheet> {
                     active: profile.active,
                     invitationAccepted: profile.invitationAccepted,
                     isStaffInactive: profile.isStaffInactive,
+                    memberStatus: profile.memberStatus,
+                    businessStatus: profile.businessStatus,
+                    statusDisplayName: profile.statusDisplayName,
                     selected: _selectedBusinessId == profile.businessId,
                     onTap: () => setState(() {
                       _selectedRole = profile.role;
@@ -162,6 +165,9 @@ class _BusinessChip extends StatelessWidget {
     required this.isStaffInactive,
     required this.selected,
     required this.onTap,
+    this.memberStatus,
+    this.businessStatus,
+    this.statusDisplayName,
   });
 
   final int businessId;
@@ -171,10 +177,21 @@ class _BusinessChip extends StatelessWidget {
   final bool invitationAccepted;
   final bool isStaffInactive;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final String? memberStatus;
+  final String? businessStatus;
+  final String? statusDisplayName;
 
   @override
   Widget build(BuildContext context) {
+    final statusObj = businessStatus != null
+        ? (businessStatus!.toUpperCase() == 'ACTIVE'
+              ? null
+              : _getBusinessStatusInfo())
+        : null;
+    final isBusyStatus =
+        businessStatus != null && businessStatus!.toUpperCase() != 'ACTIVE';
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -226,12 +243,52 @@ class _BusinessChip extends StatelessWidget {
                     children: [
                       Text(
                         role.displayName,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 12,
                         ),
                       ),
-                      if (isStaffInactive) ...[
+                      if (role == UserRole.staff && memberStatus?.toUpperCase() == 'INVITE') ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Pending Invitation',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ] else if (isBusyStatus && statusObj != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusObj['color'].withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            statusObj['displayName'] as String,
+                            style: TextStyle(
+                              color: statusObj['color'] as Color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ] else if (isStaffInactive) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -271,7 +328,7 @@ class _BusinessChip extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ] else if (!active) ...[
+                      ] else if (!active && !isBusyStatus) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -297,13 +354,25 @@ class _BusinessChip extends StatelessWidget {
                 ],
               ),
             ),
-            if (active && selected && !isStaffInactive)
+            if (role == UserRole.staff && memberStatus?.toUpperCase() == 'INVITE')
+              const Icon(
+                Icons.mark_email_unread_rounded,
+                color: AppColors.primary,
+                size: 20,
+              )
+            else if (isBusyStatus && statusObj != null)
+              Icon(
+                statusObj['icon'] as IconData,
+                color: statusObj['color'] as Color,
+                size: 20,
+              )
+            else if (active && selected && !isStaffInactive)
               const Icon(
                 Icons.check_circle_rounded,
                 color: AppColors.primary,
                 size: 24,
-              ),
-            if (isStaffInactive)
+              )
+            else if (isStaffInactive)
               const Icon(Icons.block_rounded, color: AppColors.error, size: 20)
             else if (!invitationAccepted)
               const Icon(
@@ -311,15 +380,49 @@ class _BusinessChip extends StatelessWidget {
                 color: AppColors.primary,
                 size: 20,
               )
-            else if (!active)
+            else if (active && selected)
               const Icon(
-                Icons.hourglass_empty_rounded,
-                color: AppColors.warning,
-                size: 20,
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 24,
               ),
           ],
         ),
       ),
     );
+  }
+
+  Map<String, dynamic> _getBusinessStatusInfo() {
+    if (businessStatus == null) return {};
+    final statusName = businessStatus!.toUpperCase();
+
+    switch (statusName) {
+      case 'PENDING_APPROVAL':
+        return {
+          'displayName': statusDisplayName ?? 'Approval Pending',
+          'icon': Icons.hourglass_bottom_rounded,
+          'color': AppColors.warning,
+        };
+      case 'REJECTED':
+        return {
+          'displayName': statusDisplayName ?? 'Rejected',
+          'icon': Icons.cancel_rounded,
+          'color': AppColors.error,
+        };
+      case 'BANNED':
+        return {
+          'displayName': statusDisplayName ?? 'Banned',
+          'icon': Icons.block_rounded,
+          'color': AppColors.error,
+        };
+      case 'INACTIVE':
+        return {
+          'displayName': statusDisplayName ?? 'Inactive',
+          'icon': Icons.pause_circle_rounded,
+          'color': AppColors.warning,
+        };
+      default:
+        return {};
+    }
   }
 }

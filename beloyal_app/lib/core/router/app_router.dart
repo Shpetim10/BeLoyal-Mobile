@@ -20,6 +20,8 @@ import '../../features/staff/presentation/pages/staff_settings_pending_gate_page
 
 import '../../features/auth/presentation/controllers/session_controller.dart';
 import '../../features/auth/domain/models/auth_user.dart';
+import '../../features/auth/domain/models/business_status.dart';
+import '../../features/auth/domain/models/business_status_helpers.dart';
 
 // Business Onboarding imports
 import '../../features/business_onboarding/presentation/pages/business_registration_entry_page.dart';
@@ -31,6 +33,8 @@ import '../../features/business_onboarding/presentation/pages/under_review_confi
 import '../../features/business_onboarding/presentation/pages/under_review_gate_page.dart';
 import '../../features/business_onboarding/presentation/pages/invitation_pending_gate_page.dart';
 import '../../features/business_onboarding/presentation/pages/rejected_gate_page.dart';
+import '../../features/business_onboarding/presentation/pages/banned_gate_page.dart';
+import '../../features/business_onboarding/presentation/pages/suspended_gate_page.dart';
 import '../../features/business_onboarding/presentation/pages/update_registration_form_page.dart';
 
 // Admin imports
@@ -151,6 +155,37 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       }
 
+      // Route guard: Prevent non-business users (CUSTOMER, SUPERADMIN) from accessing
+      // business-scoped paths. These paths are only for BUSINESSADMIN and STAFF.
+      // Exception: Allow staff invitation acceptance for all users.
+      if (isLoggedIn &&
+          (session.activeRole == UserRole.customer ||
+              session.activeRole == UserRole.superAdmin)) {
+        final isInvitationAcceptance =
+            path.startsWith('/api/besahub/auth/accept-invitation');
+
+        if (!isInvitationAcceptance) {
+          final businessScopedPaths = ['/business/', '/staff/'];
+          final isBusinessPath =
+              businessScopedPaths.any((p) => path.startsWith(p));
+
+          if (isBusinessPath) {
+            final target = switch (session.activeRole) {
+              UserRole.customer =>
+                session.user.customerProfileComplete
+                    ? '/customer/dashboard'
+                    : '/create-profile',
+              UserRole.superAdmin => '/admin/dashboard',
+              _ => '/login',
+            };
+            debugPrint(
+              'Non-business user tried to access $path -> Redirecting to $target',
+            );
+            return target;
+          }
+        }
+      }
+
       // If logged in, check if the active business profile is still pending (active: false)
       // Skip this check for the staff invitation acceptance route — invited staff must
       // always be able to accept even if their business isn't active yet.
@@ -201,20 +236,47 @@ final routerProvider = Provider<GoRouter>((ref) {
         } else if (activeBusiness != null &&
             activeBusiness.invitationAccepted &&
             !activeBusiness.active) {
-          if (activeBusiness.businessStatus == 'REJECTED') {
-            // Allow the update form so the user can actually correct their data
-            if (path != '/business/rejected' &&
-                path != '/business/rejected/update') {
-              debugPrint(
-                'Business is rejected -> Redirecting to rejected gate',
-              );
-              return '/business/rejected';
-            }
-          } else if (path != '/business/under-review') {
-            debugPrint(
-              'Business is pending review -> Redirecting to under review gate',
-            );
-            return '/business/under-review';
+          final status = activeBusiness.businessStatus.toBusinessStatus();
+          debugPrint(
+            'BUSINESS STATUS PARSING: raw="${activeBusiness.businessStatus}" -> parsed="${status.backendValue}" (displayName="${status.displayName}")',
+          );
+
+          switch (status) {
+            case BusinessStatus.rejected:
+              // Allow the update form so the user can actually correct their data
+              if (path != '/business/rejected' &&
+                  path != '/business/rejected/update') {
+                debugPrint(
+                  'Business is rejected -> Redirecting to rejected gate',
+                );
+                return '/business/rejected';
+              }
+            case BusinessStatus.pendingApproval:
+              if (path != '/business/under-review') {
+                debugPrint(
+                  'Business is pending approval -> Redirecting to under review gate',
+                );
+                return '/business/under-review';
+              }
+            case BusinessStatus.banned:
+              // Banned businesses should not allow access to any business features
+              if (path != '/business/banned') {
+                debugPrint(
+                  'Business is banned -> Redirecting to banned gate',
+                );
+                return '/business/banned';
+              }
+            case BusinessStatus.inactive:
+              // Inactive (suspended) businesses should show a suspension notice
+              if (path != '/business/suspended') {
+                debugPrint(
+                  'Business is inactive/suspended -> Redirecting to suspension gate',
+                );
+                return '/business/suspended';
+              }
+            case BusinessStatus.active:
+              // Should not happen since active==false, but handle gracefully
+              break;
           }
         }
 
@@ -512,6 +574,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 FadeTransition(opacity: anim, child: child),
           );
         },
+      ),
+      GoRoute(
+        path: '/business/suspended',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SuspendedGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/business/banned',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const BannedGatePage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
       ),
       GoRoute(
         path: '/api/besahub/auth/accept-invitation',

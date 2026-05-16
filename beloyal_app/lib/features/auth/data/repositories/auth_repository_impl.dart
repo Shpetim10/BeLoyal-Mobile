@@ -335,6 +335,8 @@ class AuthRepositoryImpl implements AuthRepository {
                 active: active,
                 invitationAccepted: invitationAccepted,
                 businessStatus: item['businessStatus'] as String?,
+                statusDisplayName: item['statusDisplayName'] as String?,
+                statusDescription: item['statusDescription'] as String?,
                 rejectionReason: item['rejectionReason'] as String?,
                 memberStatus: item['memberStatus'] as String?,
                 earningSettingsEnabled: item['earningSettingsEnabled'] == true,
@@ -347,7 +349,7 @@ class AuthRepositoryImpl implements AuthRepository {
               ),
             );
             debugPrint(
-              'Parsed Profile -> id: $id, role: $roleStr, active: $active, earningSettingsConfigured: ${item['earningSettingsConfigured']}, loyaltySettingsConfigured: ${item['loyaltySettingsConfigured']}',
+              'Parsed Profile -> id: $id, role: $roleStr, active: $active, businessStatus: ${item['businessStatus']}, earningSettingsConfigured: ${item['earningSettingsConfigured']}, loyaltySettingsConfigured: ${item['loyaltySettingsConfigured']}',
             );
           }
         }

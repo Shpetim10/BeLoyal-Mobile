@@ -35,6 +35,65 @@ class AdminBusinessRepository {
     }
   }
 
+  /// Suspends a business (ACTIVE → INACTIVE).
+  Future<void> suspendBusiness(int businessId, String reason) async {
+    try {
+      await _dio.patch(
+        '/admin/businesses/$businessId/suspend',
+        data: {'reason': reason},
+      );
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Bans a business (any status → BANNED).
+  Future<void> banBusiness(int businessId, String reason) async {
+    try {
+      await _dio.patch(
+        '/admin/businesses/$businessId/ban',
+        data: {'reason': reason},
+      );
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Reactivates a business (INACTIVE/BANNED → ACTIVE).
+  Future<void> reactivateBusiness(int businessId) async {
+    try {
+      await _dio.patch('/admin/businesses/$businessId/reactivate');
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Hard deletes a business and all associated data.
+  Future<void> deleteBusiness(int businessId) async {
+    try {
+      await _dio.delete('/admin/businesses/$businessId');
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Fetches all platform users with roles, memberships, and loyalty metrics.
+  Future<List<PlatformUserSummaryDto>> getPlatformUsers() async {
+    try {
+      final response = await _dio.get('/admin/platform/users');
+      final data = response.data;
+      if (data is List) {
+        return data
+            .map((e) =>
+                PlatformUserSummaryDto.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Exception _mapError(DioException e) {
     if (e.response?.data != null && e.response?.data is Map<String, dynamic>) {
       final errorData = e.response!.data as Map<String, dynamic>;

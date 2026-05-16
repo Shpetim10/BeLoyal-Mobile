@@ -41,6 +41,8 @@ class BusinessProfileInfo {
     required this.active,
     this.invitationAccepted = true,
     this.businessStatus,
+    this.statusDisplayName,
+    this.statusDescription,
     this.rejectionReason,
     this.memberStatus,
     this.earningSettingsEnabled = false,
@@ -56,6 +58,8 @@ class BusinessProfileInfo {
   final bool active;
   final bool invitationAccepted;
   final String? businessStatus;
+  final String? statusDisplayName;
+  final String? statusDescription;
   final String? rejectionReason;
 
   /// The staff member's activation status: "ACTIVE", "INACTIVE", "INVITE", etc.

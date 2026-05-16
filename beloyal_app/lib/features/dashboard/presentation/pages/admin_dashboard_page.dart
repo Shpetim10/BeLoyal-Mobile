@@ -1,4 +1,6 @@
 import 'package:besahub_app/features/admin/presentation/pages/admin_all_businesses_page.dart';
+import 'package:besahub_app/features/admin/presentation/pages/admin_monitoring_page.dart';
+import 'package:besahub_app/features/admin/presentation/pages/admin_platform_users_page.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -77,14 +79,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                     _AdminHomeTab(),
                     BusinessApplicationsPage(),
                     AdminAllBusinessesPage(),
-                    _PlaceholderTab(
-                      icon: Icons.search_rounded,
-                      label: 'Search',
-                    ),
-                    _PlaceholderTab(
-                      icon: Icons.settings_rounded,
-                      label: 'Settings',
-                    ),
+                    AdminPlatformUsersPage(),
+                    AdminMonitoringPage(),
                   ],
                 ),
               ),
@@ -103,8 +99,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           ),
         ],
         rightItems: const [
-          DashboardNavItem(icon: Icons.search_rounded, label: 'Search'),
-          DashboardNavItem(icon: Icons.settings_rounded, label: 'Settings'),
+          DashboardNavItem(icon: Icons.people_rounded, label: 'Users'),
+          DashboardNavItem(icon: Icons.monitor_heart_rounded, label: 'Monitor'),
         ],
         centerIcon: Icons.business_rounded,
         centerLabel: 'Businesses',
@@ -122,8 +118,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       0 => 'Platform Overview 🌐',
       1 => 'Pending Approvals',
       2 => 'All Businesses',
-      3 => 'Search',
-      4 => 'Settings',
+      3 => 'Platform Users',
+      4 => 'Monitoring',
       _ => '',
     };
   }
@@ -807,36 +803,3 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ── Placeholder Tab ────────────────────────────────────────────────────────────
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: AppColors.textMuted.withValues(alpha: 0.35),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '$label\nComing Soon',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 16,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

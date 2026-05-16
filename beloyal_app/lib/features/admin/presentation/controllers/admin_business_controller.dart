@@ -97,3 +97,70 @@ final adminBusinessDetailsProvider = FutureProvider.family<BusinessDetailsDto, i
   final repo = ref.read(adminBusinessRepositoryProvider);
   return repo.getBusinessDetails(businessId);
 });
+
+// ── Lifecycle Controller ──────────────────────────────────────────────────────
+
+class AdminBusinessLifecycleController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {}
+
+  Future<void> suspend(int businessId, String reason) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(adminBusinessRepositoryProvider).suspendBusiness(businessId, reason),
+    );
+    if (!state.hasError) {
+      ref.invalidate(adminBusinessDetailsProvider(businessId));
+      ref.invalidate(adminAllBusinessesProvider);
+    }
+  }
+
+  Future<void> ban(int businessId, String reason) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(adminBusinessRepositoryProvider).banBusiness(businessId, reason),
+    );
+    if (!state.hasError) {
+      ref.invalidate(adminBusinessDetailsProvider(businessId));
+      ref.invalidate(adminAllBusinessesProvider);
+    }
+  }
+
+  Future<void> reactivate(int businessId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(adminBusinessRepositoryProvider).reactivateBusiness(businessId),
+    );
+    if (!state.hasError) {
+      ref.invalidate(adminBusinessDetailsProvider(businessId));
+      ref.invalidate(adminAllBusinessesProvider);
+    }
+  }
+
+  Future<void> delete(int businessId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => ref.read(adminBusinessRepositoryProvider).deleteBusiness(businessId),
+    );
+  }
+}
+
+final adminBusinessLifecycleProvider =
+    AsyncNotifierProvider<AdminBusinessLifecycleController, void>(
+  AdminBusinessLifecycleController.new,
+);
+
+// ── Platform Users Provider ───────────────────────────────────────────────────
+
+final adminPlatformUsersProvider =
+    FutureProvider<List<PlatformUserSummaryDto>>((ref) async {
+  return ref.read(adminBusinessRepositoryProvider).getPlatformUsers();
+});
+
+final adminUserSearchQueryProvider = NotifierProvider<_UserSearchNotifier, String>(_UserSearchNotifier.new);
+
+class _UserSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void update(String q) => state = q;
+}
