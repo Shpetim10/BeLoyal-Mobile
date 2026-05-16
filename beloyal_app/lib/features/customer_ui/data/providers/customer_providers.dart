@@ -14,23 +14,19 @@ class CustomerDataNotifier extends AsyncNotifier<CustomerDataSource> {
 
   Future<CustomerDataSource> _fetchHome() async {
     final repo = ref.read(customerRepositoryProvider);
-    final results = await Future.wait([
-      repo.fetchHome(),
-      repo.fetchMyCoupons().catchError((_) => <CustomerPromotionDto>[]),
-    ]);
-    final dto = results[0] as CustomerHomeDto;
-    final myCouponDtos = results[1] as List<CustomerPromotionDto>;
-    // QR override map keyed by couponId so home-promotion rows get a QR code
-    // attached when the /my-coupons response carries one. Only the first QR per
-    // coupon template is used here (home view shows one template row per coupon).
-    final qrCodeOverrides = <int, String>{
-      for (final c in myCouponDtos)
-        if (c.qrCode?.isNotEmpty == true) c.couponId: c.qrCode!,
-    };
+    final homeDto = await repo.fetchHome();
+    List<CustomerPromotionDto> myCouponDtos;
+    bool walletLoadFailed = false;
+    try {
+      myCouponDtos = await repo.fetchMyCoupons();
+    } catch (_) {
+      myCouponDtos = const [];
+      walletLoadFailed = true;
+    }
     return CustomerDataSource.fromDto(
-      dto,
+      homeDto,
       myCouponDtos: myCouponDtos,
-      qrCodeOverrides: qrCodeOverrides,
+      walletLoadFailed: walletLoadFailed,
     );
   }
 
@@ -111,14 +107,19 @@ CustomerCoupon couponFromPromotionDto(
     currency: dto.currency ?? source?.currency,
     isFeatured: dto.isFeatured,
     totalRedemptions: dto.totalRedemptions,
-    totalRedemptionLimit: dto.totalRedemptionLimit ?? source?.totalRedemptionLimit,
+    totalRedemptionLimit:
+        dto.totalRedemptionLimit ?? source?.totalRedemptionLimit,
     startDate: DateTime.tryParse(dto.startDate ?? ''),
     customerCouponId: dto.customerCouponId ?? source?.customerCouponId,
     minimumOrderAmount: dto.minimumOrderAmount ?? source?.minimumOrderAmount,
     maximumDiscountAmount:
         dto.maximumDiscountAmount ?? source?.maximumDiscountAmount,
+    freeProductCategoryId:
+        dto.freeProductCategoryId ?? source?.freeProductCategoryId,
     freeProductCategory: dto.freeProductCategory ?? source?.freeProductCategory,
+    freeProductId: dto.freeProductId ?? source?.freeProductId,
     freeProductName: dto.freeProductName ?? source?.freeProductName,
+    freeVariantId: dto.freeVariantId ?? source?.freeVariantId,
     freeProductVariant: dto.freeProductVariant ?? source?.freeProductVariant,
     freeProductQuantity: dto.freeProductQuantity ?? source?.freeProductQuantity,
     redeemedAt: dto.redeemedAt != null
@@ -126,12 +127,13 @@ CustomerCoupon couponFromPromotionDto(
         : null,
     usedAt: dto.usedAt != null ? DateTime.tryParse(dto.usedAt!) : null,
     orderId: dto.orderId,
-    qrCode: dto.qrCode,
-    canRedeem: dto.canRedeem,
+    qrCode: (dto.qrCode?.isNotEmpty == true) ? dto.qrCode : source?.qrCode,
+    canRedeem: dto.canRedeem ?? source?.canRedeem,
     cannotRedeemReason: dto.cannotRedeemReason ?? source?.cannotRedeemReason,
+    cannotRedeemCode: dto.cannotRedeemCode ?? source?.cannotRedeemCode,
     currencyCode: dto.currencyCode ?? source?.currencyCode,
     currencySymbol: dto.currencySymbol ?? source?.currencySymbol,
-    canUse: dto.canUse,
+    canUse: dto.canUse ?? source?.canUse,
     cannotUseReason: dto.cannotUseReason ?? source?.cannotUseReason,
   );
 }

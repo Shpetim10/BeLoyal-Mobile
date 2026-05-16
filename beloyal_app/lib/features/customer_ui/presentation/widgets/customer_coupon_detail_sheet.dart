@@ -17,12 +17,14 @@ class CustomerCouponDetailSheet {
   const CustomerCouponDetailSheet._();
 
   static void show(BuildContext context, CustomerCoupon coupon) {
-    // Only fetch fresh detail data for active/expiring coupons.
-    // Used/expired coupons already carry complete data from the home API and
-    // fetching by promotion ID for those states risks returning a different
-    // business's coupon if the backend resolves customer-coupon IDs differently.
+    // Fetch fresh detail for any owned instance (to get snapshot fields from
+    // backend) or for unowned active/expiring coupons. Use the owned-instance
+    // endpoint when customerCouponId is present; fall back to the template
+    // endpoint otherwise.
     final needsDetailFetch =
-        coupon.status == 'active' || coupon.status == 'expiring';
+        coupon.customerCouponId != null ||
+        coupon.status == 'active' ||
+        coupon.status == 'expiring';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -384,14 +386,7 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                   color: AppColors.glassBorder,
                 ),
                 // ── Per-customer purchase count vs limit ────────────────────
-                if (coupon.isPerCustomerLimitReached)
-                  _HighlightRow(
-                    icon: Icons.person_off_rounded,
-                    text:
-                        '${coupon.customerRedemptionCount}/${coupon.usageLimit} redeemed • Personal limit reached',
-                    color: AppColors.warning,
-                  )
-                else
+                if (!coupon.isLimitReached) ...[
                   _InfoRow(
                     icon: Icons.person_rounded,
                     label: 'My redemptions',
@@ -404,11 +399,12 @@ class _CouponSheetBodyState extends ConsumerState<_CouponSheetBody> {
                         ? AppColors.primary
                         : null,
                   ),
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: AppColors.glassBorder,
-                ),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.glassBorder,
+                  ),
+                ],
                 // ── Overall redemption count vs limit ───────────────────────
                 if (coupon.isOverallLimitReached)
                   _HighlightRow(
@@ -758,7 +754,7 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
     if (coupon.isLimitReached) {
       return Column(
         children: [
-          if (coupon.isOwned) ...[
+          if (coupon.canShowQr) ...[
             _QrButton(
               isLoading: isLoading,
               onTap: () =>
@@ -810,7 +806,7 @@ class _CouponActionButtonState extends ConsumerState<_CouponActionButton> {
           _ClaimButton(
             coupon: coupon,
             isLoading: isLoading,
-            label: 'Claim Coupon  •  ${coupon.pointCost} pts',
+            label: 'Redeem  •  ${coupon.pointCost} pts',
             onTap: () => _confirmAndClaim(context, coupon),
           ),
       ],
@@ -913,7 +909,7 @@ class _QrButton extends StatelessWidget {
             const Icon(Icons.qr_code_rounded, color: Colors.white, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Show QR Code',
+              'Use Coupon',
               style: AppTypography.dmSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,

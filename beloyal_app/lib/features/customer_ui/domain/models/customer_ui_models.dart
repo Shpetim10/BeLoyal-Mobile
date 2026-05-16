@@ -98,8 +98,11 @@ class CustomerCoupon {
     this.customerCouponId,
     this.minimumOrderAmount,
     this.maximumDiscountAmount,
+    this.freeProductCategoryId,
     this.freeProductCategory,
+    this.freeProductId,
     this.freeProductName,
+    this.freeVariantId,
     this.freeProductVariant,
     this.freeProductQuantity,
     this.redeemedAt,
@@ -108,6 +111,7 @@ class CustomerCoupon {
     this.qrCode,
     this.canRedeem,
     this.cannotRedeemReason,
+    this.cannotRedeemCode,
     this.currencyCode,
     this.currencySymbol,
     this.canUse,
@@ -153,8 +157,12 @@ class CustomerCoupon {
   final int? customerCouponId;
   final double? minimumOrderAmount;
   final double? maximumDiscountAmount;
+  // Free product fields — only populated when type = FREE_PRODUCT.
+  final int? freeProductCategoryId;
   final String? freeProductCategory;
+  final int? freeProductId;
   final String? freeProductName;
+  final int? freeVariantId;
   final String? freeProductVariant;
   final int? freeProductQuantity;
   final DateTime? redeemedAt;
@@ -165,6 +173,8 @@ class CustomerCoupon {
   // Backend-computed gate from the available-coupons endpoint.
   final bool? canRedeem;
   final String? cannotRedeemReason;
+  // Machine-readable gate code: INSUFFICIENT_POINTS, SOLD_OUT, PER_CUSTOMER_LIMIT, TEMPLATE_INACTIVE
+  final String? cannotRedeemCode;
   // Structured currency fields — prefer currencySymbol over code for display.
   final String? currencyCode;
   final String? currencySymbol;
@@ -173,16 +183,22 @@ class CustomerCoupon {
   final String? cannotUseReason;
 
   // Prefer backend-provided symbol; fall back to currency code (converted by utility).
-  String get displayCurrencySymbol =>
-      (currencySymbol?.isNotEmpty == true) ? currencySymbol! : (currencyCode ?? currency ?? '');
+  String get displayCurrencySymbol => (currencySymbol?.isNotEmpty == true)
+      ? currencySymbol!
+      : (currencyCode ?? currency ?? '');
 
   bool get isFreeProduct => type == 'FREE_PRODUCT';
   bool get isDiscountCoupon =>
       type == 'PERCENTAGE_DISCOUNT' || type == 'FIXED_AMOUNT_DISCOUNT';
-  // QR is only meaningful for active/expiring owned instances. Expired or used
-  // coupons must not show the QR as a usable action.
+  // QR is only meaningful for active/expiring owned instances with a valid
+  // owned-instance ID. Expired, used, or backend-gated (canUse=false) coupons
+  // must not show the QR as a usable action.
   bool get canShowQr {
-    if (!isOwned || isUsed || qrCode == null || qrCode!.isEmpty) return false;
+    if (!isOwned) return false;
+    if (customerCouponId == null) return false;
+    if (isUsed) return false;
+    if (qrCode == null || qrCode!.isEmpty) return false;
+    if (canUse == false) return false;
     return status == CustomerCouponStatus.active ||
         status == CustomerCouponStatus.expiring;
   }
@@ -221,7 +237,8 @@ class CustomerCoupon {
     // An owned instance whose status is 'used' can be repurchased when the backend
     // confirms canRedeem=true above (enough points, within limits, template active).
     if (isOwned && (isUsed || s == CustomerCouponStatus.used)) return true;
-    return s == CustomerCouponStatus.active || s == CustomerCouponStatus.expiring;
+    return s == CustomerCouponStatus.active ||
+        s == CustomerCouponStatus.expiring;
   }
 
   String get limitReachedReason {

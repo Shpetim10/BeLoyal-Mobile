@@ -73,10 +73,11 @@ class CustomerRepository {
   // the full result set. When pagination is added, a cursor/page parameter will
   // be introduced and these callers will need to be updated.
   Future<List<CustomerPromotionDto>> fetchMyCoupons() async {
-    final response = await _dio.get('/customer/my-coupons');
+    final response = await _dio.get('/customer/promotions');
     final list = response.data as List? ?? [];
     return list
         .map((e) => CustomerPromotionDto.fromJson(e as Map<String, dynamic>))
+        .where((dto) => dto.isOwned)
         .toList();
   }
 

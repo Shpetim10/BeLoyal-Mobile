@@ -296,9 +296,11 @@ class CustomerCouponCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   // All chip taps open the detail sheet via onTap.
-                                  CouponActionChipRow(
-                                    coupon: coupon,
-                                    onClaim: onTap,
+                                  Flexible(
+                                    child: CouponActionChipRow(
+                                      coupon: coupon,
+                                      onClaim: onTap,
+                                    ),
                                   ),
                                 ],
                               ),

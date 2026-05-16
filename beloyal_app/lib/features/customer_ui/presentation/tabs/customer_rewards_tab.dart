@@ -54,7 +54,10 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
         coupons
             .where((c) => c.status == 'expiring' || c.status == 'expired')
             .toList(),
-      _RewardTab.used => coupons.where((c) => c.isUsed).toList(),
+      _RewardTab.used =>
+        coupons
+            .where((c) => c.isUsed || c.status == CustomerCouponStatus.used)
+            .toList(),
     };
   }
 
@@ -127,6 +130,9 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
 
         return Column(
           children: [
+            if (data.walletLoadFailed &&
+                _couponOwnerTab == _CouponOwnerTab.myCoupons)
+              _buildWalletErrorBanner(),
             _buildSearchBar(),
             _buildOwnerTabSwitcher(
               data.myCoupons.length,
@@ -158,6 +164,38 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildWalletErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.wifi_off_rounded,
+            color: AppColors.warning,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Could not load your wallet. Pull down to retry.',
+              style: AppTypography.dmSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.warning,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -528,7 +566,6 @@ class _RewardCard extends StatelessWidget {
     );
   }
 }
-
 
 class _OwnerTabButton extends StatelessWidget {
   const _OwnerTabButton({

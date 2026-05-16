@@ -247,6 +247,7 @@ class CustomerDataSource {
     required this.ownedCoupons,
     required this.rewards,
     required this.transactions,
+    this.walletLoadFailed = false,
   });
 
   final CustomerProfile summary;
@@ -260,6 +261,9 @@ class CustomerDataSource {
   final List<CustomerCoupon> ownedCoupons;
   final List<CustomerReward> rewards;
   final List<CustomerTransaction> transactions;
+  // True when /customer/my-coupons failed to load. UI should show a partial
+  // error banner rather than treating the wallet as empty.
+  final bool walletLoadFailed;
 
   List<CustomerBusiness> get businessesWithPoints =>
       businesses.where((b) => b.points > 0).toList();
@@ -306,9 +310,8 @@ class CustomerDataSource {
     // Individual owned instances from /my-coupons. Preserved without dedup so
     // each customerCouponId is a separate entry in myCoupons.
     List<CustomerPromotionDto> myCouponDtos = const [],
-    // QR override map keyed by couponId — used to attach QR codes to home
-    // promotions rows (for backward compat with home screen display).
-    Map<int, String> qrCodeOverrides = const {},
+    // True when the /my-coupons fetch failed; surfaced via walletLoadFailed.
+    bool walletLoadFailed = false,
   }) {
     final bizCategoryMap = <int, String>{
       for (final b in dto.businesses) b.id: b.categoryKey,
@@ -316,16 +319,10 @@ class CustomerDataSource {
 
     final businesses = dto.businesses.map(_mapBusiness).toList();
 
-    // Map home promotions (template/public view). QR overrides attach the best
-    // available QR to each coupon template row for display on the home screen.
+    // Map home promotions as public template rows. Never attach QR codes from
+    // owned instances here — QR belongs only to a specific customerCouponId.
     final rawCoupons = dto.promotions
-        .map(
-          (p) => _mapPromotion(
-            p,
-            bizCategoryMap,
-            qrCodeOverride: qrCodeOverrides[p.couponId],
-          ),
-        )
+        .map((p) => _mapPromotion(p, bizCategoryMap))
         .toList();
 
     // Deduplicate home-promotion rows only (template level). This collapses
@@ -350,6 +347,7 @@ class CustomerDataSource {
       transactions: dto.transactions
           .map((t) => _mapTransaction(t, bizCategoryMap))
           .toList(),
+      walletLoadFailed: walletLoadFailed,
     );
   }
 }
@@ -415,9 +413,12 @@ CustomerCoupon buildOwnedCouponFromRedemption(
     totalRedemptionLimit: source.totalRedemptionLimit,
     minimumOrderAmount: source.minimumOrderAmount,
     maximumDiscountAmount: source.maximumDiscountAmount,
-    freeProductName: source.freeProductName,
-    freeProductVariant: source.freeProductVariant,
+    freeProductCategoryId: source.freeProductCategoryId,
     freeProductCategory: source.freeProductCategory,
+    freeProductId: source.freeProductId,
+    freeProductName: source.freeProductName,
+    freeVariantId: source.freeVariantId,
+    freeProductVariant: source.freeProductVariant,
     freeProductQuantity: source.freeProductQuantity,
     redeemedAt: result.redeemedAt != null
         ? DateTime.tryParse(result.redeemedAt!)
@@ -425,7 +426,7 @@ CustomerCoupon buildOwnedCouponFromRedemption(
     qrCode: result.qrCode.isNotEmpty ? result.qrCode : null,
     currencyCode: result.currency ?? source.currencyCode,
     currencySymbol: source.currencySymbol,
-    canUse: null,   // reset — backend will re-compute on next fetch
+    canUse: null, // reset — backend will re-compute on next fetch
     cannotUseReason: null,
   );
 }
@@ -537,7 +538,8 @@ List<CustomerCoupon> _deduplicateCoupons(List<CustomerCoupon> coupons) {
     }
     final key = 'owned_${c.businessId}_${c.couponId}';
     final existing = best[key];
-    if (existing == null || statusRank(c.status) < statusRank(existing.status)) {
+    if (existing == null ||
+        statusRank(c.status) < statusRank(existing.status)) {
       best[key] = c;
     }
   }
@@ -546,9 +548,8 @@ List<CustomerCoupon> _deduplicateCoupons(List<CustomerCoupon> coupons) {
 
 CustomerCoupon _mapPromotion(
   CustomerPromotionDto dto,
-  Map<int, String> bizCategoryMap, {
-  String? qrCodeOverride,
-}) {
+  Map<int, String> bizCategoryMap,
+) {
   final categoryKey = bizCategoryMap[dto.businessId] ?? '';
   final expires = dto.expiresAt;
   final expiresIn =
@@ -588,8 +589,11 @@ CustomerCoupon _mapPromotion(
     customerCouponId: dto.customerCouponId,
     minimumOrderAmount: dto.minimumOrderAmount,
     maximumDiscountAmount: dto.maximumDiscountAmount,
+    freeProductCategoryId: dto.freeProductCategoryId,
     freeProductCategory: dto.freeProductCategory,
+    freeProductId: dto.freeProductId,
     freeProductName: dto.freeProductName,
+    freeVariantId: dto.freeVariantId,
     freeProductVariant: dto.freeProductVariant,
     freeProductQuantity: dto.freeProductQuantity,
     redeemedAt: dto.redeemedAt != null
@@ -597,9 +601,12 @@ CustomerCoupon _mapPromotion(
         : null,
     usedAt: dto.usedAt != null ? DateTime.tryParse(dto.usedAt!) : null,
     orderId: dto.orderId,
-    qrCode: (qrCodeOverride?.isNotEmpty == true) ? qrCodeOverride : dto.qrCode,
+    // QR code belongs only to the owned instance (customerCouponId).
+    // Public template rows (no customerCouponId) must never receive a QR.
+    qrCode: dto.customerCouponId != null ? dto.qrCode : null,
     canRedeem: dto.canRedeem,
     cannotRedeemReason: dto.cannotRedeemReason,
+    cannotRedeemCode: dto.cannotRedeemCode,
     currencyCode: dto.currencyCode,
     currencySymbol: dto.currencySymbol,
     canUse: dto.canUse,

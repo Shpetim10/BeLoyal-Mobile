@@ -38,7 +38,6 @@ import '../../features/admin/presentation/pages/application_details_page.dart';
 import '../../features/admin/presentation/pages/admin_business_details_page.dart';
 
 // Profile imports
-import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/change_password_page.dart';
 import '../../features/profile/presentation/pages/admin_profile_hub_page.dart';
 import '../../features/profile/presentation/pages/super_admin_profile_page.dart';
@@ -890,12 +889,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/profile',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ProfilePage(),
-          transitionsBuilder: (ctx, anim, secondAnim, child) =>
-              FadeTransition(opacity: anim, child: child),
-        ),
+        redirect: (context, state) => '/customer/dashboard',
       ),
       GoRoute(
         path: '/admin/profile',

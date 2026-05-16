@@ -54,14 +54,17 @@ IconData couponStatusIcon(String status) => switch (status) {
 
 /// The next action a customer can take on a coupon from a list/detail surface.
 enum CouponActionKind {
-  /// Owned, active/expiring, not yet used, QR available — render a "Show QR" chip.
+  /// Owned, active/expiring, not yet used, QR available — render a "Use Coupon" chip.
   showQr,
 
   /// Owned but QR is missing — render a disabled explanatory chip instead of a
   /// broken QR action.
   qrMissing,
 
-  /// Unowned + can redeem — render a "Claim" chip.
+  /// Owned, active/expiring, but canUse = false — render a disabled reason chip.
+  cannotUse,
+
+  /// Unowned + can redeem — render a "Redeem" chip.
   claim,
 
   /// Owned + per-customer limit allows more redemptions — render a "Buy More"
@@ -99,110 +102,93 @@ class CouponActionDecision {
   final String? reason;
 }
 
-/// Resolves the action(s) to display for a coupon. Trusts backend `canRedeem`
-/// /`cannotRedeemReason` from `/customer/businesses/{id}/available-coupons`
-/// when present.
+/// Resolves the action(s) to display for a coupon.
+///
+/// Two separate CTA paths:
+/// - Owned (`isOwned=true`): gate by `canUse` — customer presents QR at checkout.
+/// - Unowned (`isOwned=false`): gate by `canRedeem` — customer spends points to claim.
 CouponActionDecision resolveCouponAction(CustomerCoupon coupon) {
   final isActive =
       coupon.status == CustomerCouponStatus.active ||
       coupon.status == CustomerCouponStatus.expiring;
   final hasQr = coupon.qrCode?.isNotEmpty == true;
-  final canShowQr = coupon.isOwned && !coupon.isUsed && isActive && hasQr;
-  final qrMissing = coupon.isOwned && !coupon.isUsed && isActive && !hasQr;
+  final canShowQr = coupon.canShowQr;
+  // qrMissing: owned+active+has no QR yet but canUse isn't blocked
+  final qrMissing =
+      coupon.isOwned &&
+      !coupon.isUsed &&
+      isActive &&
+      !hasQr &&
+      coupon.canUse != false;
 
-  // Backend explicit gate — but for owned coupons canRedeem=false only means
-  // this instance is already redeemed/used, not that a new purchase is blocked.
-  // canBuyMore already accounts for this distinction.
-  if (coupon.canRedeem == false) {
-    if (canShowQr) {
-      return CouponActionDecision(
-        primary: CouponActionKind.showQr,
-        secondary: coupon.canBuyMore
-            ? CouponActionKind.buyMore
-            : CouponActionKind.cannotRedeem,
-        reason: coupon.canBuyMore
-            ? null
-            : (coupon.cannotRedeemReason ?? coupon.limitReachedReason),
-      );
-    }
-    if (qrMissing) {
-      return CouponActionDecision(
-        primary: CouponActionKind.qrMissing,
-        secondary: coupon.canBuyMore ? CouponActionKind.buyMore : null,
-        reason: 'QR not available yet',
-      );
-    }
-    if (coupon.status == CustomerCouponStatus.used || coupon.isUsed) {
-      if (coupon.canBuyMore) {
-        return const CouponActionDecision(primary: CouponActionKind.buyMore);
+  // ── Owned coupons: gate by canUse for checkout presentation ────────────────
+  if (coupon.isOwned) {
+    if (isActive) {
+      // canUse=false: owned instance blocked from checkout use
+      if (coupon.canUse == false) {
+        return CouponActionDecision(
+          primary: CouponActionKind.cannotUse,
+          secondary: coupon.canBuyMore ? CouponActionKind.buyMore : null,
+          reason: coupon.cannotUseReason,
+        );
       }
-      return const CouponActionDecision(primary: CouponActionKind.used);
+      if (canShowQr) {
+        return CouponActionDecision(
+          primary: CouponActionKind.showQr,
+          secondary: coupon.canBuyMore ? CouponActionKind.buyMore : null,
+        );
+      }
+      if (qrMissing) {
+        return CouponActionDecision(
+          primary: CouponActionKind.qrMissing,
+          secondary: coupon.canBuyMore ? CouponActionKind.buyMore : null,
+          reason: 'QR not available yet',
+        );
+      }
+    }
+    if (coupon.isUsed || coupon.status == CustomerCouponStatus.used) {
+      return coupon.canBuyMore
+          ? const CouponActionDecision(primary: CouponActionKind.buyMore)
+          : const CouponActionDecision(primary: CouponActionKind.used);
     }
     if (coupon.status == CustomerCouponStatus.expired) {
-      return const CouponActionDecision(primary: CouponActionKind.expired);
+      return coupon.canBuyMore
+          ? const CouponActionDecision(primary: CouponActionKind.buyMore)
+          : const CouponActionDecision(primary: CouponActionKind.expired);
     }
+    if (coupon.status == CustomerCouponStatus.cancelled) {
+      return const CouponActionDecision(primary: CouponActionKind.none);
+    }
+    return coupon.canBuyMore
+        ? const CouponActionDecision(primary: CouponActionKind.buyMore)
+        : const CouponActionDecision(primary: CouponActionKind.none);
+  }
+
+  // ── Unowned coupons: gate by canRedeem for point-spend purchase ─────────────
+  if (!isActive) return const CouponActionDecision(primary: CouponActionKind.none);
+
+  // Backend canRedeem=false is authoritative: customer cannot purchase right now
+  if (coupon.canRedeem == false) {
     return CouponActionDecision(
       primary: CouponActionKind.cannotRedeem,
       reason: coupon.cannotRedeemReason ?? coupon.limitReachedReason,
     );
   }
-
-  if (coupon.status == CustomerCouponStatus.used || coupon.isUsed) {
-    if (coupon.canBuyMore) {
-      return const CouponActionDecision(primary: CouponActionKind.buyMore);
-    }
-    return const CouponActionDecision(primary: CouponActionKind.used);
-  }
-
-  if (coupon.status == CustomerCouponStatus.expired) {
-    if (coupon.canBuyMore) {
-      return const CouponActionDecision(primary: CouponActionKind.buyMore);
-    }
-    return const CouponActionDecision(primary: CouponActionKind.expired);
-  }
-
-  if (coupon.status == CustomerCouponStatus.cancelled) {
-    return const CouponActionDecision(primary: CouponActionKind.none);
-  }
-
-  if (canShowQr && coupon.canBuyMore) {
-    return const CouponActionDecision(
-      primary: CouponActionKind.showQr,
-      secondary: CouponActionKind.buyMore,
+  // Client-side limit check as safety net
+  if (coupon.isLimitReached) {
+    return CouponActionDecision(
+      primary: CouponActionKind.cannotRedeem,
+      reason: coupon.limitReachedReason,
     );
   }
-  if (canShowQr) {
-    return const CouponActionDecision(primary: CouponActionKind.showQr);
-  }
-  if (qrMissing && coupon.canBuyMore) {
-    return const CouponActionDecision(
-      primary: CouponActionKind.qrMissing,
-      secondary: CouponActionKind.buyMore,
-      reason: 'QR not available yet',
-    );
-  }
-  if (qrMissing) {
-    return const CouponActionDecision(
-      primary: CouponActionKind.qrMissing,
-      reason: 'QR not available yet',
-    );
-  }
-  if (!coupon.isOwned && isActive) {
-    if (coupon.isLimitReached) {
-      return CouponActionDecision(
-        primary: CouponActionKind.cannotRedeem,
-        reason: coupon.limitReachedReason,
-      );
-    }
-    return const CouponActionDecision(primary: CouponActionKind.claim);
-  }
-  return const CouponActionDecision(primary: CouponActionKind.none);
+  return const CouponActionDecision(primary: CouponActionKind.claim);
 }
 
 String couponActionLabel(CouponActionKind kind) => switch (kind) {
-  CouponActionKind.showQr => 'Show QR',
+  CouponActionKind.showQr => 'Use Coupon',
   CouponActionKind.qrMissing => 'QR pending',
-  CouponActionKind.claim => 'Claim',
+  CouponActionKind.cannotUse => 'Unavailable',
+  CouponActionKind.claim => 'Redeem',
   CouponActionKind.buyMore => 'Buy More',
   CouponActionKind.cannotRedeem => 'Unavailable',
   CouponActionKind.used => 'Used',
@@ -248,8 +234,11 @@ class CouponActionChipRow extends StatelessWidget {
         case CouponActionKind.qrMissing:
           chips.add(_disabledChip(d.reason ?? 'QR pending'));
           break;
+        case CouponActionKind.cannotUse:
+          chips.add(_disabledChip(d.reason ?? 'Unavailable'));
+          break;
         case CouponActionKind.claim:
-          chips.add(_claimChip(label: 'Claim', primary: true));
+          chips.add(_claimChip(label: 'Redeem', primary: true));
           break;
         case CouponActionKind.buyMore:
           chips.add(_claimChip(label: 'Buy More', primary: false));
@@ -269,14 +258,17 @@ class CouponActionChipRow extends StatelessWidget {
 
     if (chips.isEmpty) return const SizedBox.shrink();
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < chips.length; i++) ...[
-          if (i > 0) SizedBox(width: spacing),
-          chips[i],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < chips.length; i++) ...[
+            if (i > 0) SizedBox(width: spacing),
+            chips[i],
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -297,7 +289,7 @@ class CouponActionChipRow extends StatelessWidget {
             const Icon(Icons.qr_code_rounded, color: Colors.white, size: 12),
             const SizedBox(width: 4),
             Text(
-              'Show QR',
+              'Use Coupon',
               style: AppTypography.dmSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -349,22 +341,25 @@ class CouponActionChipRow extends StatelessWidget {
   }
 
   Widget _disabledChip(String reason) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Text(
-        reason,
-        style: AppTypography.dmSans(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textMutedDark,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 110),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.glassBorder),
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        child: Text(
+          reason,
+          style: AppTypography.dmSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMutedDark,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }

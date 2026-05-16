@@ -555,13 +555,29 @@ class _OverviewTab extends StatelessWidget {
             const SizedBox(height: 22),
             _SubSectionHeader(title: 'Active Coupons', count: coupons.length),
             const SizedBox(height: 10),
-            ...coupons.map((c) => _OverviewCouponRow(coupon: c)),
+            ...coupons.map(
+              (c) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: CustomerCouponCard(
+                  coupon: c,
+                  onTap: () => CustomerCouponDetailSheet.show(context, c),
+                ),
+              ),
+            ),
           ],
           if (offers.isNotEmpty) ...[
             const SizedBox(height: 22),
             _SubSectionHeader(title: 'Hot Offers', count: offers.length),
             const SizedBox(height: 10),
-            ...offers.map((o) => _OverviewOfferRow(offer: o)),
+            ...offers.map(
+              (o) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: CustomerCouponCard(
+                  coupon: o,
+                  onTap: () => CustomerCouponDetailSheet.show(context, o),
+                ),
+              ),
+            ),
           ],
           if (rewards.isNotEmpty) ...[
             const SizedBox(height: 22),
@@ -623,205 +639,7 @@ class _SubSectionHeader extends StatelessWidget {
   }
 }
 
-class _OverviewCouponRow extends StatelessWidget {
-  const _OverviewCouponRow({required this.coupon});
-  final CustomerCoupon coupon;
 
-  @override
-  Widget build(BuildContext context) {
-    final color = coupon.status == 'expiring'
-        ? AppColors.error
-        : AppColors.success;
-    return GestureDetector(
-      onTap: () => CustomerCouponDetailSheet.show(context, coupon),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: coupon.status == 'expiring'
-                ? AppColors.error.withValues(alpha: 0.3)
-                : AppColors.glassBorder,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: coupon.gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Text(
-                  coupon.discountDisplay.length <= 4
-                      ? coupon.discountDisplay
-                      : coupon.type == 'FREE_PRODUCT'
-                      ? '🎁'
-                      : '%',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    coupon.title,
-                    style: AppTypography.dmSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textOnDark,
-                    ),
-                  ),
-                  Text(
-                    '${coupon.pointCost} pts',
-                    style: AppTypography.dmSans(
-                      fontSize: 11,
-                      color: AppColors.textMutedDark,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                coupon.status == 'expiring' ? 'Expiring' : 'Active',
-                style: AppTypography.dmSans(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OverviewOfferRow extends StatelessWidget {
-  const _OverviewOfferRow({required this.offer});
-  final CustomerCoupon offer;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: offer.gradientColors
-              .map((c) => c.withValues(alpha: 0.15))
-              .toList(),
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: offer.gradientColors.last.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: offer.gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Text(
-                offer.multiplierLabel ?? offer.discountDisplay,
-                style: AppTypography.dmMono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  offer.title,
-                  style: AppTypography.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textOnDark,
-                  ),
-                ),
-                Text(
-                  offer.description,
-                  style: AppTypography.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textMutedDark,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (offer.isHot)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.local_fire_department_rounded,
-                    size: 10,
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    'HOT',
-                    style: AppTypography.dmSans(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.error,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 class _OverviewRewardRow extends StatelessWidget {
   const _OverviewRewardRow({required this.reward});

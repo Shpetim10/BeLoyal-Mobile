@@ -170,7 +170,8 @@ class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
                       _push(context, const CustomerViewAllTransactionsPage()),
                 ),
                 const SizedBox(height: 24),
-                _ExpiringSection(coupons: data.coupons),
+                // Expiration is only meaningful for owned instances.
+                _ExpiringSection(coupons: data.myCoupons),
                 const SizedBox(height: 16),
               ],
             ),
@@ -1285,132 +1286,196 @@ class _OfferCard extends StatelessWidget {
     final urgencyLabel = coupon.expiresIn ?? 'Expires soon';
     final isUrgent = coupon.status == 'expiring';
     final displayValue = coupon.multiplierLabel ?? coupon.discountDisplay;
+    final isPerLimitReached = coupon.isPerCustomerLimitReached;
+    final isLimitReached = coupon.isLimitReached;
 
     return GestureDetector(
       onTap: () => CustomerCouponDetailSheet.show(context, coupon),
-      child: Container(
-        width: 200,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: coupon.gradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: coupon.gradientColors.last.withValues(alpha: 0.25),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
+      child: Opacity(
+        opacity: isLimitReached ? 0.7 : 1.0,
+        child: Container(
+          width: 200,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isLimitReached
+                  ? [const Color(0xFF374151), const Color(0xFF6B7280)]
+                  : coupon.gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -10,
-              bottom: -10,
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: isLimitReached
+                ? []
+                : [
+                    BoxShadow(
+                      color: coupon.gradientColors.last.withValues(alpha: 0.25),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -10,
+                bottom: -10,
+                child: Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (coupon.isHot)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.local_fire_department_rounded,
-                                size: 10,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                'HOT',
-                                style: AppTypography.dmSans(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (isLimitReached)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isPerLimitReached
+                                      ? Icons.person_off_rounded
+                                      : Icons.inventory_2_rounded,
+                                  size: 10,
                                   color: Colors.white,
                                 ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  isPerLimitReached ? 'MY LIMIT' : 'SOLD OUT',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (coupon.isHot)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.local_fire_department_rounded,
+                                  size: 10,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'HOT',
+                                  style: AppTypography.dmSans(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const Spacer(),
+                        if (!isLimitReached)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (isUrgent ? AppColors.error : Colors.white)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              urgencyLabel,
+                              style: AppTypography.dmSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: isUrgent
+                                    ? AppColors.error
+                                    : Colors.white.withValues(alpha: 0.8),
                               ),
-                            ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            displayValue,
+                            style: AppTypography.dmMono(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (isUrgent ? AppColors.error : Colors.white)
-                              .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          urgencyLabel,
-                          style: AppTypography.dmSans(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            color: isUrgent
-                                ? AppColors.error
-                                : Colors.white.withValues(alpha: 0.8),
+                        const SizedBox(width: 4),
+                        if (coupon.pointCost > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '${coupon.pointCost} pts',
+                              style: AppTypography.dmSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
                           ),
-                        ),
+                      ],
+                    ),
+                    Text(
+                      coupon.title,
+                      style: AppTypography.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    displayValue,
-                    style: AppTypography.dmMono(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(
-                    coupon.title,
-                    style: AppTypography.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    const SizedBox(height: 2),
+                    Text(
+                      coupon.businessName,
+                      style: AppTypography.dmSans(
+                        fontSize: 10,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    coupon.businessName,
-                    style: AppTypography.dmSans(
-                      fontSize: 10,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

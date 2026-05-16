@@ -430,9 +430,7 @@ class _AvatarMenu extends ConsumerWidget {
     return PopupMenuButton<String>(
       tooltip: 'Profile Options',
       onSelected: (value) {
-        if (value == 'profile') {
-          context.push('/profile');
-        } else if (value == 'logout') {
+        if (value == 'logout') {
           onLogoutTap();
         }
       },
@@ -459,27 +457,6 @@ class _AvatarMenu extends ConsumerWidget {
         ),
       ),
       itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'profile',
-          child: Row(
-            children: [
-              const Icon(
-                Icons.person_outline_rounded,
-                size: 20,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'My Profile',
-                style: AppTypography.dmSans(
-                  fontSize: 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',

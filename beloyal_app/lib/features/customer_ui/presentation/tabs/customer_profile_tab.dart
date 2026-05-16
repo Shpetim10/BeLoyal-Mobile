@@ -349,22 +349,26 @@ class _ProfileHero extends StatelessWidget {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: onEditTap,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.25),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onEditTap,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                      ),
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.key_rounded,
-                    color: AppColors.primary,
-                    size: 18,
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
@@ -372,65 +376,69 @@ class _ProfileHero extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Member code row
-          GestureDetector(
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: memberCode));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Member code copied!',
-                    style: AppTypography.dmSans(
-                      fontSize: 13,
-                      color: Colors.white,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: memberCode));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Member code copied!',
+                      style: AppTypography.dmSans(
+                        fontSize: 13,
+                        color: Colors.white,
+                      ),
+                    ),
+                    backgroundColor: AppColors.surfaceDark,
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  backgroundColor: AppColors.surfaceDark,
-                  duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.elevDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.glassBorder),
                 ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.elevDark,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.glassBorder),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.badge_outlined,
-                    color: AppColors.textMutedDark,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Member Code',
-                    style: AppTypography.dmSans(
-                      fontSize: 12,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.badge_outlined,
                       color: AppColors.textMutedDark,
+                      size: 18,
                     ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    memberCode,
-                    style: AppTypography.dmMono(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Text(
+                      'Member Code',
+                      style: AppTypography.dmSans(
+                        fontSize: 13,
+                        color: AppColors.textMutedDark,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      memberCode,
+                      style: AppTypography.dmMono(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.copy_rounded,
                       color: AppColors.primary,
+                      size: 16,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.copy_rounded,
-                    color: AppColors.primary,
-                    size: 14,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -754,51 +762,57 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(10),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 20),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: AppTypography.dmSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textOnDark,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: AppTypography.dmSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textOnDark,
+                      ),
                     ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: AppTypography.dmSans(
-                      fontSize: 11,
-                      color: AppColors.textMutedDark,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppTypography.dmSans(
+                        fontSize: 12,
+                        color: AppColors.textMutedDark,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (onTap != null)
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: AppColors.textMutedDark,
-              ),
-          ],
+              if (onTap != null) ...[
+                const SizedBox(width: 12),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppColors.textMutedDark,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -812,33 +826,37 @@ class _LogoutButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GestureDetector(
-        onTap: () => ref.read(authControllerProvider).logout(),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            color: AppColors.error.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.logout_rounded,
-                color: AppColors.error,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Log Out',
-                style: AppTypography.dmSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => ref.read(authControllerProvider).logout(),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.logout_rounded,
                   color: AppColors.error,
+                  size: 22,
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Text(
+                  'Log Out',
+                  style: AppTypography.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

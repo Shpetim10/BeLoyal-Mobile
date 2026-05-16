@@ -61,6 +61,11 @@ class _CustomerViewAllCouponsPageState
         return false;
       }
       if (_filter == 'all') return true;
+      // Canonical "used" check includes both the status field and the isUsed
+      // flag so backend inconsistencies don't hide coupons from the Used filter.
+      if (_filter == CustomerCouponStatus.used) {
+        return c.isUsed || c.status == CustomerCouponStatus.used;
+      }
       return c.status == _filter;
     }).toList();
   }
@@ -178,6 +183,39 @@ class _CustomerViewAllCouponsPageState
 
           return Column(
             children: [
+              if (data.walletLoadFailed &&
+                  _selectedTab == CustomerCouponsTab.myCoupons)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.wifi_off_rounded,
+                        color: AppColors.warning,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Could not load your wallet. Pull down to retry.',
+                          style: AppTypography.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (expiring > 0)
                 GestureDetector(
                   onTap: () => setState(() => _filter = 'expiring'),
@@ -517,4 +555,3 @@ class _EmptyCouponsState extends StatelessWidget {
     );
   }
 }
-

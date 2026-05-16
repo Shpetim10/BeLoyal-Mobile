@@ -331,16 +331,26 @@ class CustomerPromotionDto {
     this.startDate,
     this.minimumOrderAmount,
     this.maximumDiscountAmount,
+    this.freeProductCategoryId,
     this.freeProductCategory,
+    this.freeProductId,
     this.freeProductName,
+    this.freeVariantId,
     this.freeProductVariant,
     this.freeProductQuantity,
+    this.snapshotTitle,
+    this.snapshotDescription,
+    this.snapshotImageUrl,
+    this.snapshotCouponType,
+    this.snapshotMinimumOrderAmount,
+    this.snapshotMaximumDiscountAmount,
     this.redeemedAt,
     this.usedAt,
     this.orderId,
     this.qrCode,
     this.canRedeem,
     this.cannotRedeemReason,
+    this.cannotRedeemCode,
     this.currencyCode,
     this.currencySymbol,
     this.canUse,
@@ -385,17 +395,30 @@ class CustomerPromotionDto {
   final String? startDate;
   final double? minimumOrderAmount;
   final double? maximumDiscountAmount;
+  // Free product fields — only populated when type = FREE_PRODUCT.
+  final int? freeProductCategoryId;
   final String? freeProductCategory;
+  final int? freeProductId;
   final String? freeProductName;
+  final int? freeVariantId;
   final String? freeProductVariant;
   final int? freeProductQuantity;
+  // Snapshot fields — only populated when isOwned = true.
+  final String? snapshotTitle;
+  final String? snapshotDescription;
+  final String? snapshotImageUrl;
+  final String? snapshotCouponType;
+  final double? snapshotMinimumOrderAmount;
+  final double? snapshotMaximumDiscountAmount;
   final String? redeemedAt;
   final String? usedAt;
   final String? orderId;
   final String? qrCode;
-  // canRedeem / cannotRedeemReason: backend-computed gate (available-coupons endpoint only).
+  // canRedeem / cannotRedeemReason / cannotRedeemCode: backend-computed gate.
   final bool? canRedeem;
   final String? cannotRedeemReason;
+  // Machine-readable gate code: INSUFFICIENT_POINTS, SOLD_OUT, PER_CUSTOMER_LIMIT, TEMPLATE_INACTIVE
+  final String? cannotRedeemCode;
   // Structured currency fields — prefer currencySymbol for display when set.
   final String? currencyCode;
   final String? currencySymbol;
@@ -471,19 +494,37 @@ class CustomerPromotionDto {
       startDate: json['startDate']?.toString(),
       minimumOrderAmount: _asDoubleOrNull(json['minimumOrderAmount']),
       maximumDiscountAmount: _asDoubleOrNull(json['maximumDiscountAmount']),
-      // Canonical names are `freeProductCategory` / `freeProductVariant` /
-      // `freeProductQuantity` (R3); legacy `*Name` / `freeQuantity` retained
-      // as fallback during rollout.
+      // Free product fields (only populated when type = FREE_PRODUCT).
+      freeProductCategoryId: json['freeProductCategoryId'] == null
+          ? null
+          : _asInt(json['freeProductCategoryId']),
       freeProductCategory:
           (json['freeProductCategory'] ?? json['freeProductCategoryName'])
               ?.toString(),
+      freeProductId: json['freeProductId'] == null
+          ? null
+          : _asInt(json['freeProductId']),
       freeProductName: json['freeProductName']?.toString(),
+      freeVariantId: json['freeVariantId'] == null
+          ? null
+          : _asInt(json['freeVariantId']),
       freeProductVariant:
           (json['freeProductVariant'] ?? json['freeVariantName'])?.toString(),
       freeProductQuantity:
           (json['freeProductQuantity'] ?? json['freeQuantity']) == null
           ? null
           : _asInt(json['freeProductQuantity'] ?? json['freeQuantity']),
+      // Snapshot fields (only populated when isOwned = true).
+      snapshotTitle: json['snapshotTitle']?.toString(),
+      snapshotDescription: json['snapshotDescription']?.toString(),
+      snapshotImageUrl: json['snapshotImageUrl']?.toString(),
+      snapshotCouponType: json['snapshotCouponType']?.toString(),
+      snapshotMinimumOrderAmount: _asDoubleOrNull(
+        json['snapshotMinimumOrderAmount'],
+      ),
+      snapshotMaximumDiscountAmount: _asDoubleOrNull(
+        json['snapshotMaximumDiscountAmount'],
+      ),
       redeemedAt: json['redeemedAt']?.toString(),
       usedAt: json['usedAt']?.toString(),
       orderId: json['orderId']?.toString(),
@@ -492,6 +533,7 @@ class CustomerPromotionDto {
           ? _asBool(json['canRedeem'], true)
           : null,
       cannotRedeemReason: json['cannotRedeemReason']?.toString(),
+      cannotRedeemCode: json['cannotRedeemCode']?.toString(),
       // Prefer explicit currencyCode; fall back to generic currency field.
       currencyCode:
           json['currencyCode']?.toString() ?? json['currency']?.toString(),
