@@ -30,6 +30,13 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
   late final Animation<double> _ctaFade;
   late final ConfettiController _confetti;
   late final AnimationController _particleCtrl;
+  late final AnimationController _bloomCtrl;
+  late final Animation<double> _bloomOpacity;
+  late final AnimationController _ringCtrl;
+  late final Animation<double> _ringRadius;
+  late final Animation<double> _ringOpacity;
+  late final AnimationController _buttonPulseCtrl;
+  late final Animation<double> _buttonGlow;
 
   @override
   void initState() {
@@ -46,7 +53,7 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
 
     _flyCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 500),
     );
     _flyScale = Tween<double>(
       begin: 1,
@@ -69,6 +76,36 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
       vsync: this,
       duration: const Duration(seconds: 6),
     )..repeat();
+
+    _bloomCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _bloomOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.75), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 0.75, end: 0.0), weight: 75),
+    ]).animate(CurvedAnimation(parent: _bloomCtrl, curve: Curves.easeOut));
+
+    _ringCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
+    _ringRadius = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ringCtrl, curve: Curves.easeOutCubic));
+    _ringOpacity = Tween<double>(
+      begin: 0.8,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _ringCtrl, curve: Curves.easeOut));
+
+    _buttonPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+    _buttonGlow = Tween<double>(begin: 0.28, end: 0.62).animate(
+      CurvedAnimation(parent: _buttonPulseCtrl, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -77,6 +114,9 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
     _flyCtrl.dispose();
     _confetti.dispose();
     _particleCtrl.dispose();
+    _bloomCtrl.dispose();
+    _ringCtrl.dispose();
+    _buttonPulseCtrl.dispose();
     super.dispose();
   }
 
@@ -84,12 +124,15 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
     if (!mounted) return;
     setState(() => _stage = _Stage.continue_);
     _ctaCtrl.forward();
+    _bloomCtrl.forward(from: 0);
+    _ringCtrl.forward(from: 0);
   }
 
   Future<void> _onContinue() async {
     if (_stage != _Stage.continue_) return;
     setState(() => _stage = _Stage.flyOut);
-    await _flyCtrl.forward();
+    _flyCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 180));
     if (!mounted) return;
     context.go('/customer/dashboard');
   }
@@ -102,6 +145,40 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
       body: Stack(
         children: [
           _RichBackground(controller: _particleCtrl, size: size),
+
+          // Golden bloom flash on card reveal
+          AnimatedBuilder(
+            animation: _bloomOpacity,
+            builder: (_, __) {
+              final opacity = _bloomOpacity.value;
+              if (opacity < 0.01) return const SizedBox.shrink();
+              return Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _BloomPainter(opacity: opacity)),
+                ),
+              );
+            },
+          ),
+
+          // Expanding ring pulse on card reveal
+          AnimatedBuilder(
+            animation: Listenable.merge([_ringRadius, _ringOpacity]),
+            builder: (_, __) {
+              final radius = _ringRadius.value;
+              final opacity = _ringOpacity.value;
+              if (opacity < 0.01) return const SizedBox.shrink();
+              return Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _RingPulsePainter(
+                      radius: radius,
+                      opacity: opacity,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
 
           Align(
             alignment: Alignment.topCenter,
@@ -123,16 +200,20 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 48),
-                _buildHeader(),
-                const Spacer(),
-                _buildCenterContent(size),
-                const Spacer(),
-                _buildCta(),
-                const SizedBox(height: 48),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    _buildHeader(),
+                    const Spacer(),
+                    _buildCenterContent(size, constraints.maxHeight),
+                    const Spacer(),
+                    _buildCta(),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -152,32 +233,89 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
             children: [
               AnimatedSwitcher(
                 duration: 400.ms,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.2),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
                 child: showCardTitle
-                    ? Text(
+                    ? ShaderMask(
                         key: const ValueKey('card'),
-                        '✨ Your Loyalty Card',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.3,
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [
+                            Color(0xFFFFE57F),
+                            Color(0xFFFFD700),
+                            Color(0xFFFFA500),
+                            Color(0xFFFFD700),
+                          ],
+                          stops: [0.0, 0.35, 0.65, 1.0],
+                        ).createShader(bounds),
+                        blendMode: BlendMode.srcIn,
+                        child: const Text(
+                          '✨ Your Loyalty Card',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       )
-                    : Text(
+                    : Column(
                         key: const ValueKey('envelope'),
-                        'Your Loyalty Card\nHas Arrived',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          height: 1.25,
-                          letterSpacing: 0.3,
-                        ),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.accent.withValues(alpha: 0.2),
+                                  const Color(
+                                    0xFF7C3AED,
+                                  ).withValues(alpha: 0.2),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: AppColors.accent.withValues(alpha: 0.4),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              '🎁  A special delivery for you',
+                              style: TextStyle(
+                                color: AppColors.accent.withValues(alpha: 0.9),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Your Loyalty Card\nHas Arrived',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              height: 1.25,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
                       ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               AnimatedOpacity(
                 duration: 400.ms,
                 opacity: (_stage == _Stage.envelope || _stage == _Stage.opening)
@@ -201,13 +339,15 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
         .slideY(begin: -0.15, end: 0, duration: 700.ms);
   }
 
-  Widget _buildCenterContent(Size size) {
-    final safeHeight = size.height - 300;
-    final cardWidth = math.min(size.width - 64, safeHeight / 1.55).clamp(0.0, 380.0);
+  Widget _buildCenterContent(Size size, double availableHeight) {
+    final safeHeight = availableHeight - 400;
+    final cardWidth = math
+        .min(size.width - 64, safeHeight / 1.55)
+        .clamp(0.0, 380.0);
     final showCard =
         _stage == _Stage.cardReveal ||
-            _stage == _Stage.continue_ ||
-            _stage == _Stage.flyOut;
+        _stage == _Stage.continue_ ||
+        _stage == _Stage.flyOut;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -233,6 +373,9 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
                 onRevealComplete: () {
                   _confetti.play();
                   setState(() => _stage = _Stage.cardReveal);
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted) _onRevealComplete();
+                  });
                 },
               ),
             ),
@@ -241,7 +384,9 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
               animation: Listenable.merge([_flyScale, _flySlide, _flyFade]),
               builder: (context, child) {
                 final scale = _stage == _Stage.flyOut ? _flyScale.value : 1.0;
-                final slideVal = _stage == _Stage.flyOut ? _flySlide.value : Offset.zero;
+                final slideVal = _stage == _Stage.flyOut
+                    ? _flySlide.value
+                    : Offset.zero;
                 final fadeVal = _stage == _Stage.flyOut ? _flyFade.value : 1.0;
 
                 return FadeTransition(
@@ -268,75 +413,141 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
   }
 
   Widget _buildCta() {
+    final firstName = widget.response.firstName;
     return AnimatedBuilder(
-      animation: _ctaFade,
+      animation: Listenable.merge([_ctaFade, _buttonGlow]),
       builder: (context, _) {
+        final t = _ctaFade.value;
+        final glowAlpha = _buttonGlow.value;
         return Opacity(
-          opacity: _ctaFade.value,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                Text(
-                  'Your rewards journey begins now',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textMuted.withValues(alpha: 0.85),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: GestureDetector(
-                    onTap: () async {
-                      await _onContinue();
-                      _onRevealComplete();
-                    },
-                    child: Container(
-                      height: 56,
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 40),
+            child: Transform.scale(
+              scale: 0.90 + t * 0.10,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    // Celebration badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          colors: [AppColors.accent, Color(0xFFF97316)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
+                        borderRadius: BorderRadius.circular(24),
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.12),
+                        border: Border.all(
+                          color: const Color(
+                            0xFFFFD700,
+                          ).withValues(alpha: 0.35),
+                          width: 1,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🎉', style: TextStyle(fontSize: 14)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Welcome aboard, $firstName!',
+                            style: const TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Go to My Dashboard',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Your rewards journey begins now.\nStart earning at your favourite spots.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textMuted.withValues(alpha: 0.75),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Pulsing glow button
+                    SizedBox(
+                      width: double.infinity,
+                      child: GestureDetector(
+                        onTap: _onContinue,
+                        child: Container(
+                          height: 58,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            gradient: const LinearGradient(
+                              colors: [AppColors.accent, Color(0xFFF97316)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(
+                                  alpha: glowAlpha,
+                                ),
+                                blurRadius: 28,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 6),
                               ),
+                              BoxShadow(
+                                color: const Color(
+                                  0xFFF97316,
+                                ).withValues(alpha: glowAlpha * 0.5),
+                                blurRadius: 48,
+                                spreadRadius: 4,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Stack(
+                              children: [
+                                // Shimmer sweep
+                                Positioned.fill(
+                                  child: _ShimmerSweep(
+                                    controller: _buttonPulseCtrl,
+                                  ),
+                                ),
+                                const Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Go to My Dashboard',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.4,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -345,6 +556,49 @@ class _LoyaltyCardRevealPageState extends ConsumerState<LoyaltyCardRevealPage>
   }
 }
 
+/// Subtle diagonal shimmer sweep that travels across the button.
+class _ShimmerSweep extends StatelessWidget {
+  const _ShimmerSweep({required this.controller});
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, __) {
+        final t = controller.value;
+        return CustomPaint(painter: _ShimmerPainter(progress: t));
+      },
+    );
+  }
+}
+
+class _ShimmerPainter extends CustomPainter {
+  const _ShimmerPainter({required this.progress});
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Sweep from -20% to 120% of width
+    final x = size.width * (-0.2 + progress * 1.4);
+    final band = size.width * 0.18;
+
+    final paint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.0),
+          Colors.white.withValues(alpha: 0.18),
+          Colors.white.withValues(alpha: 0.0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+        transform: GradientRotation(math.pi / 5),
+      ).createShader(Rect.fromLTWH(x - band, 0, band * 2, size.height));
+    canvas.drawRect(Rect.fromLTWH(x - band, 0, band * 2, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(_ShimmerPainter old) => old.progress != progress;
+}
 
 class BesaEnvelopeReveal extends StatefulWidget {
   const BesaEnvelopeReveal({
@@ -508,34 +762,44 @@ class _BesaEnvelopeRevealState extends State<BesaEnvelopeReveal>
           final breatheScale = _opened ? 1.0 : _breatheScale.value;
 
           final flapWidget = Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: Transform(
               alignment: Alignment.topCenter,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, 0.002)
                 ..rotateX(_flapAngle.value),
-              child: CustomPaint(size: Size(w, flapHeight), painter: _FlapPainter()),
+              child: CustomPaint(
+                size: Size(w, flapHeight),
+                painter: _FlapPainter(),
+              ),
             ),
           );
 
           return Transform.scale(
             scale: breatheScale,
             child: SizedBox(
-              width: w, height: h,
+              width: w,
+              height: h,
               child: ClipRect(
                 clipper: _EnvelopeBottomClipper(),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     // Z-0:
-                    Positioned.fill(child: _EnvelopeBack(width: w, height: h)),
+                    Positioned.fill(
+                      child: _EnvelopeBack(width: w, height: h),
+                    ),
 
                     // Z-1:
                     if (_flapAngle.value <= -math.pi / 2) flapWidget,
 
                     // Z-2:
                     Positioned(
-                      left: w * 0.04, right: w * 0.04, top: h * _cardSlideY.value,
+                      left: w * 0.04,
+                      right: w * 0.04,
+                      top: h * _cardSlideY.value,
                       child: Transform.scale(
                         scale: _cardScale.value,
                         child: Transform(
@@ -549,7 +813,22 @@ class _BesaEnvelopeRevealState extends State<BesaEnvelopeReveal>
                     ),
 
                     // Z-3:
-                    Positioned.fill(child: CustomPaint(painter: _FrontPocketPainter())),
+                    Positioned.fill(
+                      child: CustomPaint(painter: _FrontPocketPainter()),
+                    ),
+
+                    // Z-3.5: dim overlay — fades envelope as card rises to the spotlight
+                    if (_dimOverlay.value > 0.01)
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            color: Colors.black.withValues(
+                              alpha: _dimOverlay.value,
+                            ),
+                          ),
+                        ),
+                      ),
 
                     // Z-4:
                     if (_flapAngle.value > -math.pi / 2) flapWidget,
@@ -557,20 +836,36 @@ class _BesaEnvelopeRevealState extends State<BesaEnvelopeReveal>
                     // Z-5:
                     if (_particleProg.value > 0)
                       Positioned(
-                        left: 0, right: 0, top: h * 0.28, height: h * 0.3,
-                        child: CustomPaint(painter: _GoldBurstPainter(progress: _particleProg.value, particles: _particles)),
+                        left: 0,
+                        right: 0,
+                        top: h * 0.28,
+                        height: h * 0.3,
+                        child: CustomPaint(
+                          painter: _GoldBurstPainter(
+                            progress: _particleProg.value,
+                            particles: _particles,
+                          ),
+                        ),
                       ),
 
                     // Z-6:
                     if (_sealFade.value > 0.01)
                       Positioned(
-                        top: sealTop, left: 0, right: 0,
+                        top: sealTop,
+                        left: 0,
+                        right: 0,
                         child: Center(
                           child: Opacity(
                             opacity: _sealFade.value.clamp(0.0, 1.0),
                             child: Transform.scale(
-                              scale: _master.value < 0.18 ? _sealSquish.value : _sealBurst.value,
-                              child: Image.asset('assets/images/envelope_wax_seal.png', width: sealSize, height: sealSize),
+                              scale: _master.value < 0.18
+                                  ? _sealSquish.value
+                                  : _sealBurst.value,
+                              child: Image.asset(
+                                'assets/images/envelope_wax_seal.png',
+                                width: sealSize,
+                                height: sealSize,
+                              ),
                             ),
                           ),
                         ),
@@ -719,10 +1014,13 @@ class _FrontPocketPainter extends CustomPainter {
       ..moveTo(0, h)
       ..lineTo(w / 2, startY + 25)
       ..lineTo(w, h);
-    canvas.drawPath(diagonals, Paint()
-      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.3)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke);
+    canvas.drawPath(
+      diagonals,
+      Paint()
+        ..color = const Color(0xFFD4AF37).withValues(alpha: 0.3)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke,
+    );
 
     final edgePath = Path()
       ..moveTo(0, startY)
@@ -907,13 +1205,75 @@ class _BackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BackgroundPainter old) => old.progress != progress;
 }
+
 class _EnvelopeBottomClipper extends CustomClipper<Rect> {
   @override
   Rect getClip(Size size) {
-
     return Rect.fromLTRB(-1000, -1000, size.width + 1000, size.height);
   }
 
   @override
   bool shouldReclip(covariant CustomClipper<Rect> oldClipper) => false;
+}
+
+/// Golden bloom that flashes across the screen the instant the card is revealed.
+class _BloomPainter extends CustomPainter {
+  const _BloomPainter({required this.opacity});
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    final paint = Paint()
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFFFFD700).withValues(alpha: opacity * 0.55),
+              const Color(0xFFFFA500).withValues(alpha: opacity * 0.25),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ).createShader(
+            Rect.fromCircle(center: Offset(cx, cy), radius: size.width * 0.75),
+          );
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(_BloomPainter old) => old.opacity != opacity;
+}
+
+/// Expanding ring pulse that radiates outward when the card appears.
+class _RingPulsePainter extends CustomPainter {
+  const _RingPulsePainter({required this.radius, required this.opacity});
+  final double radius;
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final maxRadius = size.width * 0.65;
+
+    for (int i = 0; i < 3; i++) {
+      final lag = i * 0.18;
+      final r = ((radius - lag).clamp(0.0, 1.0)) * maxRadius;
+      if (r <= 0) continue;
+      final alpha = ((opacity - lag * 0.5).clamp(0.0, 1.0));
+
+      final ringPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 - i * 0.6
+        ..color = const Color(
+          0xFFD4AF37,
+        ).withValues(alpha: alpha * (1 - i * 0.28));
+      canvas.drawCircle(Offset(cx, cy), r, ringPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPulsePainter old) =>
+      old.radius != radius || old.opacity != opacity;
 }

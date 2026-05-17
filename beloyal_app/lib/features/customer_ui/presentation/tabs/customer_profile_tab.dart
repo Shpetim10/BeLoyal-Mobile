@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/features/auth/domain/models/auth_user.dart';
+import 'package:besahub_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
 import 'package:besahub_app/features/customer_ui/data/models/customer_home_dto.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/profile/data/repositories/profile_repository.dart';
 import 'package:besahub_app/features/profile/presentation/pages/change_password_page.dart';
 
 // ignore_for_file: use_build_context_synchronously
@@ -237,6 +242,8 @@ class CustomerProfileTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 const _LogoutButton(),
+                const SizedBox(height: 12),
+                const _DeleteAccountButton(),
                 const SizedBox(height: 32),
               ],
             ),
@@ -861,6 +868,174 @@ class _LogoutButton extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _DeleteAccountButton extends ConsumerWidget {
+  const _DeleteAccountButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showDeleteDialog(context, ref),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.error.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Delete Account',
+                  style: AppTypography.dmSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.error,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDeleteDialog(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 8),
+            Text(
+              'Delete Customer Account',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ],
+        ),
+        content: const Text(
+          'This will permanently delete all your loyalty data including:\n\n'
+          '• All loyalty cards and points\n'
+          '• All point transactions\n'
+          '• All coupon redemptions\n\n'
+          'Your business admin membership and business data will be preserved. '
+          'This action cannot be undone.',
+          style: TextStyle(color: AppColors.textMuted, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final profileRepo = ref.read(profileRepositoryProvider);
+    final result = await profileRepo.deleteCustomerAccount();
+
+    if (!context.mounted) return;
+
+    switch (result) {
+      case AuthSuccess():
+        final sessionNotifier = ref.read(sessionControllerProvider.notifier);
+        sessionNotifier.removeCustomerRole();
+
+        // Switch to a remaining role and navigate away from customer pages
+        final updatedSession = ref.read(sessionControllerProvider);
+        final user = updatedSession?.user;
+        String? dashboardPath;
+        if (user != null) {
+          if (user.roles.contains(UserRole.superAdmin)) {
+            sessionNotifier.switchRole(UserRole.superAdmin);
+            dashboardPath = '/admin/dashboard';
+          } else if (user.businessProfiles.isNotEmpty) {
+            final firstProfile = user.businessProfiles.first;
+            sessionNotifier.switchRole(
+              firstProfile.role,
+              businessId: firstProfile.businessId,
+              businessName: firstProfile.businessName,
+            );
+            dashboardPath = firstProfile.role == UserRole.businessAdmin
+                ? '/business/dashboard'
+                : '/staff/dashboard';
+          } else {
+            ref.read(authControllerProvider).logout();
+            return;
+          }
+        }
+
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Customer account deleted successfully',
+              style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+            ),
+            backgroundColor: AppColors.surfaceDark,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+
+        if (dashboardPath != null && context.mounted) {
+          context.go(dashboardPath);
+        }
+      case AuthError(failure: final f):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              f.message,
+              style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+            ),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+    }
   }
 }
 

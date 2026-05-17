@@ -343,6 +343,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
           right: 20,
           child:
               FloatingActionButton.extended(
+                heroTag: 'besa-fab-staff-invite',
                 onPressed: _showInviteSheet,
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

@@ -488,6 +488,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
               right: 16,
               bottom: MediaQuery.of(context).viewPadding.bottom + 70,
               child: FloatingActionButton.extended(
+                heroTag: 'besa-fab-coupon-embedded',
                 backgroundColor: AppColors.primary,
                 onPressed: _openCreate,
                 icon: const Icon(Icons.add, color: Colors.white),
@@ -505,6 +506,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
       floatingActionButton: widget.embedded || _isStaff
           ? null
           : FloatingActionButton.extended(
+              heroTag: 'besa-fab-coupon-page',
               backgroundColor: AppColors.primary,
               onPressed: _openCreate,
               icon: const Icon(Icons.add, color: Colors.white),
