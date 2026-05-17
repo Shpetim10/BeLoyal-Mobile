@@ -124,32 +124,39 @@ class _CustomerHomeTabState extends ConsumerState<CustomerHomeTab> {
                       _push(context, const CustomerViewAllBusinessesPage()),
                 ),
                 const SizedBox(height: 24),
-                _SectionHeader(
-                  title: '🎫 Coupons & Offers',
-                  subtitle: 'Business-wide deals across all brands',
-                  onViewAll: () => _push(
-                    context,
-                    const CustomerViewAllCouponsPage(
-                      initialTab: CustomerCouponsTab.allCoupons,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _OffersCarousel(
-                  coupons: data.allCoupons
+                Builder(builder: (context) {
+                  final activeCoupons = data.allCoupons
                       .where(
-                        (coupon) =>
-                            coupon.status == 'active' ||
-                            coupon.status == 'expiring',
+                        (c) =>
+                            c.status == 'active' || c.status == 'expiring',
                       )
-                      .toList(),
-                  onViewAll: () => _push(
-                    context,
-                    const CustomerViewAllCouponsPage(
-                      initialTab: CustomerCouponsTab.allCoupons,
-                    ),
-                  ),
-                ),
+                      .toList();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SectionHeader(
+                        title: '🎫 Coupons & Offers',
+                        subtitle: 'Business-wide deals across all brands',
+                        onViewAll: () => _push(
+                          context,
+                          const CustomerViewAllCouponsPage(
+                            initialTab: CustomerCouponsTab.allCoupons,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _OffersCarousel(
+                        coupons: activeCoupons,
+                        onViewAll: () => _push(
+                          context,
+                          const CustomerViewAllCouponsPage(
+                            initialTab: CustomerCouponsTab.allCoupons,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
                 const SizedBox(height: 24),
                 _AlmostThereSection(
                   businesses: data.businesses,
@@ -368,15 +375,6 @@ class _StatsHeroCard extends StatelessWidget {
                             const CustomerViewAllCouponsPage(
                               initialTab: CustomerCouponsTab.myCoupons,
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        _MiniStatTile(
-                          label: 'Rewards',
-                          value: '${customer.activeRewards}',
-                          onTap: () => _push(
-                            context,
-                            const CustomerViewAllBusinessesPage(),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -1250,6 +1248,42 @@ class _OffersCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (coupons.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: GestureDetector(
+          onTap: onViewAll,
+          child: Container(
+            height: 90,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.confirmation_number_outlined,
+                  color: AppColors.textMutedDark,
+                  size: 24,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'No active offers right now — check back soon!',
+                  style: AppTypography.dmSans(
+                    fontSize: 12,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     const limit = 10;
     final visibleCoupons = coupons.take(limit).toList();
     final hasMore = coupons.length > limit;
@@ -1655,6 +1689,42 @@ class _RecentActivityList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (transactions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: GestureDetector(
+          onTap: onViewAll,
+          child: Container(
+            height: 90,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppColors.textMutedDark,
+                  size: 24,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'No transactions yet — visit a business to start earning!',
+                  style: AppTypography.dmSans(
+                    fontSize: 12,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     const limit = 10;
     final visibleTransactions = transactions.take(limit).toList();
     final hasMore = transactions.length > limit;

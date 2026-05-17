@@ -61,14 +61,6 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
     };
   }
 
-  List<CustomerReward> _filteredRewards(List<CustomerReward> rewards) {
-    if (_selectedTab != _RewardTab.all &&
-        _selectedTab != _RewardTab.available) {
-      return [];
-    }
-    return rewards;
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listen<CouponRedemptionState>(customerCouponRedemptionProvider, (
@@ -123,22 +115,19 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
             ? data.myCoupons
             : data.allCoupons;
         final filteredCoupons = _filteredCoupons(couponSource);
-        final filteredRewards = _filteredRewards(data.rewards);
         final expiringCount = couponSource
             .where((c) => c.status == 'expiring')
             .length;
+
+        // Count bug fix: reflect filtered count per owner tab
+        final myFilteredCount = _filteredCoupons(data.myCoupons).length;
+        final allFilteredCount = _filteredCoupons(data.allCoupons).length;
 
         return Column(
           children: [
             if (data.walletLoadFailed &&
                 _couponOwnerTab == _CouponOwnerTab.myCoupons)
               _buildWalletErrorBanner(),
-            _buildSearchBar(),
-            _buildOwnerTabSwitcher(
-              data.myCoupons.length,
-              data.allCoupons.length,
-            ),
-            _buildFilterTabs(),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () =>
@@ -151,11 +140,15 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
                     parent: AlwaysScrollableScrollPhysics(),
                   ),
                   children: [
-                    if (_selectedTab == _RewardTab.available ||
-                        _selectedTab == _RewardTab.all) ...[
-                      _buildExpiringBanner(expiringCount),
-                      _buildRewardsSection(filteredRewards),
-                    ],
+                    // 1. Rewards carousel (always at top)
+                    _buildRewardsSection(data.rewards),
+                    // 2. Expiring banner
+                    _buildExpiringBanner(expiringCount),
+                    // 3. Filter area
+                    _buildSearchBar(),
+                    _buildOwnerTabSwitcher(myFilteredCount, allFilteredCount),
+                    _buildFilterTabs(),
+                    // 4. Coupons section
                     _buildCouponsSection(filteredCoupons),
                   ],
                 ),
@@ -201,7 +194,7 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: TextField(
         controller: _searchCtrl,
         onChanged: (v) => setState(() => _searchQuery = v),
@@ -375,7 +368,7 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
           child: Text(
-            'Rewards',
+            'Next Rewards',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),

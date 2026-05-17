@@ -84,7 +84,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
         },
         leftItems: const [
           DashboardNavItem(icon: Icons.home_rounded, label: 'Home'),
-          DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Rewards'),
+          DashboardNavItem(icon: Icons.card_giftcard_rounded, label: 'Coupons'),
         ],
         rightItems: const [
           DashboardNavItem(
@@ -306,7 +306,7 @@ class _CustomerTopBar extends ConsumerWidget {
 
   String _pageTitle(int index, String firstName) => switch (index) {
     0 => 'Good ${_greeting()}, $firstName 👋',
-    1 => 'Rewards',
+    1 => 'Coupons',
     2 => 'Loyalty Card',
     3 => 'Transactions',
     4 => 'Profile',

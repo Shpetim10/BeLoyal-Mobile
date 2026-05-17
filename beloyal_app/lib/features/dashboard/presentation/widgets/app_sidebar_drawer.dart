@@ -236,27 +236,6 @@ class _DrawerContent extends ConsumerWidget {
                         ),
                       ],
 
-                      // ── Staff-only ───────────────────────────────────────
-                      if (isStaff) ...[
-                        _SidebarSection('Staff'),
-                        _SidebarItem(
-                          icon: Icons.search_rounded,
-                          label: 'Customer Search',
-                          color: const Color(0xFF0891B2),
-                          onTap: () {},
-                          delay: 4,
-                          badge: 'Soon',
-                        ),
-                        _SidebarItem(
-                          icon: Icons.redeem_rounded,
-                          label: 'Redeem Rewards',
-                          color: AppColors.accent,
-                          onTap: () {},
-                          delay: 5,
-                          badge: 'Soon',
-                        ),
-                      ],
-
                       // ── Account ──────────────────────────────────────────
                       _SidebarSection('Account'),
                       _SidebarItem(
@@ -476,7 +455,6 @@ class _SidebarItem extends StatefulWidget {
     required this.onTap,
     this.color,
     this.delay = 0,
-    this.badge,
   });
 
   final IconData icon;
@@ -484,7 +462,6 @@ class _SidebarItem extends StatefulWidget {
   final VoidCallback onTap;
   final Color? color;
   final int delay;
-  final String? badge;
 
   @override
   State<_SidebarItem> createState() => _SidebarItemState();
@@ -532,25 +509,6 @@ class _SidebarItemState extends State<_SidebarItem> {
                     ),
                   ),
                 ),
-                if (widget.badge != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.textMuted.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      widget.badge!,
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),

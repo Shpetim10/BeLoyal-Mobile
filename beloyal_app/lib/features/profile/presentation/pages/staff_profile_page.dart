@@ -20,6 +20,8 @@ import '../controllers/staff_profile_controller.dart';
 import '../widgets/section_card_widget.dart';
 import '../widgets/readonly_field_row.dart';
 import '../widgets/membership_card.dart';
+import '../../data/repositories/profile_repository.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 
 class StaffProfilePage extends ConsumerStatefulWidget {
   const StaffProfilePage({super.key});
@@ -449,6 +451,10 @@ class _StaffProfilePageState extends ConsumerState<StaffProfilePage> {
   }
 
   Widget _buildSecuritySection() {
+    final session = ref.watch(sessionControllerProvider);
+    final hasCustomerRole =
+        session?.user.roles.contains(UserRole.customer) ?? false;
+
     return SectionCardWidget(
       title: 'Security',
       icon: Icons.security_rounded,
@@ -477,6 +483,77 @@ class _StaffProfilePageState extends ConsumerState<StaffProfilePage> {
           ),
           onTap: () => context.push('/profile/change-password'),
         ),
+        if (!hasCustomerRole) ...[
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(color: AppColors.glassBorder),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.loyalty_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'Become a Customer',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Create a loyalty profile to earn rewards',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+            ),
+            onTap: () => context.push('/staff/create-customer-profile'),
+          ),
+        ],
+        if (hasCustomerRole) ...[
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(color: AppColors.glassBorder),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person_remove_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'Delete Customer Account',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
+            ),
+            subtitle: const Text(
+              'Remove all loyalty data permanently',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+            ),
+            onTap: _showDeleteCustomerAccountDialog,
+          ),
+        ],
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Divider(color: AppColors.glassBorder),
@@ -509,6 +586,73 @@ class _StaffProfilePageState extends ConsumerState<StaffProfilePage> {
         ),
       ],
     );
+  }
+
+  Future<void> _showDeleteCustomerAccountDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 8),
+            Text(
+              'Delete Customer Account',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ],
+        ),
+        content: const Text(
+          'This will permanently delete all your loyalty data including:\n\n'
+          '• All loyalty cards and points\n'
+          '• All point transactions\n'
+          '• All coupon redemptions\n\n'
+          'Your staff membership and business data will be preserved. '
+          'This action cannot be undone.',
+          style: TextStyle(color: AppColors.textMuted, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    await _deleteCustomerAccount();
+  }
+
+  Future<void> _deleteCustomerAccount() async {
+    final profileRepo = ref.read(profileRepositoryProvider);
+    final result = await profileRepo.deleteCustomerAccount();
+
+    if (!mounted) return;
+
+    switch (result) {
+      case AuthSuccess():
+        ref.read(sessionControllerProvider.notifier).removeCustomerRole();
+        _showToast('Customer account deleted successfully', AppColors.secondary);
+      case AuthError(failure: final f):
+        _showToast(f.message, AppColors.error);
+    }
   }
 
   Widget _buildSkeleton() {

@@ -46,6 +46,7 @@ import '../../features/profile/presentation/pages/change_password_page.dart';
 import '../../features/profile/presentation/pages/admin_profile_hub_page.dart';
 import '../../features/profile/presentation/pages/super_admin_profile_page.dart';
 import '../../features/profile/presentation/pages/staff_profile_page.dart';
+import '../../features/profile/presentation/pages/staff_customer_profile_setup_page.dart';
 
 // Loyalty imports
 import '../../features/business_loyalty/presentation/pages/earning_rule_management_page.dart';
@@ -1022,6 +1023,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const ChangePasswordPage(),
+          transitionsBuilder: (ctx, anim, secondAnim, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      ),
+      GoRoute(
+        path: '/staff/create-customer-profile',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const StaffCustomerProfileSetupPage(),
           transitionsBuilder: (ctx, anim, secondAnim, child) =>
               FadeTransition(opacity: anim, child: child),
         ),

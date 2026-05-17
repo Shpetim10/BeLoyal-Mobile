@@ -87,22 +87,14 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
               const SizedBox(height: 4),
               Expanded(
                 child: IndexedStack(
-                  index: _selectedIndex >= 2 ? _selectedIndex - 1 : _selectedIndex,
+                  index: _selectedIndex,
                   children: [
                     _StaffHomeTab(
                       businessId: session?.activeBusinessId ?? 0,
-                      businessName: session?.activeBusinessName ?? 'Your Business',
+                      businessName:
+                          session?.activeBusinessName ?? 'Your Business',
                     ),
                     const StaffPointTransactionsPage(),
-                    // index 2 (Scan QR) is handled by route push, not a tab.
-                    const _PlaceholderTab(
-                      icon: Icons.search_rounded,
-                      label: 'Search',
-                    ),
-                    const _PlaceholderTab(
-                      icon: Icons.redeem_rounded,
-                      label: 'Redeem Rewards',
-                    ),
                   ],
                 ),
               ),
@@ -113,8 +105,18 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
       bottomNavigationBar: DashboardNavBar(
         selectedIndex: _selectedIndex,
         onTap: (i) {
+          final businessId =
+              ref.read(sessionControllerProvider)?.activeBusinessId ?? 0;
           if (i == 2) {
             context.push('/staff/earn-points');
+            return;
+          }
+          if (i == 3) {
+            context.push('/staff/scan-coupon');
+            return;
+          }
+          if (i == 4) {
+            context.push('/staff/$businessId/catalog-items');
             return;
           }
           setState(() => _selectedIndex = i);
@@ -127,8 +129,11 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
           ),
         ],
         rightItems: const [
-          DashboardNavItem(icon: Icons.search_rounded, label: 'Search'),
-          DashboardNavItem(icon: Icons.redeem_rounded, label: 'Redeem'),
+          DashboardNavItem(
+            icon: Icons.document_scanner_rounded,
+            label: 'Scan Coupon',
+          ),
+          DashboardNavItem(icon: Icons.inventory_2_rounded, label: 'Catalog'),
         ],
         centerIcon: Icons.qr_code_scanner_rounded,
         centerLabel: 'Scan QR',
@@ -141,9 +146,6 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
     return switch (index) {
       0 => 'Staff Portal 🛡️',
       1 => 'Transactions',
-      2 => 'Scan QR Code',
-      3 => 'Search',
-      4 => 'Redeem Rewards',
       _ => '',
     };
   }
@@ -196,10 +198,7 @@ class _StaffDashboardPageState extends ConsumerState<StaffDashboardPage> {
 // ── Staff Home Tab ─────────────────────────────────────────────────────────────
 
 class _StaffHomeTab extends ConsumerWidget {
-  const _StaffHomeTab({
-    required this.businessId,
-    required this.businessName,
-  });
+  const _StaffHomeTab({required this.businessId, required this.businessName});
   final int businessId;
   final String businessName;
 
@@ -261,50 +260,40 @@ Widget _staffStatsGrid(dynamic s) {
   String v(int? n) => n != null ? _fmt(n) : '—';
 
   return GridView.count(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    crossAxisCount: 2,
-    crossAxisSpacing: 12,
-    mainAxisSpacing: 12,
-    childAspectRatio: 1.05,
-    children: [
-      StatCard(
-        icon: Icons.qr_code_scanner_rounded,
-        label: "Today's Scans",
-        value: v(s?.todayScansCount),
-        iconColor: AppColors.primary,
-        subtitle: 'Points awarded',
-        accentGradient: AppColors.primaryGradient,
-      ),
-      StatCard(
-        icon: Icons.pending_actions_rounded,
-        label: 'Pending Redemptions',
-        value: v(s?.pendingRedemptionsCount),
-        iconColor: AppColors.accent,
-        subtitle: 'Awaiting scan',
-        accentGradient: const LinearGradient(
-          colors: [AppColors.accentDark, AppColors.accent],
-        ),
-      ),
-      StatCard(
-        icon: Icons.receipt_long_rounded,
-        label: 'Transactions',
-        value: v(s?.transactionsCount),
-        iconColor: AppColors.secondary,
-        subtitle: 'All time',
-        accentGradient: const LinearGradient(
-          colors: [AppColors.secondaryDark, AppColors.secondary],
-        ),
-      ),
-      StatCard(
-        icon: Icons.people_rounded,
-        label: 'Active Customers',
-        value: v(s?.activeCustomersCount),
-        iconColor: AppColors.gold,
-        accentGradient: AppColors.coinGradient,
-      ),
-    ],
-  )
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.05,
+        children: [
+          StatCard(
+            icon: Icons.qr_code_scanner_rounded,
+            label: "Today's Scans",
+            value: v(s?.todayScansCount),
+            iconColor: AppColors.primary,
+            subtitle: 'Points awarded',
+            accentGradient: AppColors.primaryGradient,
+          ),
+          StatCard(
+            icon: Icons.receipt_long_rounded,
+            label: 'Transactions',
+            value: v(s?.transactionsCount),
+            iconColor: AppColors.secondary,
+            subtitle: 'All time',
+            accentGradient: const LinearGradient(
+              colors: [AppColors.secondaryDark, AppColors.secondary],
+            ),
+          ),
+          StatCard(
+            icon: Icons.people_rounded,
+            label: 'Active Customers',
+            value: v(s?.activeCustomersCount),
+            iconColor: AppColors.gold,
+            accentGradient: AppColors.coinGradient,
+          ),
+        ],
+      )
       .animate()
       .fadeIn(duration: 400.ms, delay: 150.ms)
       .slideY(begin: 0.08, end: 0, curve: Curves.easeOut);
@@ -325,21 +314,27 @@ class _StaffSummaryError extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.error, size: 20),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.error,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
               'Could not load activity',
-              style: TextStyle(
-                  color: AppColors.textOnDark, fontSize: 13),
+              style: TextStyle(color: AppColors.textOnDark, fontSize: 13),
             ),
           ),
           TextButton(
             onPressed: onRetry,
-            child: const Text('Retry',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Retry',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -348,10 +343,7 @@ class _StaffSummaryError extends StatelessWidget {
 }
 
 class _StaffHeroCard extends StatelessWidget {
-  const _StaffHeroCard({
-    required this.businessName,
-    required this.businessId,
-  });
+  const _StaffHeroCard({required this.businessName, required this.businessId});
   final String businessName;
   final int businessId;
 
@@ -361,140 +353,140 @@ class _StaffHeroCard extends StatelessWidget {
     final greeting = hour < 12
         ? 'Good morning'
         : hour < 17
-            ? 'Good afternoon'
-            : 'Good evening';
+        ? 'Good afternoon'
+        : 'Good evening';
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0B1433), Color(0xFF1A2A6C), AppColors.primaryDark],
-          stops: [0.0, 0.5, 1.0],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryDark.withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -16,
-            right: -16,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.14),
-              ),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF0B1433),
+                Color(0xFF1A2A6C),
+                AppColors.primaryDark,
+              ],
+              stops: [0.0, 0.5, 1.0],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryDark.withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
+              Positioned(
+                top: -16,
+                right: -16,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: 0.14),
+                  ),
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.20),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(
-                          Icons.shield_rounded,
-                          size: 12,
-                          color: AppColors.primaryLight,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                        SizedBox(width: 5),
-                        Text(
-                          'STAFF',
-                          style: TextStyle(
-                            color: AppColors.primaryLight,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.20),
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.shield_rounded,
+                              size: 12,
+                              color: AppColors.primaryLight,
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              'STAFF',
+                              style: TextStyle(
+                                color: AppColors.primaryLight,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.store_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.store_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                '$greeting,',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                businessName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    Icons.circle,
-                    size: 8,
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(width: 6),
+                  const SizedBox(height: 14),
                   Text(
-                    'On shift · Ready to serve customers',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.65),
-                      fontSize: 12,
+                    '$greeting,',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    businessName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.circle, size: 8, color: AppColors.success),
+                      const SizedBox(width: 6),
+                      Text(
+                        'On shift · Ready to serve customers',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
-    )
+        )
         .animate()
         .fadeIn(duration: 500.ms)
         .slideY(begin: -0.05, end: 0, curve: Curves.easeOut);
@@ -508,77 +500,77 @@ class _ScanQrBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/staff/earn-points'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+          onTap: () => context.push('/staff/earn-points'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.qr_code_scanner_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Scan Customer QR',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Award loyalty points instantly',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: const Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: Colors.white,
+                    size: 24,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Scan Customer QR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Award loyalty points instantly',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ],
             ),
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white,
-                size: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    )
+          ),
+        )
         .animate()
         .fadeIn(duration: 400.ms, delay: 100.ms)
         .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
@@ -602,8 +594,7 @@ class _StaffQuickActions extends StatelessWidget {
         icon: Icons.category_rounded,
         label: 'Catalog\nCategories',
         color: const Color(0xFF7C3AED),
-        onTap: () =>
-            context.push('/staff/$businessId/catalog-categories'),
+        onTap: () => context.push('/staff/$businessId/catalog-categories'),
       ),
       _QuickAction(
         icon: Icons.inventory_2_rounded,
@@ -719,7 +710,8 @@ class _StaffTipsCard extends StatelessWidget {
       _TipItem(
         icon: Icons.qr_code_scanner_rounded,
         color: AppColors.primary,
-        text: 'Scan the customer\'s QR code to award points after each purchase.',
+        text:
+            'Scan the customer\'s QR code to award points after each purchase.',
       ),
       _TipItem(
         icon: Icons.document_scanner_rounded,
@@ -734,39 +726,43 @@ class _StaffTipsCard extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark.withValues(alpha: 0.60),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.lightbulb_rounded, size: 15, color: AppColors.gold),
-              SizedBox(width: 6),
-              Text(
-                'Staff Tips',
-                style: TextStyle(
-                  color: AppColors.textOnDark,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark.withValues(alpha: 0.60),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.glassBorder),
           ),
-          const SizedBox(height: 12),
-          ...tips.asMap().entries.map(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(
+                    Icons.lightbulb_rounded,
+                    size: 15,
+                    color: AppColors.gold,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Staff Tips',
+                    style: TextStyle(
+                      color: AppColors.textOnDark,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...tips.asMap().entries.map(
                 (e) => e.value
                     .animate(delay: (e.key * 60).ms + 500.ms)
                     .fadeIn(duration: 300.ms)
                     .slideX(begin: 0.05, end: 0),
               ),
-        ],
-      ),
-    )
+            ],
+          ),
+        )
         .animate()
         .fadeIn(duration: 400.ms, delay: 400.ms)
         .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
@@ -774,11 +770,7 @@ class _StaffTipsCard extends StatelessWidget {
 }
 
 class _TipItem extends StatelessWidget {
-  const _TipItem({
-    required this.icon,
-    required this.color,
-    required this.text,
-  });
+  const _TipItem({required this.icon, required this.color, required this.text});
   final IconData icon;
   final Color color;
   final String text;
@@ -843,40 +835,6 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Placeholder Tab ────────────────────────────────────────────────────────────
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: AppColors.textMuted.withValues(alpha: 0.35),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '$label\nComing Soon',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 16,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

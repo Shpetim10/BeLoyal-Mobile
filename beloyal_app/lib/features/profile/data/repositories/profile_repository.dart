@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/network/api_client.dart';
 import '../../../../../core/services/token_storage.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../../../auth/domain/models/customer_profile_creation_response.dart';
 import '../../domain/models/user_profile.dart';
 import '../../domain/models/customer_profile.dart';
 import '../../domain/models/staff_membership.dart';
@@ -178,6 +179,56 @@ class ProfileRepository {
       if (e.response?.statusCode == 404) {
         return const AuthError(AuthFailure('Membership not found.'));
       }
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<AuthResult<CustomerProfileCreationResponse>> createCustomerProfileForStaff({
+    required int businessId,
+    DateTime? birthdate,
+    String? gender,
+    String? city,
+    String? country,
+    String? referredBy,
+    String? profileImageUrl,
+    String? profileImageKey,
+    bool notificationEnabled = true,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/business/$businessId/customers/profile',
+        data: {
+          if (birthdate != null)
+            'birthdate': birthdate.toIso8601String().split('T').first,
+          if (gender != null) 'gender': gender,
+          if (city != null) 'city': city,
+          if (country != null) 'country': country,
+          if (referredBy != null && referredBy.isNotEmpty)
+            'referredBy': referredBy,
+          if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+          if (profileImageKey != null) 'profileImageKey': profileImageKey,
+          'notificationEnabled': notificationEnabled,
+        },
+      );
+      final data = response.data as Map<String, dynamic>;
+      return AuthSuccess(CustomerProfileCreationResponse.fromJson(data));
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        return const AuthError(AuthFailure('Customer profile already exists.'));
+      }
+      return AuthError(_mapDioError(e));
+    } catch (e) {
+      return AuthError(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<AuthResult<void>> deleteCustomerAccount() async {
+    try {
+      await _dio.delete('/customer/me/account');
+      return const AuthSuccess(null);
+    } on DioException catch (e) {
       return AuthError(_mapDioError(e));
     } catch (e) {
       return AuthError(AuthFailure(e.toString()));

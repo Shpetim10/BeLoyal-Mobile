@@ -114,6 +114,20 @@ class SessionController extends Notifier<Session?> {
     }
   }
 
+  /// Remove customer role after account deletion, preserving current business role.
+  void removeCustomerRole() {
+    final current = state;
+    if (current != null) {
+      final newRoles = Set<UserRole>.from(current.user.roles)
+        ..remove(UserRole.customer);
+      final newUser = current.user.copyWith(
+        roles: newRoles,
+        customerProfileComplete: false,
+      );
+      state = current.copyWith(user: newUser);
+    }
+  }
+
   /// Logout — clears session.
   void logout() {
     state = null;

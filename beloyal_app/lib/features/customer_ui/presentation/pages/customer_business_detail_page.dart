@@ -27,7 +27,7 @@ class _CustomerBusinessDetailPageState
   int _selectedTab = 0;
 
   static const _tabs = [
-    _TabItem(icon: Icons.home_rounded, label: 'Overview'),
+    _TabItem(icon: Icons.info_outline_rounded, label: 'Info'),
     _TabItem(icon: Icons.restaurant_menu_rounded, label: 'Menu'),
     _TabItem(
       icon: Icons.confirmation_number_rounded,
@@ -35,7 +35,6 @@ class _CustomerBusinessDetailPageState
     ),
     _TabItem(icon: Icons.receipt_long_rounded, label: 'Transactions'),
     _TabItem(icon: Icons.location_on_rounded, label: 'Location'),
-    _TabItem(icon: Icons.info_outline_rounded, label: 'Info'),
   ];
 
   CustomerBusiness get _b => widget.business;
@@ -492,12 +491,7 @@ class _CustomerBusinessDetailPageState
   ) {
     final detailData = detail.asData?.value;
     return switch (_selectedTab) {
-      0 => _OverviewTab(
-        business: _b,
-        data: data,
-        onCouponsTap: () => setState(() => _selectedTab = 2),
-        onDirectionsTap: () => setState(() => _selectedTab = 4),
-      ),
+      0 => _InfoTab(business: _b, detail: detailData),
       1 => _MenuTab(business: _b, detail: detail),
       2 => _CouponsTab(
         coupons: detailData?.coupons ?? data.couponsForBusiness(_b.id),
@@ -506,7 +500,6 @@ class _CustomerBusinessDetailPageState
         txs: detailData?.transactions ?? data.transactionsForBusiness(_b.id),
       ),
       4 => _LocationTab(business: _b, location: detailData?.location),
-      5 => _InfoTab(business: _b, detail: detailData),
       _ => const SizedBox.shrink(),
     };
   }
@@ -516,222 +509,6 @@ class _TabItem {
   const _TabItem({required this.icon, required this.label});
   final IconData icon;
   final String label;
-}
-
-// ─── Overview Tab ─────────────────────────────────────────────────────────────
-
-class _OverviewTab extends StatelessWidget {
-  const _OverviewTab({
-    required this.business,
-    required this.data,
-    required this.onCouponsTap,
-    required this.onDirectionsTap,
-  });
-  final CustomerBusiness business;
-  final CustomerDataSource data;
-  final VoidCallback onCouponsTap;
-  final VoidCallback onDirectionsTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final coupons = data
-        .couponsForBusiness(business.id)
-        .where((c) => c.status == 'active' || c.status == 'expiring')
-        .take(3)
-        .toList();
-    // Only show hot offers that are genuinely backed by isHot backend field
-    final offers = data
-        .offersForBusiness(business.id)
-        .where((c) => c.isHot)
-        .toList();
-    final rewards = data.rewardsForBusiness(business.id).take(3).toList();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (coupons.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            _SubSectionHeader(title: 'Active Coupons', count: coupons.length),
-            const SizedBox(height: 10),
-            ...coupons.map(
-              (c) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: CustomerCouponCard(
-                  coupon: c,
-                  onTap: () => CustomerCouponDetailSheet.show(context, c),
-                ),
-              ),
-            ),
-          ],
-          if (offers.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            _SubSectionHeader(title: 'Hot Offers', count: offers.length),
-            const SizedBox(height: 10),
-            ...offers.map(
-              (o) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: CustomerCouponCard(
-                  coupon: o,
-                  onTap: () => CustomerCouponDetailSheet.show(context, o),
-                ),
-              ),
-            ),
-          ],
-          if (rewards.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            _SubSectionHeader(
-              title: 'Available Rewards',
-              count: rewards.length,
-            ),
-            const SizedBox(height: 10),
-            ...rewards.map((r) => _OverviewRewardRow(reward: r)),
-          ],
-          if (coupons.isEmpty && offers.isEmpty && rewards.isEmpty) ...[
-            const SizedBox(height: 32),
-            const _EmptyState(
-              icon: Icons.store_outlined,
-              message: 'Nothing active right now.\nCheck back soon for offers!',
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SubSectionHeader extends StatelessWidget {
-  const _SubSectionHeader({required this.title, required this.count});
-  final String title;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: AppTypography.outfit(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textOnDark,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '$count',
-            style: AppTypography.dmMono(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-
-
-class _OverviewRewardRow extends StatelessWidget {
-  const _OverviewRewardRow({required this.reward});
-  final CustomerReward reward;
-
-  @override
-  Widget build(BuildContext context) {
-    final canRedeem = reward.currentPoints >= reward.pointCost;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: canRedeem
-              ? AppColors.gold.withValues(alpha: 0.3)
-              : AppColors.glassBorder,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: reward.gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.card_giftcard_rounded,
-              color: Colors.white,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reward.title,
-                  style: AppTypography.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textOnDark,
-                  ),
-                ),
-                Text(
-                  '${reward.pointCost} pts required',
-                  style: AppTypography.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textMutedDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (canRedeem)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryDark, AppColors.primary],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                'Redeem',
-                style: AppTypography.dmSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            )
-          else
-            Text(
-              '${reward.pointCost - reward.currentPoints} pts away',
-              style: AppTypography.dmSans(
-                fontSize: 11,
-                color: AppColors.textMutedDark,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 // ─── Menu Tab ─────────────────────────────────────────────────────────────────
@@ -2018,43 +1795,21 @@ class _InfoTab extends StatelessWidget {
     final effectiveCategory = detail?.categoryLabel.isNotEmpty == true
         ? detail!.categoryLabel
         : business.category;
+    final effectiveWebsite = detail?.websiteUrl ?? '';
+    final hasContact = effectivePhone.isNotEmpty || effectiveEmail.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoRow(
-            icon: Icons.info_outline_rounded,
-            label: 'About',
-            value: effectiveAbout,
-          ),
-          _InfoRow(
-            icon: Icons.phone_outlined,
-            label: 'Phone',
-            value: effectivePhone,
-          ),
-          _InfoRow(
-            icon: Icons.email_outlined,
-            label: 'Email',
-            value: effectiveEmail,
-          ),
-          _InfoRow(
-            icon: Icons.category_outlined,
-            label: 'Category',
-            value: effectiveCategory,
-          ),
-          _InfoRow(
-            icon: Icons.language_rounded,
-            label: 'Website',
-            value: detail?.websiteUrl ?? '',
-          ),
-          if (effectivePolicy.isNotEmpty)
+          // ── About ────────────────────────────────────────────────────────
+          if (effectiveAbout.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: AppColors.glassBorder),
               ),
               child: Column(
@@ -2063,34 +1818,34 @@ class _InfoTab extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
-                          color: AppColors.gold.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
-                          Icons.stars_rounded,
-                          color: AppColors.gold,
-                          size: 16,
+                          Icons.auto_awesome_rounded,
+                          color: AppColors.primary,
+                          size: 17,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'Loyalty Policy',
-                        style: AppTypography.dmSans(
-                          fontSize: 13,
+                        'About',
+                        style: AppTypography.outfit(
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textOnDark,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Text(
-                    effectivePolicy,
+                    effectiveAbout,
                     style: AppTypography.dmSans(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: AppColors.textOnDark.withValues(alpha: 0.85),
                       height: 1.6,
                     ),
@@ -2098,52 +1853,447 @@ class _InfoTab extends StatelessWidget {
                 ],
               ),
             ),
-          if (detail != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+          ],
+
+          // ── Category chip ─────────────────────────────────────────────────
+          if (effectiveCategory.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.glassBorder),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    'Loyalty Summary',
-                    style: AppTypography.dmSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textOnDark,
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: business.gradientColors.last.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.category_rounded,
+                      color: business.gradientColors.last,
+                      size: 17,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Lifetime earned: ${detail!.lifetimeEarned} pts',
-                    style: AppTypography.dmSans(
-                      fontSize: 12,
-                      color: AppColors.textMutedDark,
-                    ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Category',
+                        style: AppTypography.dmSans(
+                          fontSize: 10,
+                          color: AppColors.textMutedDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        effectiveCategory,
+                        style: AppTypography.dmSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textOnDark,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Lifetime redeemed: ${detail!.lifetimeRedeemed} pts',
-                    style: AppTypography.dmSans(
-                      fontSize: 12,
-                      color: AppColors.textMutedDark,
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
                     ),
-                  ),
-                  Text(
-                    'Lifetime expired: ${detail!.lifetimeExpired} pts',
-                    style: AppTypography.dmSans(
-                      fontSize: 12,
-                      color: AppColors.textMutedDark,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          business.gradientColors.first.withValues(alpha: 0.4),
+                          business.gradientColors.last.withValues(alpha: 0.6),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      business.logoEmoji,
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 12),
           ],
+
+          // ── Contact info ──────────────────────────────────────────────────
+          if (hasContact) ...[
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.glassBorder),
+              ),
+              child: Column(
+                children: [
+                  if (effectivePhone.isNotEmpty)
+                    _ContactRow(
+                      icon: Icons.phone_rounded,
+                      label: 'Phone',
+                      value: effectivePhone,
+                      onCopy: () => _copyToClipboard(context, effectivePhone, 'Phone copied'),
+                      isFirst: true,
+                      isLast: effectiveEmail.isEmpty,
+                    ),
+                  if (effectivePhone.isNotEmpty && effectiveEmail.isNotEmpty)
+                    Divider(
+                      height: 1,
+                      indent: 20,
+                      endIndent: 20,
+                      color: AppColors.glassBorder,
+                    ),
+                  if (effectiveEmail.isNotEmpty)
+                    _ContactRow(
+                      icon: Icons.email_rounded,
+                      label: 'Email',
+                      value: effectiveEmail,
+                      onCopy: () => _copyToClipboard(context, effectiveEmail, 'Email copied'),
+                      isFirst: effectivePhone.isEmpty,
+                      isLast: true,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // ── Website ───────────────────────────────────────────────────────
+          if (effectiveWebsite.isNotEmpty) ...[
+            _InfoRow(
+              icon: Icons.language_rounded,
+              label: 'Website',
+              value: effectiveWebsite,
+            ),
+            const SizedBox(height: 0),
+          ],
+
+          // ── Loyalty stats ─────────────────────────────────────────────────
+          if (detail != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    business.gradientColors.first.withValues(alpha: 0.25),
+                    business.gradientColors.last.withValues(alpha: 0.15),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: business.gradientColors.last.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.insights_rounded,
+                          color: AppColors.gold,
+                          size: 17,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Your Loyalty Stats',
+                        style: AppTypography.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textOnDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatChip(
+                          label: 'Earned',
+                          value: '${detail!.lifetimeEarned}',
+                          unit: 'pts',
+                          color: AppColors.success,
+                          icon: Icons.arrow_upward_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatChip(
+                          label: 'Redeemed',
+                          value: '${detail!.lifetimeRedeemed}',
+                          unit: 'pts',
+                          color: AppColors.primary,
+                          icon: Icons.redeem_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatChip(
+                          label: 'Expired',
+                          value: '${detail!.lifetimeExpired}',
+                          unit: 'pts',
+                          color: AppColors.textMutedDark,
+                          icon: Icons.hourglass_empty_rounded,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // ── Loyalty Policy ────────────────────────────────────────────────
+          if (effectivePolicy.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppColors.gold.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.stars_rounded,
+                          color: AppColors.gold,
+                          size: 17,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Loyalty Policy',
+                        style: AppTypography.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textOnDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    effectivePolicy,
+                    style: AppTypography.dmSans(
+                      fontSize: 13,
+                      color: AppColors.textOnDark.withValues(alpha: 0.85),
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _copyToClipboard(BuildContext context, String text, String message) {
+    HapticFeedback.lightImpact();
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: AppTypography.dmSans(fontSize: 13, color: Colors.white),
+        ),
+        backgroundColor: AppColors.cardDark,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  const _ContactRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onCopy,
+    required this.isFirst,
+    required this.isLast,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onCopy;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        isFirst ? 14 : 10,
+        16,
+        isLast ? 14 : 10,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.dmSans(
+                    fontSize: 10,
+                    color: AppColors.textMutedDark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: AppTypography.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textOnDark,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onCopy,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.copy_rounded,
+                    size: 13,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Copy',
+                    style: AppTypography.dmSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.color,
+    required this.icon,
+  });
+  final String label;
+  final String value;
+  final String unit;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: AppTypography.dmMono(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textOnDark,
+            ),
+          ),
+          Text(
+            unit,
+            style: AppTypography.dmSans(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: AppTypography.dmSans(
+              fontSize: 10,
+              color: AppColors.textMutedDark,
+            ),
+          ),
         ],
       ),
     );
