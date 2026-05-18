@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
 import 'package:besahub_app/features/auth/presentation/pages/role_select_sheet.dart';
 import 'package:besahub_app/features/auth/domain/models/session.dart';
@@ -178,75 +179,79 @@ class _AdminHomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(adminPlatformSummaryProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Platform hero card ────────────────────────────────────────────
-          summaryAsync.when(
-            data: (s) => _PlatformHeroCard(
-              totalBusinesses: s.totalBusinesses,
-              pendingCount: s.pendingApplicationsCount,
-              usersCount: s.registeredUsersCount,
+    return BesaRefreshIndicator(
+      onRefresh: () async => ref.invalidate(adminPlatformSummaryProvider),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Platform hero card ────────────────────────────────────────────
+            summaryAsync.when(
+              data: (s) => _PlatformHeroCard(
+                totalBusinesses: s.totalBusinesses,
+                pendingCount: s.pendingApplicationsCount,
+                usersCount: s.registeredUsersCount,
+              ),
+              loading: () => _PlatformHeroCard(
+                totalBusinesses: null,
+                pendingCount: null,
+                usersCount: null,
+              ),
+              error: (_, __) => _PlatformHeroCard(
+                totalBusinesses: null,
+                pendingCount: null,
+                usersCount: null,
+              ),
             ),
-            loading: () => _PlatformHeroCard(
-              totalBusinesses: null,
-              pendingCount: null,
-              usersCount: null,
+            const SizedBox(height: 20),
+
+            // ── Stats label ───────────────────────────────────────────────────
+            _SectionLabel(
+              icon: Icons.bar_chart_rounded,
+              label: 'Platform Metrics',
+              iconColor: AppColors.primary,
             ),
-            error: (_, __) => _PlatformHeroCard(
-              totalBusinesses: null,
-              pendingCount: null,
-              usersCount: null,
+            const SizedBox(height: 12),
+
+            // ── Stats grid ────────────────────────────────────────────────────
+            summaryAsync.when(
+              data: (s) => _adminStatsGrid(context, s),
+              loading: () => _adminStatsGrid(context, null),
+              error: (e, _) => _AdminSummaryError(
+                message: e.toString(),
+                onRetry: () => ref.invalidate(adminPlatformSummaryProvider),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
 
-          // ── Stats label ───────────────────────────────────────────────────
-          _SectionLabel(
-            icon: Icons.bar_chart_rounded,
-            label: 'Platform Metrics',
-            iconColor: AppColors.primary,
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 24),
 
-          // ── Stats grid ────────────────────────────────────────────────────
-          summaryAsync.when(
-            data: (s) => _adminStatsGrid(context, s),
-            loading: () => _adminStatsGrid(context, null),
-            error: (e, _) => _AdminSummaryError(
-              message: e.toString(),
-              onRetry: () => ref.invalidate(adminPlatformSummaryProvider),
+            // ── Quick actions ─────────────────────────────────────────────────
+            _SectionLabel(
+              icon: Icons.flash_on_rounded,
+              label: 'Quick Actions',
+              iconColor: AppColors.gold,
             ),
-          ),
+            const SizedBox(height: 12),
+            _AdminQuickActions(),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // ── Quick actions ─────────────────────────────────────────────────
-          _SectionLabel(
-            icon: Icons.flash_on_rounded,
-            label: 'Quick Actions',
-            iconColor: AppColors.gold,
-          ),
-          const SizedBox(height: 12),
-          _AdminQuickActions(),
-
-          const SizedBox(height: 24),
-
-          // ── Platform status strip ─────────────────────────────────────────
-          _SectionLabel(
-            icon: Icons.shield_rounded,
-            label: 'Platform Status',
-            iconColor: AppColors.success,
-          ),
-          const SizedBox(height: 12),
-          summaryAsync.when(
-            data: (s) => _PlatformStatusStrip(health: s.health),
-            loading: () => _PlatformStatusStrip(health: null),
-            error: (_, __) => _PlatformStatusStrip(health: null),
-          ),
-        ],
+            // ── Platform status strip ─────────────────────────────────────────
+            _SectionLabel(
+              icon: Icons.shield_rounded,
+              label: 'Platform Status',
+              iconColor: AppColors.success,
+            ),
+            const SizedBox(height: 12),
+            summaryAsync.when(
+              data: (s) => _PlatformStatusStrip(health: s.health),
+              loading: () => _PlatformStatusStrip(health: null),
+              error: (_, __) => _PlatformStatusStrip(health: null),
+            ),
+          ],
+        ),
       ),
     );
   }

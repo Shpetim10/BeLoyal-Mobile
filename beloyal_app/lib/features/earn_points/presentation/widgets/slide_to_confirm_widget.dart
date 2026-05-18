@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 
 /// A slide-to-confirm widget for high-stakes actions.
 class SlideToConfirmWidget extends StatefulWidget {
@@ -192,11 +193,8 @@ class SlideToConfirmWidgetState extends State<SlideToConfirmWidget>
                     ),
                     child: widget.isLoading
                         ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
+                            padding: EdgeInsets.all(10),
+                            child: SizedBox(width: 24, height: 24, child: BesaLoader(size: 20)),
                           )
                         : Icon(
                             _confirmed

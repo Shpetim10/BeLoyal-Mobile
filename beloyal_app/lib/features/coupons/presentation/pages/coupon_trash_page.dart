@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_summary.dart';
 import '../controllers/coupon_trash_controller.dart';
@@ -273,8 +274,7 @@ class _CouponTrashPageState extends ConsumerState<CouponTrashPage> {
           // List
           Expanded(
             child: state.isLoading && state.coupons.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: _red))
+                ? const Center(child: BesaLoader())
                 : state.coupons.isEmpty
                 ? const _TrashEmptyState()
                 : RefreshIndicator(
@@ -290,7 +290,7 @@ class _CouponTrashPageState extends ConsumerState<CouponTrashPage> {
                           return const Padding(
                             padding: EdgeInsets.all(16),
                             child: Center(
-                              child: CircularProgressIndicator(color: _red),
+                              child: const BesaLoader(size: 24),
                             ),
                           );
                         }

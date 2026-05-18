@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../dashboard/data/models/dashboard_summary_dtos.dart';
 import '../../../dashboard/presentation/controllers/dashboard_summary_providers.dart';
 
@@ -14,63 +15,66 @@ class AdminMonitoringPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(adminPlatformSummaryProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Live health banner ───────────────────────────────────────────
-          summaryAsync.when(
-            loading: () => _HealthBanner(health: null),
-            error: (_, __) => _HealthBanner(health: null),
-            data: (s) => _HealthBanner(health: s.health),
-          ),
-          const SizedBox(height: 20),
-
-          // ── System Services ──────────────────────────────────────────────
-          _SectionHeader(
-            icon: Icons.dns_rounded,
-            label: 'System Services',
-            iconColor: AppColors.accent,
-          ),
-          const SizedBox(height: 12),
-          summaryAsync.when(
-            loading: () => _ServiceGrid(health: null),
-            error: (_, __) => _ServiceGrid(health: null),
-            data: (s) => _ServiceGrid(health: s.health),
-          ),
-          const SizedBox(height: 24),
-
-          // ── Platform Stats ───────────────────────────────────────────────
-          _SectionHeader(
-            icon: Icons.analytics_rounded,
-            label: 'Platform Statistics',
-            iconColor: AppColors.gold,
-          ),
-          const SizedBox(height: 12),
-          summaryAsync.when(
-            loading: () => _PlatformStatsSection(summary: null),
-            error: (e, _) => _RetryCard(
-              message: e.toString(),
-              onRetry: () => ref.invalidate(adminPlatformSummaryProvider),
+    return BesaRefreshIndicator(
+      onRefresh: () async => ref.invalidate(adminPlatformSummaryProvider),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Live health banner ───────────────────────────────────────────
+            summaryAsync.when(
+              loading: () => _HealthBanner(health: null),
+              error: (_, __) => _HealthBanner(health: null),
+              data: (s) => _HealthBanner(health: s.health),
             ),
-            data: (s) => _PlatformStatsSection(summary: s),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-          // ── Refresh timestamp ─────────────────────────────────────────────
-          const SizedBox(height: 20),
-          Center(
-            child: Text(
-              'Last refreshed: ${DateFormat('HH:mm:ss').format(DateTime.now())}',
-              style: const TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 11,
+            // ── System Services ──────────────────────────────────────────────
+            _SectionHeader(
+              icon: Icons.dns_rounded,
+              label: 'System Services',
+              iconColor: AppColors.accent,
+            ),
+            const SizedBox(height: 12),
+            summaryAsync.when(
+              loading: () => _ServiceGrid(health: null),
+              error: (_, __) => _ServiceGrid(health: null),
+              data: (s) => _ServiceGrid(health: s.health),
+            ),
+            const SizedBox(height: 24),
+
+            // ── Platform Stats ───────────────────────────────────────────────
+            _SectionHeader(
+              icon: Icons.analytics_rounded,
+              label: 'Platform Statistics',
+              iconColor: AppColors.gold,
+            ),
+            const SizedBox(height: 12),
+            summaryAsync.when(
+              loading: () => _PlatformStatsSection(summary: null),
+              error: (e, _) => _RetryCard(
+                message: e.toString(),
+                onRetry: () => ref.invalidate(adminPlatformSummaryProvider),
+              ),
+              data: (s) => _PlatformStatsSection(summary: s),
+            ),
+            const SizedBox(height: 24),
+
+            // ── Refresh timestamp ─────────────────────────────────────────────
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Last refreshed: ${DateFormat('HH:mm:ss').format(DateTime.now())}',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

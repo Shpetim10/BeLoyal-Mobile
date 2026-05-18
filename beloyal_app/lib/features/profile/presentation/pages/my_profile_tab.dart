@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../auth/domain/models/auth_user.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
@@ -654,16 +655,7 @@ class _MyProfileTabState extends ConsumerState<MyProfileTab> {
                       shape: BoxShape.circle,
                       color: Colors.black.withValues(alpha: 0.35),
                     ),
-                    child: const Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      ),
-                    ),
+                    child: const Center(child: BesaLoader(size: 28)),
                   ),
                 )
               else

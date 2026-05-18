@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 
 /// A premium gradient CTA button with loading state morph and spring press animation.
 class PrimaryGradientButton extends StatefulWidget {
@@ -99,10 +100,7 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
                       key: ValueKey('loader'),
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
+                      child: BesaLoader(size: 20),
                     )
                   : Row(
                       key: const ValueKey('label'),

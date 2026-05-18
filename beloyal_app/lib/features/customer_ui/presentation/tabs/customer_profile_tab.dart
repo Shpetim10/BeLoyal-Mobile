@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 import 'package:besahub_app/features/auth/domain/models/auth_user.dart';
 import 'package:besahub_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/auth_controller.dart';
@@ -1298,10 +1299,7 @@ class _CustomerProfileEditPageState
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.primary,
-                    ),
+                    child: BesaLoader(size: 18),
                   )
                 : GestureDetector(
                     onTap: _save,
@@ -1916,10 +1914,7 @@ class _CustomerNotificationsPageState
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
+                        child: BesaLoader(size: 20),
                       )
                     : Switch(
                         value: _enabled,

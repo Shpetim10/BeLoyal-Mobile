@@ -249,6 +249,21 @@ final sessionControllerProvider = NotifierProvider<SessionController, Session?>(
   SessionController.new,
 );
 
+/// Set to true when the interceptor forces a logout due to rejected tokens.
+/// The login page reads this to show a "session expired" notice, then resets it.
+class SessionForcedLogoutNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setExpired() => state = true;
+  void clear() => state = false;
+}
+
+final sessionForcedLogoutProvider =
+    NotifierProvider<SessionForcedLogoutNotifier, bool>(
+  SessionForcedLogoutNotifier.new,
+);
+
 /// Derives the active business currency code from the session.
 /// Returns the ISO code (e.g. 'ALL', 'EUR', 'USD') or null when not in a
 /// business context. Callers should fall back to 'ALL' when null.

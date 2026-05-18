@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 
 /// Logo picker widget with square preview, upload/remove options.
 /// Mirrors the avatar picker in ProfilePage but with a square/rounded shape.
@@ -59,16 +60,7 @@ class LogoPickerWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   color: Colors.black.withValues(alpha: 0.45),
                 ),
-                child: const Center(
-                  child: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  ),
-                ),
+                child: const Center(child: BesaLoader(size: 28)),
               ),
             ),
 

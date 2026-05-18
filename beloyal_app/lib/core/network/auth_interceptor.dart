@@ -146,8 +146,9 @@ class AuthInterceptor extends Interceptor {
 
       switch (result) {
         case AuthSuccess(data: final user):
-          if (user.token.isEmpty)
+          if (user.token.isEmpty) {
             throw Exception('Refresh missing access token');
+          }
 
           await storage.saveTokens(
             accessToken: user.token,
@@ -181,6 +182,7 @@ class AuthInterceptor extends Interceptor {
         if (sc == 401 || sc == 403) {
           _log('Refresh token invalid -> logout');
           await storage.clear();
+          ref.read(sessionForcedLogoutProvider.notifier).setExpired();
           ref.read(sessionControllerProvider.notifier).logout();
         } else {
           _log('Refresh failed: [${e.runtimeType}] $e');

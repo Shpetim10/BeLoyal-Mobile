@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../controllers/applications_controller.dart';
 import '../widgets/application_card.dart';
 import '../widgets/application_empty_state.dart';
@@ -57,14 +58,7 @@ class BusinessApplicationsPage extends ConsumerWidget {
             ),
           ),
           applicationsState.when(
-            loading: () => SliverToBoxAdapter(
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.5,
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              ),
-            ),
+            loading: () => const BesaSliverLoading(height: 400),
             error: (err, stack) => SliverToBoxAdapter(
               child: ApplicationEmptyState.error(
                 error: err.toString(),

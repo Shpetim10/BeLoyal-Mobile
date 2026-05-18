@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../catalog_categories/data/catalog_category_repository.dart';
 import '../../../media/data/repositories/media_repository.dart';
 import '../../../../core/utils/currency_utils.dart';
@@ -317,7 +318,7 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
                           },
                     validator: (v) => v == null ? 'Select a category' : null,
                   ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(child: BesaLoader()),
                   error: (err, _) => Text(
                     'Error loading categories',
                     style: TextStyle(color: theme.colorScheme.error),
@@ -424,12 +425,9 @@ class _CatalogItemFormSheetState extends ConsumerState<CatalogItemFormSheet> {
                   ),
                   child: isSubmitting
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          height: 24,
+                          width: 24,
+                          child: BesaLoader(size: 20),
                         )
                       : Text(
                           widget.initialItem != null ? 'Update Item' : 'Create Item',

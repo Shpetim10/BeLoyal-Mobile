@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../auth/presentation/widgets/auth_shell.dart';
 import '../../../auth/presentation/widgets/premium_text_field.dart';
 import '../../../auth/presentation/widgets/primary_gradient_button.dart';
@@ -609,7 +610,7 @@ class _BusinessDetailsFormPageState
                     ],
                   )
                 : (_isUploadingLogo
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: BesaLoader(size: 24))
                       : null),
           ),
           Positioned(

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../../auth/presentation/widgets/auth_shell.dart';
 import '../../../auth/presentation/widgets/premium_text_field.dart';
@@ -251,7 +252,7 @@ class _UpdateRegistrationFormPageState
         ),
         child: SafeArea(
           child: fetchAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: BesaLoadingPage(showBackground: false)),
             error: (err, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -668,7 +669,7 @@ class _UpdateRegistrationFormPageState
                     ],
                   )
                 : (_isUploadingLogo
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: BesaLoader(size: 24))
                       : null),
           ),
           Positioned(

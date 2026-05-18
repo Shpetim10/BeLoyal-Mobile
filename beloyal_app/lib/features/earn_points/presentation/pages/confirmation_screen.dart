@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/glass.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
@@ -628,14 +629,7 @@ class _CouponSection extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(AppColors.secondary),
-              ),
-            ),
+            const SizedBox(width: 24, height: 24, child: BesaLoader(size: 18)),
             const SizedBox(width: 12),
             Text(
               'Applying coupon discount…',

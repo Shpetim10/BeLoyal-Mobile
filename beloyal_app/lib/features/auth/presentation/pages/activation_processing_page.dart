@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/theme/glass.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../controllers/auth_controller.dart';
@@ -274,12 +275,9 @@ class ActivationProcessingPageState
   Widget _buildIcon() {
     if (_isLoading) {
       return const SizedBox(
-        width: 64,
-        height: 64,
-        child: CircularProgressIndicator(
-          color: AppColors.primary,
-          strokeWidth: 3,
-        ),
+        width: 80,
+        height: 80,
+        child: Center(child: BesaLoader(size: 48)),
       );
     }
 

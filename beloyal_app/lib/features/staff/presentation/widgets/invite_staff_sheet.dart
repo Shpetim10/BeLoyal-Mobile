@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/utils/validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/staff_controller.dart';
@@ -348,10 +349,7 @@ class _InviteStaffSheetState extends ConsumerState<InviteStaffSheet> {
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
+                              child: const BesaLoader(size: 20),
                             )
                           : const Text(
                               'Send Invite',

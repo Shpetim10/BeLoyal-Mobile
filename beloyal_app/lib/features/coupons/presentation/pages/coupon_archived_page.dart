@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_summary.dart';
 import '../controllers/coupon_archived_controller.dart';
@@ -280,8 +281,7 @@ class _CouponArchivedPageState extends ConsumerState<CouponArchivedPage> {
           // List
           Expanded(
             child: state.isLoading && state.coupons.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: _indigo))
+                ? const Center(child: BesaLoader())
                 : state.coupons.isEmpty
                     ? const _ArchivedEmptyState()
                     : RefreshIndicator(
@@ -297,8 +297,7 @@ class _CouponArchivedPageState extends ConsumerState<CouponArchivedPage> {
                               return const Padding(
                                 padding: EdgeInsets.all(16),
                                 child: Center(
-                                  child: CircularProgressIndicator(
-                                      color: _indigo),
+                                  child: const BesaLoader(size: 24),
                                 ),
                               );
                             }

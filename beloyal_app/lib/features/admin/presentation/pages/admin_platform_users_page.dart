@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/models/admin_business_dtos.dart';
 import '../controllers/admin_business_controller.dart';
 
@@ -45,9 +46,7 @@ class _AdminPlatformUsersPageState
         // ── List ───────────────────────────────────────────────────────────
         Expanded(
           child: usersAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+            loading: () => const Center(child: BesaLoader()),
             error: (err, _) => _ErrorState(
               message: err.toString(),
               onRetry: () => ref.invalidate(adminPlatformUsersProvider),

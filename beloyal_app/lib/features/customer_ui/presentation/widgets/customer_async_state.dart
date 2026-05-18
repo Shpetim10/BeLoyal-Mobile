@@ -1,34 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 
 class CustomerLoadingState extends StatelessWidget {
   const CustomerLoadingState({
     super.key,
-    this.message = 'Loading your customer data...',
+    this.message = 'Loading your rewards…',
     this.padding = const EdgeInsets.all(24),
+    this.fullPage = false,
   });
 
   final String message;
   final EdgeInsetsGeometry padding;
+  final bool fullPage;
 
   @override
   Widget build(BuildContext context) {
+    if (fullPage) {
+      return BesaLoadingPage(message: message, showBackground: false);
+    }
     return Center(
       child: Padding(
         padding: padding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 14),
+            const BesaLoader(size: 32),
+            const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,

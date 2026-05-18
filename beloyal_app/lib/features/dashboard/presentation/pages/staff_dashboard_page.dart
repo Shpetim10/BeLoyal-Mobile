@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
 import 'package:besahub_app/features/auth/presentation/pages/role_select_sheet.dart';
 import 'package:besahub_app/features/auth/domain/models/session.dart';
@@ -206,51 +207,55 @@ class _StaffHomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(staffDashboardSummaryProvider(businessId));
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Business context hero ─────────────────────────────────────────
-          _StaffHeroCard(businessName: businessName, businessId: businessId),
-          const SizedBox(height: 20),
+    return BesaRefreshIndicator(
+      onRefresh: () async => ref.invalidate(staffDashboardSummaryProvider(businessId)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Business context hero ─────────────────────────────────────────
+            _StaffHeroCard(businessName: businessName, businessId: businessId),
+            const SizedBox(height: 20),
 
-          // ── Primary action — Scan QR ───────────────────────────────────────
-          _ScanQrBanner(businessId: businessId),
-          const SizedBox(height: 20),
+            // ── Primary action — Scan QR ───────────────────────────────────────
+            _ScanQrBanner(businessId: businessId),
+            const SizedBox(height: 20),
 
-          // ── Today's activity ──────────────────────────────────────────────
-          _SectionLabel(
-            icon: Icons.today_rounded,
-            label: "Today's Activity",
-            iconColor: AppColors.accent,
-          ),
-          const SizedBox(height: 12),
-          summaryAsync.when(
-            data: (s) => _staffStatsGrid(s),
-            loading: () => _staffStatsGrid(null),
-            error: (e, _) => _StaffSummaryError(
-              onRetry: () =>
-                  ref.invalidate(staffDashboardSummaryProvider(businessId)),
+            // ── Today's activity ──────────────────────────────────────────────
+            _SectionLabel(
+              icon: Icons.today_rounded,
+              label: "Today's Activity",
+              iconColor: AppColors.accent,
             ),
-          ),
+            const SizedBox(height: 12),
+            summaryAsync.when(
+              data: (s) => _staffStatsGrid(s),
+              loading: () => _staffStatsGrid(null),
+              error: (e, _) => _StaffSummaryError(
+                onRetry: () =>
+                    ref.invalidate(staffDashboardSummaryProvider(businessId)),
+              ),
+            ),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // ── Quick actions ─────────────────────────────────────────────────
-          _SectionLabel(
-            icon: Icons.flash_on_rounded,
-            label: 'Quick Access',
-            iconColor: AppColors.gold,
-          ),
-          const SizedBox(height: 12),
-          _StaffQuickActions(businessId: businessId),
+            // ── Quick actions ─────────────────────────────────────────────────
+            _SectionLabel(
+              icon: Icons.flash_on_rounded,
+              label: 'Quick Access',
+              iconColor: AppColors.gold,
+            ),
+            const SizedBox(height: 12),
+            _StaffQuickActions(businessId: businessId),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // ── Staff tips ────────────────────────────────────────────────────
-          _StaffTipsCard(),
-        ],
+            // ── Staff tips ────────────────────────────────────────────────────
+            _StaffTipsCard(),
+          ],
+        ),
       ),
     );
   }

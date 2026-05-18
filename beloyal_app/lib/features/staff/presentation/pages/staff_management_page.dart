@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../domain/models/staff_member.dart';
 import '../controllers/staff_controller.dart';
 import '../widgets/staff_summary_row.dart';
@@ -261,9 +262,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                     child: Center(
                       child: Padding(
                         padding: EdgeInsets.all(40),
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
+                        child: const BesaLoader(),
                       ),
                     ),
                   ),

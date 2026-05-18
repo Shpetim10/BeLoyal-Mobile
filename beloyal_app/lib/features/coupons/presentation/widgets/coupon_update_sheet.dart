@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/coupon_repository.dart';
 import '../../data/models/coupon_detail.dart';
 import '../../data/models/coupon_enums.dart';
@@ -463,12 +464,9 @@ class _CouponUpdateSheetState extends ConsumerState<CouponUpdateSheet> {
           onPressed: _isSaving ? null : _submit,
           icon: _isSaving
               ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                  width: 20,
+                  height: 20,
+                  child: BesaLoader(size: 18),
                 )
               : const Icon(Icons.save_rounded),
           label: Text(_isSaving ? 'Updating...' : 'Update Coupon'),
@@ -1127,7 +1125,7 @@ class _ImagePicker extends StatelessWidget {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+            BesaLoader(size: 24),
             SizedBox(height: 8),
             Text(
               'Uploading...',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../../../features/auth/domain/models/auth_user.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
@@ -45,7 +46,7 @@ class CatalogItemDetailSheet extends ConsumerWidget {
         child: detailAsync.when(
           loading: () => const SizedBox(
             height: 300,
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: BesaLoader()),
           ),
           error: (err, stack) => SizedBox(
             height: 300,
