@@ -55,6 +55,7 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
                   selectedIndex: _selectedIndex,
                   onRoleSwitchTap: () => _switchRole(context, ref, session!),
                   onLogoutTap: () => _logout(context, ref),
+                  onProfileTap: _goToProfile,
                 ),
                 Expanded(
                   child: IndexedStack(
@@ -105,6 +106,8 @@ class _CustomerDashboardPageState extends ConsumerState<CustomerDashboardPage> {
     if (!context.mounted) return;
     context.go('/login');
   }
+
+  void _goToProfile() => setState(() => _selectedIndex = 4);
 
   void _switchRole(BuildContext context, WidgetRef ref, Session session) {
     showModalBottomSheet<Map<String, dynamic>>(
@@ -296,6 +299,7 @@ class _CustomerTopBar extends ConsumerWidget {
     required this.selectedIndex,
     required this.onRoleSwitchTap,
     required this.onLogoutTap,
+    required this.onProfileTap,
   });
 
   final dynamic customer;
@@ -303,6 +307,7 @@ class _CustomerTopBar extends ConsumerWidget {
   final int selectedIndex;
   final VoidCallback onRoleSwitchTap;
   final VoidCallback onLogoutTap;
+  final VoidCallback onProfileTap;
 
   String _pageTitle(int index, String firstName) => switch (index) {
     0 => 'Good ${_greeting()}, $firstName 👋',
@@ -397,7 +402,7 @@ class _CustomerTopBar extends ConsumerWidget {
                 const SizedBox(width: 8),
               ],
               // Avatar menu
-              _AvatarMenu(initials: avatarInitials, onLogoutTap: onLogoutTap),
+              _AvatarMenu(initials: avatarInitials, onLogoutTap: onLogoutTap, onProfileTap: onProfileTap),
             ],
           ),
           const SizedBox(height: 12),
@@ -421,16 +426,31 @@ class _CustomerTopBar extends ConsumerWidget {
 }
 
 class _AvatarMenu extends ConsumerWidget {
-  const _AvatarMenu({required this.initials, required this.onLogoutTap});
+  const _AvatarMenu({
+    required this.initials,
+    required this.onLogoutTap,
+    required this.onProfileTap,
+  });
   final String initials;
   final VoidCallback onLogoutTap;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileImageUrl = ref
+        .watch(customerProfileDetailsProvider)
+        .asData
+        ?.value
+        .profile
+        .profileImageUrl;
+    final hasImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
+
     return PopupMenuButton<String>(
       tooltip: 'Profile Options',
       onSelected: (value) {
-        if (value == 'logout') {
+        if (value == 'profile') {
+          onProfileTap();
+        } else if (value == 'logout') {
           onLogoutTap();
         }
       },
@@ -445,18 +465,58 @@ class _AvatarMenu extends ConsumerWidget {
           gradient: AppColors.primaryGradient,
           border: Border.all(color: AppColors.glassBorder, width: 2),
         ),
-        child: Center(
-          child: Text(
-            initials,
-            style: AppTypography.outfit(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ),
+        child: hasImage
+            ? ClipOval(
+                child: Image.network(
+                  profileImageUrl,
+                  fit: BoxFit.cover,
+                  width: 42,
+                  height: 42,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Text(
+                      initials,
+                      style: AppTypography.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : Center(
+                child: Text(
+                  initials,
+                  style: AppTypography.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
       ),
       itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'profile',
+          child: Row(
+            children: [
+              const Icon(
+                Icons.person_outline_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'My Profile',
+                style: AppTypography.dmSans(
+                  fontSize: 14,
+                  color: AppColors.textOnDark,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',

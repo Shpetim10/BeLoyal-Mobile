@@ -39,10 +39,12 @@ class _BesaLoaderState extends State<BesaLoader>
   @override
   Widget build(BuildContext context) {
     const int coinCount = 4;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(coinCount, (index) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(coinCount, (index) {
         return AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -78,6 +80,7 @@ class _BesaLoaderState extends State<BesaLoader>
           ),
         );
       }),
+      ),
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/core/widgets/besa_loader.dart';
@@ -12,6 +13,7 @@ import 'package:besahub_app/features/auth/presentation/controllers/session_contr
 import 'package:besahub_app/features/customer_ui/data/models/customer_home_dto.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
+import 'package:besahub_app/features/media/data/repositories/media_repository.dart';
 import 'package:besahub_app/features/profile/data/repositories/profile_repository.dart';
 import 'package:besahub_app/features/profile/presentation/pages/change_password_page.dart';
 
@@ -197,14 +199,6 @@ class CustomerProfileTab extends ConsumerWidget {
                                     : '—',
                               ),
                             ],
-                            onEditTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => _CustomerProfileEditPage(
-                                  details: details,
-                                  section: _ProfileEditSection.membership,
-                                ),
-                              ),
-                            ),
                           ),
                         ),
                       ),
@@ -1177,6 +1171,8 @@ class _CustomerProfileEditPageState
   String? _gender;
   DateTime? _birthDate;
   bool _saving = false;
+  bool _uploadingImage = false;
+  String? _currentImageUrl;
 
   @override
   void initState() {
@@ -1190,6 +1186,7 @@ class _CustomerProfileEditPageState
     _countryCtrl = TextEditingController(text: p.country ?? '');
     _gender = p.gender;
     _birthDate = p.birthDate == null ? null : DateTime.tryParse(p.birthDate!);
+    _currentImageUrl = p.profileImageUrl;
   }
 
   @override
@@ -1201,6 +1198,169 @@ class _CustomerProfileEditPageState
     _cityCtrl.dispose();
     _countryCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _showAvatarOptions() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.glassBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Profile Photo',
+                    style: AppTypography.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textOnDark,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: Text(
+                  'Choose from gallery',
+                  style: AppTypography.dmSans(
+                    fontSize: 14,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: Text(
+                  'Take a photo',
+                  style: AppTypography.dmSans(
+                    fontSize: 14,
+                    color: AppColors.textOnDark,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadImage(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+      if (picked == null) return;
+
+      final ext = picked.path.split('.').last.toLowerCase();
+      if (!['jpg', 'jpeg', 'png'].contains(ext)) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(_snackBar('Only JPG and PNG are allowed.', isError: true));
+        }
+        return;
+      }
+
+      setState(() => _uploadingImage = true);
+
+      final session = ref.read(sessionControllerProvider);
+      if (session == null) {
+        if (mounted) setState(() => _uploadingImage = false);
+        return;
+      }
+
+      final mediaRepo = ref.read(mediaRepositoryProvider);
+      final uploadResult = await mediaRepo.uploadImage(
+        file: picked,
+        category: 'USER_PROFILE',
+        ownerId: session.user.userId,
+      );
+
+      final url = uploadResult['url'];
+      final key = uploadResult['key'];
+      if (url == null || key == null) {
+        throw Exception('Failed to retrieve image URL or key');
+      }
+
+      final profileRepo = ref.read(profileRepositoryProvider);
+      await profileRepo.updateUserProfile(
+        profileImageUrl: url,
+        profileImageKey: key,
+      );
+
+      await ref.read(customerProfileDetailsProvider.notifier).refresh();
+
+      if (mounted) {
+        setState(() => _currentImageUrl = url);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(_snackBar('Profile photo updated.'));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          _snackBar(
+            'Failed to update photo. Please try again.',
+            isError: true,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
   }
 
   Future<void> _save() async {
@@ -1330,13 +1490,51 @@ class _CustomerProfileEditPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar row (read-only)
+            // Tappable avatar with upload support
             Center(
-              child: _AvatarWidget(
-                imageUrl: profile.profileImageUrl,
-                initials: profile.avatarInitials.isNotEmpty
-                    ? profile.avatarInitials
-                    : '?',
+              child: GestureDetector(
+                onTap: _uploadingImage ? null : _showAvatarOptions,
+                child: Stack(
+                  children: [
+                    _AvatarWidget(
+                      imageUrl: _currentImageUrl,
+                      initials: profile.avatarInitials.isNotEmpty
+                          ? profile.avatarInitials
+                          : '?',
+                    ),
+                    if (_uploadingImage)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                          child: const Center(child: BesaLoader(size: 24)),
+                        ),
+                      ),
+                    if (!_uploadingImage)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF0A0812),
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 28),

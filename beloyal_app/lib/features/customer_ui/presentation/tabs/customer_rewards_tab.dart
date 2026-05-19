@@ -4,6 +4,7 @@ import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
+import 'package:besahub_app/features/customer_ui/presentation/pages/customer_business_detail_page.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_async_state.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_card.dart';
 import 'package:besahub_app/features/customer_ui/presentation/widgets/customer_coupon_detail_sheet.dart';
@@ -141,7 +142,7 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
                   ),
                   children: [
                     // 1. Rewards carousel (always at top)
-                    _buildRewardsSection(data.rewards),
+                    _buildRewardsSection(data.rewards, data.businesses),
                     // 2. Expiring banner
                     _buildExpiringBanner(expiringCount),
                     // 3. Filter area
@@ -359,7 +360,10 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
     );
   }
 
-  Widget _buildRewardsSection(List<CustomerReward> rewards) {
+  Widget _buildRewardsSection(
+    List<CustomerReward> rewards,
+    List<CustomerBusiness> businesses,
+  ) {
     if (rewards.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -381,7 +385,24 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemCount: rewards.length,
-            itemBuilder: (_, i) => _RewardCard(reward: rewards[i]),
+            itemBuilder: (_, i) {
+              final reward = rewards[i];
+              final matchIndex =
+                  businesses.indexWhere((b) => b.id == reward.businessId);
+              final business =
+                  matchIndex >= 0 ? businesses[matchIndex] : null;
+              return _RewardCard(
+                reward: reward,
+                onTap: business == null
+                    ? null
+                    : () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CustomerBusinessDetailPage(business: business),
+                          ),
+                        ),
+              );
+            },
           ),
         ),
       ],
@@ -422,8 +443,9 @@ class _CustomerRewardsTabState extends ConsumerState<CustomerRewardsTab> {
 // ─── Reward Card ──────────────────────────────────────────────────────────────
 
 class _RewardCard extends StatelessWidget {
-  const _RewardCard({required this.reward});
+  const _RewardCard({required this.reward, this.onTap});
   final CustomerReward reward;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +459,7 @@ class _RewardCard extends StatelessWidget {
         : 0;
 
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         width: 175,
         decoration: BoxDecoration(

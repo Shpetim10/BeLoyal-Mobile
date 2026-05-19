@@ -124,6 +124,22 @@ class StaffController extends AsyncNotifier<List<StaffMember>> {
     }
   }
 
+  Future<String?> deleteMember(int memberId) async {
+    final bId = _businessId;
+    if (bId == null) return 'No active business selected.';
+
+    final previous = state.value ?? [];
+    state = AsyncData(previous.where((m) => m.id != memberId).toList());
+
+    try {
+      await _repo.deleteStaffMember(bId, memberId);
+      return null;
+    } catch (e) {
+      state = AsyncData(previous);
+      return e.toString();
+    }
+  }
+
   Future<String?> resendInvite(int memberId) async {
     // For now, treat as a status update to re-trigger the invite
     return updateStatus(memberId, MemberStatus.invited);
