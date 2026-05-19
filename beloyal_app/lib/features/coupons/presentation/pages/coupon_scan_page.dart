@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/coupon_repository.dart';
 import '../../../earn_points/presentation/widgets/scanner_frame_overlay.dart';
@@ -379,10 +380,7 @@ class _ProcessingHint extends StatelessWidget {
           const SizedBox(
             width: 18,
             height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation(AppColors.primary),
-            ),
+            child: BesaLoader(size: 16),
           ),
           const SizedBox(width: 12),
           Text(

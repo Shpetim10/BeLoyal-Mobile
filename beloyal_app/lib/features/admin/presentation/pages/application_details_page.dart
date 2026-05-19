@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../business_onboarding/data/models/business_registration_dto.dart';
 import '../../../profile/presentation/controllers/admin_override_controller.dart';
 import '../../domain/models/business_application.dart';
@@ -336,11 +337,7 @@ class _ApplicationDetailsPageState
                             ),
                     ),
                     child: _isProcessing
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                            ),
-                          )
+                        ? const Center(child: BesaLoader(size: 32))
                         : Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1035,12 +1032,9 @@ class _AdminBusinessEditPanelState
                       ),
                       child: isSaving
                           ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.2,
-                              ),
+                              width: 24,
+                              height: 24,
+                              child: BesaLoader(size: 20),
                             )
                           : const Row(
                               mainAxisAlignment: MainAxisAlignment.center,

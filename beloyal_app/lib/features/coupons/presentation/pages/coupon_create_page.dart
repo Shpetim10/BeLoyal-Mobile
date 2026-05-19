@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../profile/presentation/controllers/business_profile_controller.dart';
 import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_lookup_models.dart';
@@ -478,12 +479,9 @@ class _BottomNavBar extends StatelessWidget {
               onPressed: isBusy ? null : (isLast ? onSubmit : onNext),
               icon: isBusy
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+                      width: 20,
+                      height: 20,
+                      child: BesaLoader(size: 18),
                     )
                   : Icon(isLast ? Icons.check : Icons.arrow_forward, size: 18),
               label: Text(
@@ -919,7 +917,7 @@ class _ImagePicker extends StatelessWidget {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+            BesaLoader(size: 24),
             SizedBox(height: 8),
             Text(
               'Uploading...',
@@ -1298,13 +1296,10 @@ class _DropdownField<T> extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: BesaLoader(size: 18),
                       ),
                       SizedBox(width: 10),
                       Text(

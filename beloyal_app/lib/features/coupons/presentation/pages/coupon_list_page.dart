@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../features/auth/domain/models/auth_user.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../../data/models/coupon_enums.dart';
@@ -444,11 +445,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
               // List
               Expanded(
                 child: state.isLoading && state.coupons.isEmpty
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      )
+                    ? const Center(child: BesaLoader())
                     : state.coupons.isEmpty
                     ? _EmptyState(onCreate: _openCreate, readOnly: _isStaff)
                     : RefreshIndicator(
@@ -464,11 +461,7 @@ class _CouponListPageState extends ConsumerState<CouponListPage> {
                             if (index == state.coupons.length) {
                               return const Padding(
                                 padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
+                                child: Center(child: BesaLoader(size: 24)),
                               );
                             }
                             final coupon = state.coupons[index];

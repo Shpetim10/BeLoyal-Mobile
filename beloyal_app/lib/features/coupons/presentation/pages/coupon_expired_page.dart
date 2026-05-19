@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/models/coupon_enums.dart';
 import '../../data/models/coupon_summary.dart';
 import '../controllers/coupon_expired_controller.dart';
@@ -279,8 +280,7 @@ class _CouponExpiredPageState extends ConsumerState<CouponExpiredPage> {
           // List
           Expanded(
             child: state.isLoading && state.coupons.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: _amber))
+                ? const Center(child: BesaLoader())
                 : state.coupons.isEmpty
                     ? const _ExpiredEmptyState()
                     : RefreshIndicator(
@@ -296,8 +296,7 @@ class _CouponExpiredPageState extends ConsumerState<CouponExpiredPage> {
                               return const Padding(
                                 padding: EdgeInsets.all(16),
                                 child: Center(
-                                  child: CircularProgressIndicator(
-                                      color: _amber),
+                                  child: const BesaLoader(size: 24),
                                 ),
                               );
                             }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 import 'package:besahub_app/core/utils/currency_utils.dart';
 import 'package:besahub_app/features/customer_ui/data/providers/customer_providers.dart';
 import 'package:besahub_app/features/customer_ui/data/repositories/customer_repository.dart';
@@ -958,10 +959,7 @@ class _ClaimButton extends StatelessWidget {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                  ),
+                  child: BesaLoader(size: 18),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,

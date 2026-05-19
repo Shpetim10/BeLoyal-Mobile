@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 import 'package:besahub_app/features/auth/presentation/controllers/session_controller.dart';
 import 'package:besahub_app/features/auth/presentation/pages/role_select_sheet.dart';
 import 'package:besahub_app/features/auth/domain/models/session.dart';
@@ -208,8 +209,11 @@ class _BusinessHomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(businessDashboardSummaryProvider(businessId));
 
-    return SingleChildScrollView(
+    return BesaRefreshIndicator(
+      onRefresh: () async => ref.invalidate(businessDashboardSummaryProvider(businessId)),
+      child: SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -284,6 +288,7 @@ class _BusinessHomeTab extends ConsumerWidget {
           _LoyaltyProgramCard(businessId: businessId),
         ],
       ),
+    ),
     );
   }
 }

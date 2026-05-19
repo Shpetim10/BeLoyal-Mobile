@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:besahub_app/core/theme/app_colors.dart';
 import 'package:besahub_app/core/theme/app_typography.dart';
+import 'package:besahub_app/core/widgets/besa_loader.dart';
 import 'package:besahub_app/features/customer_ui/data/models/customer_home_dto.dart'
     show ValidateRedemptionDto;
 import 'package:besahub_app/features/customer_ui/domain/models/customer_ui_models.dart';
@@ -323,10 +324,7 @@ class CouponActionChipRow extends StatelessWidget {
             ? const SizedBox(
                 width: 12,
                 height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                ),
+                child: BesaLoader(size: 10),
               )
             : Text(
                 label,

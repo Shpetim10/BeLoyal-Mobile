@@ -60,6 +60,14 @@ class StaffRepository {
       throw _mapError(e);
     }
   }
+  Future<void> deleteStaffMember(int businessId, int memberId) async {
+    try {
+      await _dio.delete('/business/$businessId/staff/$memberId');
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   String _mapError(DioException e) {
     if (e.response?.data is Map) {
       final msg = (e.response!.data as Map)['message'];

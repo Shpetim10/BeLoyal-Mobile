@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../features/catalog_categories/data/catalog_category_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 
 class MoveCategorySheet extends ConsumerStatefulWidget {
   final int businessId;
@@ -107,7 +108,7 @@ class _MoveCategorySheetState extends ConsumerState<MoveCategorySheet> {
                   });
                 },
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: BesaLoader()),
               error: (err, _) => Center(child: Text('Error loading categories', style: TextStyle(color: Colors.red))),
             ),
             const SizedBox(height: 24),

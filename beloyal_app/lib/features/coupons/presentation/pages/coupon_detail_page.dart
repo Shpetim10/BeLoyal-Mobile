@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../features/auth/domain/models/auth_user.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../../data/coupon_repository.dart';
@@ -256,7 +257,7 @@ class CouponDetailPage extends ConsumerWidget {
           ),
         ),
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: const BesaLoader(),
         ),
         error: (error, _) => Center(
           child: Padding(

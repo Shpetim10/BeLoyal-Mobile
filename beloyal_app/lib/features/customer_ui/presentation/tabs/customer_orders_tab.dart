@@ -99,9 +99,12 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
                 (t.type == 'ADJUSTMENT' && t.points < 0))
             .fold(0, (s, t) => s + t.points.abs());
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () => ref.read(customerDataProvider.notifier).refresh(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
@@ -190,41 +193,49 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
             const SizedBox(height: 4),
             Expanded(
               child: txs.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.receipt_outlined,
-                            size: 52,
-                            color: AppColors.textMutedDark.withValues(
-                              alpha: 0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No transactions',
-                            style: AppTypography.dmSans(
-                              fontSize: 14,
-                              color: AppColors.textMutedDark,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Try a different filter',
-                            style: AppTypography.dmSans(
-                              fontSize: 12,
-                              color: AppColors.textMutedDark.withValues(
-                                alpha: 0.6,
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 80),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.receipt_outlined,
+                                size: 52,
+                                color: AppColors.textMutedDark.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No transactions',
+                                style: AppTypography.dmSans(
+                                  fontSize: 14,
+                                  color: AppColors.textMutedDark,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Try a different filter',
+                                style: AppTypography.dmSans(
+                                  fontSize: 12,
+                                  color: AppColors.textMutedDark.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     )
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
-                      physics: const BouncingScrollPhysics(),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
                       children: grouped.entries.map((entry) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,6 +295,7 @@ class _CustomerOrdersTabState extends ConsumerState<CustomerOrdersTab> {
                     ),
             ),
           ],
+        ),
         );
       },
     );

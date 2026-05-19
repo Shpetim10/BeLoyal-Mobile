@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
+import '../../../auth/domain/models/auth_user.dart';
+import '../../../auth/presentation/controllers/session_controller.dart';
 import '../../domain/models/staff_member.dart';
 import '../controllers/staff_controller.dart';
 import '../widgets/staff_summary_row.dart';
@@ -157,6 +160,53 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
     }
   }
 
+  Future<void> _handleDeleteMember(StaffMember member) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Remove staff member?',
+          style: TextStyle(color: AppColors.textOnDark),
+        ),
+        content: Text(
+          'This will permanently remove ${member.fullName} from your business. Their sessions will be invalidated immediately. This action cannot be undone.',
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final error = await ref
+        .read(staffControllerProvider.notifier)
+        .deleteMember(member.id);
+
+    if (error == null && mounted) {
+      _showToast('Staff member removed');
+    } else if (error != null && mounted) {
+      _showToast(error, isError: true);
+    }
+  }
+
   Future<void> _handleCancelInvite(StaffMember member) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -261,9 +311,7 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                     child: Center(
                       child: Padding(
                         padding: EdgeInsets.all(40),
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
+                        child: const BesaLoader(),
                       ),
                     ),
                   ),
@@ -308,6 +356,9 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                     );
                   }
 
+                  final isBusinessAdmin =
+                      ref.read(sessionControllerProvider)?.activeRole ==
+                      UserRole.businessAdmin;
                   return SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 180),
                     sliver: SliverList(
@@ -320,6 +371,9 @@ class _StaffManagementPageState extends ConsumerState<StaffManagementPage> {
                               onReactivate: () => _handleReactivate(member),
                               onResendInvite: () => _handleResendInvite(member),
                               onCancelInvite: () => _handleCancelInvite(member),
+                              onDelete: isBusinessAdmin
+                                  ? () => _handleDeleteMember(member)
+                                  : null,
                             )
                             .animate()
                             .fadeIn(duration: 400.ms)

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/models/admin_business_dtos.dart';
 import '../controllers/admin_business_controller.dart';
 
@@ -53,18 +54,14 @@ class _AdminBusinessDetailsPageState
       body: Stack(
         children: [
           businessAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+            loading: () => const BesaLoadingPage(showBackground: false),
             error: (err, _) => _buildErrorState(err.toString()),
             data: (business) => _buildFancyDetails(context, business),
           ),
           if (lifecycleState.isLoading)
             Container(
               color: Colors.black.withValues(alpha: 0.55),
-              child: const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
+              child: const Center(child: BesaLoader()),
             ),
         ],
       ),
@@ -75,8 +72,10 @@ class _AdminBusinessDetailsPageState
     final hasLogo =
         business.logoPath != null && business.logoPath!.isNotEmpty;
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+    return BesaRefreshIndicator(
+      onRefresh: () async => ref.invalidate(adminBusinessDetailsProvider(widget.businessId)),
+      child: CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         // ── Hero AppBar ──────────────────────────────────────────────────────
         SliverAppBar(
@@ -277,6 +276,7 @@ class _AdminBusinessDetailsPageState
           ),
         ),
       ],
+    ),
     );
   }
 

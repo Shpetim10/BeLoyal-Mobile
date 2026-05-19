@@ -146,6 +146,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final loginState = ref.watch(loginControllerProvider);
     final isLoading = loginState.isLoading;
+    final sessionExpired = ref.watch(sessionForcedLogoutProvider);
 
     // React to async state changes.
     ref.listen(loginControllerProvider, (prev, next) {
@@ -205,6 +206,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               ?.copyWith(color: AppColors.textMuted),
                         ),
                         const SizedBox(height: 28),
+
+                        // Session-expired notice (token rejected after deployment)
+                        if (sessionExpired) ...[
+                          StatusBanner(
+                            message:
+                                'Your session has expired. Please sign in again.',
+                            type: StatusBannerType.info,
+                            onDismiss: () => ref
+                                .read(sessionForcedLogoutProvider.notifier)
+                                .clear(),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         // Error banner
                         if (errorMessage != null) ...[

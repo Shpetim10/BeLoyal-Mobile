@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../features/auth/domain/models/auth_user.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../../../catalog_categories/data/catalog_category_repository.dart';
@@ -269,11 +270,7 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
                           ),
                           loading: () => const Padding(
                             padding: EdgeInsets.only(left: 16),
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
+                            child: SizedBox(width: 24, height: 24, child: BesaLoader(size: 20)),
                           ),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
@@ -334,7 +331,7 @@ class _CatalogItemListPageState extends ConsumerState<CatalogItemListPage> {
     required bool isAdmin,
   }) {
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const BesaLoadingPage(showBackground: false);
     }
 
     if (state.error != null && state.items.isEmpty) {

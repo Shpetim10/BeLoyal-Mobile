@@ -1,9 +1,9 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/theme/glass.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -53,8 +53,9 @@ class _ResendVerificationPageState extends ConsumerState<ResendVerificationPage>
     setState(() => _isLoading = false);
 
     switch (result) {
-      case AuthSuccess(:final data):
-        setState(() => _successMessage = data);
+      case AuthSuccess():
+        setState(() => _successMessage =
+            'If an account with that email exists and is unverified, a verification email has been sent.');
 
         // Auto-redirect to check email page
         Future.delayed(const Duration(seconds: 2), () {
@@ -173,14 +174,7 @@ class _ResendVerificationPageState extends ConsumerState<ResendVerificationPage>
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
+                          ? const SizedBox(height: 24, width: 24, child: BesaLoader(size: 20))
                           : const Text('Send Verification Email'),
                     ),
                   ),

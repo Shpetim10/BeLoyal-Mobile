@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import 'package:flutter/services.dart';
 import '../../../../features/auth/presentation/controllers/session_controller.dart';
 import '../controllers/point_transactions_controller.dart';
@@ -50,14 +51,7 @@ class _PointTransactionsPageState extends ConsumerState<PointTransactionsPage> {
           ),
           
           transactionsState.when(
-            loading: () => const SliverToBoxAdapter(
-              child: SizedBox(
-                height: 300,
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              ),
-            ),
+            loading: () => const BesaSliverLoading(height: 300),
             error: (err, stack) => SliverToBoxAdapter(
               child: TransactionEmptyState.error(
                 error: err.toString(),

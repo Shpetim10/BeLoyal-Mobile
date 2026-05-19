@@ -14,6 +14,7 @@ class StaffCard extends StatelessWidget {
     required this.onReactivate,
     required this.onResendInvite,
     required this.onCancelInvite,
+    this.onDelete,
   });
 
   final StaffMember member;
@@ -22,6 +23,7 @@ class StaffCard extends StatelessWidget {
   final VoidCallback onReactivate;
   final VoidCallback onResendInvite;
   final VoidCallback onCancelInvite;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +149,7 @@ class StaffCard extends StatelessWidget {
         if (val == 1) onReactivate();
         if (val == 2) onResendInvite();
         if (val == 3) onCancelInvite();
+        if (val == 4) onDelete?.call();
       },
       itemBuilder: (context) {
         final items = <PopupMenuEntry<int>>[];
@@ -182,6 +185,20 @@ class StaffCard extends StatelessWidget {
               3,
               'Cancel Invite',
               Icons.cancel_rounded,
+              AppColors.error,
+            ),
+          );
+        }
+        // Delete option: only for business admins, not applicable on other admins
+        if (onDelete != null && member.role != 'BUSINESS_ADMIN') {
+          if (items.isNotEmpty) {
+            items.add(const PopupMenuDivider());
+          }
+          items.add(
+            _buildMenuItem(
+              4,
+              'Remove Member',
+              Icons.delete_forever_rounded,
               AppColors.error,
             ),
           );

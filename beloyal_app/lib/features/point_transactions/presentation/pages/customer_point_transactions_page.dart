@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../controllers/customer_transactions_controller.dart';
 import '../widgets/customer_transaction_card.dart';
 import '../widgets/transaction_empty_state.dart';
@@ -84,9 +85,7 @@ class _CustomerPointTransactionsPageState extends ConsumerState<CustomerPointTra
                 color: AppColors.primary,
                 backgroundColor: AppColors.surfaceDark,
                 child: transactionsState.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
+                  loading: () => const Center(child: BesaLoader()),
                   error: (err, stack) => TransactionEmptyState.error(
                     error: err.toString(),
                     onRetry: () => ref.read(customerTransactionsControllerProvider.notifier).refresh(),

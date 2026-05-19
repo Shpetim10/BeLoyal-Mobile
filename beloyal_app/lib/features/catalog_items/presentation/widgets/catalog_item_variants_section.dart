@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../controllers/catalog_item_variant_controller.dart';
 import '../../data/models/catalog_item_variant_summary_response.dart';
@@ -110,7 +111,7 @@ class _CatalogItemVariantsSectionState extends ConsumerState<CatalogItemVariants
           const Center(
             child: Padding(
               padding: EdgeInsets.all(32.0),
-              child: CircularProgressIndicator(),
+              child: BesaLoader(),
             ),
           )
         else if (variants.isEmpty)

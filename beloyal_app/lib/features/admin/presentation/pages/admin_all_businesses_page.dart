@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../controllers/admin_business_controller.dart';
 import '../widgets/admin_business_card.dart';
 
@@ -109,9 +110,7 @@ class _AdminAllBusinessesPageState extends ConsumerState<AdminAllBusinessesPage>
                 color: AppColors.primary,
                 backgroundColor: AppColors.surfaceDark,
                 child: asyncBusinesses.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
+                  loading: () => const Center(child: BesaLoader()),
                   error: (err, stack) => _buildErrorState(err.toString()),
                   data: (_) {
                     if (filteredBusinesses.isEmpty) {

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../auth/domain/models/auth_user.dart';
 import '../../../auth/presentation/widgets/premium_text_field.dart';
@@ -125,7 +126,7 @@ class _SuperAdminProfilePageState extends ConsumerState<SuperAdminProfilePage> {
         elevation: 0,
       ),
       body: stateAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: BesaLoader()),
         error: (err, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -242,11 +243,7 @@ class _SuperAdminProfilePageState extends ConsumerState<SuperAdminProfilePage> {
                 ),
                 if (isUploading)
                   const Positioned.fill(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    child: Center(child: BesaLoader(size: 28)),
                   ),
                 if (!isUploading)
                   Container(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 
 /// Full-screen overlay for the QR scanner with a transparent focus window,
 /// animated corner brackets, and helper text.
@@ -94,10 +95,7 @@ class _ScannerFrameOverlayState extends State<ScannerFrameOverlay>
               child: SizedBox(
                 width: widget.frameSize * 0.4,
                 height: widget.frameSize * 0.4,
-                child: const CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeWidth: 3,
-                ),
+                child: const BesaLoader(),
               ),
             ),
           ),

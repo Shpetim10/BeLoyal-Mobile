@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../../catalog_categories/data/catalog_category_repository.dart';
 import '../controllers/catalog_item_controller.dart';
 import '../widgets/catalog_item_card.dart';
@@ -194,7 +195,7 @@ class _DeletedCatalogItemsPageState extends ConsumerState<DeletedCatalogItemsPag
                         ),
                         loading: () => const Padding(
                           padding: EdgeInsets.only(left: 16),
-                          child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          child: SizedBox(width: 24, height: 24, child: BesaLoader(size: 20)),
                         ),
                         error: (_, __) => const SizedBox.shrink(),
                       ),
@@ -208,7 +209,7 @@ class _DeletedCatalogItemsPageState extends ConsumerState<DeletedCatalogItemsPag
               // Content Area
               Expanded(
                 child: deletedAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(child: BesaLoader()),
                   error: (err, _) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

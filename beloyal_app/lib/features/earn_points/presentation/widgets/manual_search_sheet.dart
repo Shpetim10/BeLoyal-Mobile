@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/besa_loader.dart';
 import '../../data/earn_points_repository.dart';
 import '../../data/models/resolved_guest.dart';
 import '../controllers/earn_points_controller.dart';
@@ -188,15 +189,8 @@ class _ManualSearchSheetState extends ConsumerState<ManualSearchSheet> {
                   ),
                   suffixIcon: _isLoading
                       ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                          padding: EdgeInsets.all(10),
+                          child: SizedBox(width: 22, height: 22, child: BesaLoader(size: 18)),
                         )
                       : _searchController.text.isNotEmpty
                       ? IconButton(

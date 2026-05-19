@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../../../core/widgets/besa_loader.dart';
 
 class VideoSplashScreen extends StatefulWidget {
   final bool isAppReady;
@@ -115,16 +116,7 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
                 child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF38BDF8),
-                        ),
-                        strokeWidth: 2.5,
-                      ),
-                    ),
+                    BesaLoader(size: 32),
                     SizedBox(height: 16),
                     Text(
                       'Optimizing your experience...',
